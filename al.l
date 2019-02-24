@@ -24,49 +24,53 @@
     void add_new_token(char* content, char* category, int line_no) {
         struct alpha_token_t *tmp=token_head;
         struct alpha_token_t *new = (struct alpha_token_t*)malloc(sizeof(struct alpha_token_t));
-
+       
         /*Initialize fields*/
-        strcpy(new->content, content);
-        strcpy(new->category, category);
         new->line_no = line_no;
         new->next = NULL;
+        new->content = strdup(content);
+        new->category = strdup(category);
 
         if(tmp == NULL){
             /*New token is the first*/
             new->token_num = 1;
+            token_head = new;
+            printf("only once\n");
             return;
         }
-        while( tmp->next == NULL){
+        while( tmp->next != NULL){
             tmp=tmp->next;
         }
         /*tmp now points to the last token in the list*/
         new->token_num = tmp->token_num + 1;
-        strcpy(new->content, content);
-        strcpy(new->category, category);
-        new->line_no = line_no;
-        new->next = NULL;
+        tmp->next = new;
         return;
     }
 
     /*Prints all tokens. If dest equals 0 prints tokens to stdout, else if its 1 to an output file*/
     void print_all_tokens(int dest, char* output_file){
         struct alpha_token_t* to_print = token_head;
+        printf("-------------------------------\n");
         switch(dest){
             case 0: {
                 printf("to stdout\n");
                 while(to_print != NULL) {
                     printf("%d: #%d \t %s \t %s\n", to_print->line_no, to_print->token_num, to_print->category, to_print->content);
+                    to_print = to_print->next;
                 }
                 break;
             } 
             case 1:{
                 FILE* fp;
                 printf("to file\n");
-                if( !( fp = fopen(output_file,"r") ) ){
+                if( !( fp = fopen(output_file,"w") ) ){
                     printf("An error occured while openning the output file\n");
                     exit(-1);
                 }
-                fprintf("%d: #%d \t %s \t %s\n", to_print->line_no, to_print->token_num, to_print->category, to_print->content);
+                while( to_print != NULL){
+                    fprintf(fp, "%d: #%d \t %s \t %s\n", to_print->line_no, to_print->token_num, to_print->category, to_print->content);
+                    to_print = to_print->next;
+                }
                 break;
             }
         }
@@ -80,8 +84,8 @@
 
 /*Regular expressions*/
 /*Whitespaces*/
-new_line    "\n"
-whitespace  [\t\r' ' ']
+new_line    [\n]
+whitespace  [\t\r' ']
 /*Keywords*/
 and         "and"
 or          "or"
@@ -107,21 +111,21 @@ division    "/"
 mod         "%"
 increament  "++"
 decreament  "--"
-equals      "=="
-not_equal   "!="
-greater     ">"
-greater_eq  ">="
-less        "<"
-less_eq     "<="
+b_equals      "=="
+b_not_equal   "!="
+b_greater     ">"
+b_greater_eq  ">="
+b_less        "<"
+b_less_eq     "<="
 /*Constants-Identifiers*/
 digit       [0-9]
-letter      [a-zA-Z]    
-underscore  [_]
-interger    {digit}+
-real        ({digit})*\.({digit})*
-id          {letter}{ (letter) | (digit) | (underscore) }*
-/*String*/
-string      \"
+letter      [A-Za-z]    
+underscore  "_"
+integer     {digit}+
+real        ({digit})+\.({digit})+
+id          {letter}({digit}|{letter}|{underscore})* 
+/*String have to be implemented in code*/
+string      \" 
 /*Punstuation marks*/
 left_curly          \{
 right_curly         \}
@@ -141,14 +145,155 @@ end_comment         "*/"
 line_comment        "//".*
 
 %%
-
+{new_line}          {/*Ignore it*/}
+{whitespace}*       {/*Ignore it*/}
+{and}               {
+                        add_new_token("and", "KEYWORD", yylineno);
+                    }
+{or}                {
+                        add_new_token("or", "KEYWORD", yylineno);
+                    }
+{not}               {
+                        add_new_token("not", "KEYWORD", yylineno);
+                    }
+{true}              {
+                        add_new_token("true", "KEYWORD", yylineno);
+                    }
+{false}             {
+                        add_new_token("false", "KEYWORD", yylineno);
+                    }
+{nil}               {
+                        add_new_token("nil", "KEYWORD", yylineno);
+                    }
+{if}                {
+                        add_new_token("if", "KEYWORD", yylineno);
+                    }
+{else}              {
+                        add_new_token("else", "KEYWORD", yylineno);
+                    }
+{while}             {
+                        add_new_token("while", "KEYWORD", yylineno);
+                    }
+{for}               {
+                        add_new_token("for", "KEYWORD", yylineno);
+                    }
+{break}             {
+                        add_new_token("break", "KEYWORD", yylineno);
+                    }
+{continue}          {
+                        add_new_token("continue", "KEYWORD", yylineno);
+                    }
+{function}          {
+                        add_new_token("function", "KEYWORD", yylineno);
+                    }
+{return}            {
+                        add_new_token("return", "KEYWORD", yylineno);
+                    }
+{local}             {
+                        add_new_token("local", "KEYWORD", yylineno);
+                    }
+{assign}            {
+                        add_new_token("=", "OPERATOR", yylineno);
+                    }
+{plus}              {
+                        add_new_token("+", "OPERATOR", yylineno);
+                    }
+{minus}             {    
+                        add_new_token("-", "OPERATOR", yylineno);
+                    }
+{mul}               {
+                        add_new_token("*", "OPERATOR", yylineno);
+                    }
+{division}          {
+                        add_new_token("/", "OPERATOR", yylineno);
+                    }
+{mod}               {
+                        add_new_token("%", "OPERATOR", yylineno);
+                    }
+{increament}        {
+                        add_new_token("++", "OPERATOR", yylineno);
+                    }
+{decreament}        {
+                        add_new_token("--", "OPERATOR", yylineno);
+                    }
+{b_equals}          {
+                        add_new_token("==", "OPERATOR", yylineno);
+                    }
+{b_not_equal}       {
+                        add_new_token("!=", "OPERATOR", yylineno);
+                    }
+{b_greater}         {
+                        add_new_token(">", "OPERATOR", yylineno);
+                    }
+{b_greater_eq}      {
+                        add_new_token(">=", "OPERATOR", yylineno);
+                    }
+{b_less}            {
+                        add_new_token("<", "OPERATOR", yylineno);
+                    }
+{b_less_eq}         {
+                        add_new_token("<=", "OPERATOR", yylineno);
+                    }
+{integer}           {
+                        add_new_token(yytext, "INT_CONST", yylineno);
+                    }
+{real}              {
+                        add_new_token(yytext, "REAL_CONST", yylineno);
+                    }
+{id}                {
+                        add_new_token(yytext, "IDENTIFIER", yylineno);
+                    }
+{left_curly}        {
+                        add_new_token("{", "PUNCTUATION_MARK", yylineno);
+                    }
+{right_curly}       {
+                        add_new_token("}", "PUNCTUATION_MARK", yylineno);
+                    }
+{left_bracket}      {
+                        add_new_token("[", "PUNCTUATION_MARK", yylineno);
+                    }
+{right_bracket}     {
+                        add_new_token("]", "PUNCTUATION_MARK", yylineno);
+                    }
+{left_parenthesis}  {
+                        add_new_token("(", "PUNCTUATION_MARK", yylineno);
+                    }
+{right_parenthesis} {
+                        add_new_token(")", "PUNCTUATION_MARK", yylineno);
+                    }
+{semicolon}         {
+                        add_new_token(";", "PUNCTUATION_MARK", yylineno);
+                    }
+{comma}             {
+                        add_new_token(",", "PUNCTUATION_MARK", yylineno);
+                    }
+{colon}             {
+                        add_new_token(":", "PUNCTUATION_MARK", yylineno);
+                    }
+{double_colon}      {
+                        add_new_token("::", "PUNCTUATION_MARK", yylineno);
+                    }
+{dot}               {
+                        add_new_token(".", "PUNCTUATION_MARK", yylineno);
+                    }
+{double_dot}        {
+                        add_new_token("..", "PUNCTUATION_MARK", yylineno);
+                    }
+{start_comment}     {
+                        add_new_token("/*", "COMMENT", yylineno);
+                    }
+{end_comment}       {
+                        add_new_token("*/", "COMMENT", yylineno);
+                    }
+{line_comment}      {
+                        add_new_token("//", "COMMENT", yylineno);
+                    }
 
 %%
 
 int main(int argc, char *argv[]){
     
     FILE* fp;
-
 
     if( argc < 2 || argc > 3 ){
         printf("Invalid arguments number given %d\n", argc);
@@ -164,13 +309,16 @@ int main(int argc, char *argv[]){
     /*Set the open file as the input file of lex*/
     yyin = fp;
 
+    /*Call lex function*/
+    alpha_yylex(token_head);
+
     if( argc == 2 ) {
         /*Output to stdout*/
-        print_all_tokens(0);
+        print_all_tokens(0, NULL);
     }
     if( argc == 3 ){
         /*Output to file*/
-        print_all_tokens(1);
+        print_all_tokens(1, argv[2]);
     } 
 
     return 0;
