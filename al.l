@@ -6,6 +6,14 @@
 
     /*Define alpha_yylex*/
     #define YY_DECL int alpha_yylex (void* ylval)
+    #define MAX_STR_CONST 2048
+
+    /*For keeping track of nested comments*/
+    int comment_nesting = 0;
+
+    /*Variables for keeping strings*/
+    char string_buf[MAX_STR_CONST];
+    char *string_buf_ptr;
 
     /*token struct*/
     struct alpha_token_t {
@@ -35,7 +43,6 @@
             /*New token is the first*/
             new->token_num = 1;
             token_head = new;
-            printf("only once\n");
             return;
         }
         while( tmp->next != NULL){
@@ -53,7 +60,6 @@
         printf("-------------------------------\n");
         switch(dest){
             case 0: {
-                printf("to stdout\n");
                 while(to_print != NULL) {
                     printf("%d: #%d \t %s \t %s\n", to_print->line_no, to_print->token_num, to_print->category, to_print->content);
                     to_print = to_print->next;
@@ -62,7 +68,6 @@
             } 
             case 1:{
                 FILE* fp;
-                printf("to file\n");
                 if( !( fp = fopen(output_file,"w") ) ){
                     printf("An error occured while openning the output file\n");
                     exit(-1);
@@ -143,6 +148,9 @@ double_dot          \.\.
 start_comment       "/*"    
 end_comment         "*/"    
 line_comment        "//".*
+
+/*Conditions for comments and strings*/
+%x SC_COMMENT STRING
 
 %%
 {new_line}          {/*Ignore it*/}
@@ -280,13 +288,66 @@ line_comment        "//".*
                         add_new_token("..", "PUNCTUATION_MARK", yylineno);
                     }
 {start_comment}     {
-                        add_new_token("/*", "COMMENT", yylineno);
+                        add_new_token("/**/", "COMMENT", yylineno);
+                        BEGIN(SC_COMMENT);
                     }
-{end_comment}       {
-                        add_new_token("*/", "COMMENT", yylineno);
+<SC_COMMENT>{start_comment}     { 
+                                    ++comment_nesting; 
+                                    add_new_token("/**/", "NESTED_COMMENT", yylineno);
+                                }
+<SC_COMMENT>"*"+"/"             { 
+                                    if (comment_nesting)
+                                        --comment_nesting;
+                                    else BEGIN(INITIAL); 
+                                }
+<SC_COMMENT>"*"+                {/*Ignore it*/} 
+<SC_COMMENT>[^/*\n]+            {/*Ignore it*/} 
+<SC_COMMENT>[/]                 {/*Ignore it*/} 
+<SC_COMMENT>\n                  {/*Ignore it*/} 
+
+{line_comment}                  {
+                                    add_new_token("//", "COMMENT", yylineno);
+                                }
+{string}            {
+                        string_buf_ptr = string_buf; 
+                        BEGIN(STRING);
                     }
-{line_comment}      {
-                        add_new_token("//", "COMMENT", yylineno);
+<STRING>\"          { 
+                        BEGIN(INITIAL);
+                        *string_buf_ptr = '\0';
+                        add_new_token(string_buf, "STRING", yylineno);
+                    }
+<STRING>\\[0-7]{1,3}        {
+                                int result;
+                                (void) sscanf( yytext + 1, "%o", &result );
+                                if ( result > 0xff )
+                                    *string_buf_ptr++ = result;
+                            }
+<STRING>\\[0-9]+    {
+                        printf("Bad escape sequence\n");
+                    }
+<STRING>\\n         {
+                        *string_buf_ptr++ = '\n';
+                    }
+<STRING>\\t         {
+                        *string_buf_ptr++ = '\t';
+                    }         
+<STRING>\\r         {
+                        *string_buf_ptr++ = '\r';
+                    }
+<STRING>\\b         {   
+                        *string_buf_ptr++ = '\b';
+                    }
+<STRING>\\f         {
+                        *string_buf_ptr++ = '\f';
+                    }
+<STRING>\\(.|\n)    {
+                        *string_buf_ptr++ = yytext[1];
+                        printf("[%s]\n", string_buf);
+                    }
+<STRING>[^\\\n\"]+  {
+                        char *yptr = yytext;
+                        while ( *yptr ) *string_buf_ptr++ = *yptr++;
                     }
 
 %%
@@ -320,6 +381,5 @@ int main(int argc, char *argv[]){
         /*Output to file*/
         print_all_tokens(1, argv[2]);
     } 
-
     return 0;
 }
