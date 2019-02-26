@@ -91,6 +91,7 @@
 /*Whitespaces*/
 new_line    [\n]
 whitespace  [\t\r' ']
+EOFile      "<<EOF>>"
 /*Keywords*/
 and         "and"
 or          "or"
@@ -130,7 +131,7 @@ integer     {digit}+
 real        ({digit})+\.({digit})+
 id          {letter}({digit}|{letter}|{underscore})* 
 /*String have to be implemented in code*/
-string      \" 
+string      \"
 /*Punstuation marks*/
 left_curly          \{
 right_curly         \}
@@ -148,6 +149,7 @@ double_dot          \.\.
 start_comment       "/*"    
 end_comment         "*/"    
 line_comment        "//".*
+
 
 /*Conditions for comments and strings*/
 %x SC_COMMENT STRING
@@ -288,7 +290,6 @@ line_comment        "//".*
                         add_new_token("..", "PUNCTUATION_MARK", yylineno);
                     }
 {start_comment}     {
-                        add_new_token("/**/", "COMMENT", yylineno);
                         BEGIN(SC_COMMENT);
                     }
 <SC_COMMENT>{start_comment}     { 
@@ -298,15 +299,21 @@ line_comment        "//".*
 <SC_COMMENT>"*"+"/"             { 
                                     if (comment_nesting)
                                         --comment_nesting;
-                                    else BEGIN(INITIAL); 
+                                    else{
+                                        BEGIN(INITIAL); 
+                                        add_new_token("/**/", "MULTILINE_COMMENT", yylineno);
+                                    } 
                                 }
 <SC_COMMENT>"*"+                {/*Ignore it*/} 
-<SC_COMMENT>[^/*\n]+            {/*Ignore it*/} 
+<SC_COMMENT>[^/*\n]+            {/*Ignore it*/} //TODO:
 <SC_COMMENT>[/]                 {/*Ignore it*/} 
 <SC_COMMENT>\n                  {/*Ignore it*/} 
 
+<SC_COMMENT>{EOFile}   {   printf("ERROR: comment doesn't end lineno:%d\n",yylineno);}  
+                             
+
 {line_comment}                  {
-                                    add_new_token("//", "COMMENT", yylineno);
+                                    add_new_token("//", "ONE_LINE_COMMENT", yylineno);
                                 }
 {string}            {
                         string_buf_ptr = string_buf; 
