@@ -58,11 +58,12 @@
     /*Prints all tokens. If dest equals 0 prints tokens to stdout, else if its 1 to an output file*/
     void print_all_tokens(int dest, char* output_file){
         struct alpha_token_t* to_print = token_head;
-        printf("-------------------------------\n");
+        printf("--------------------------------------------------------\n");
+        printf("%6s: %6s %20s %20s\n", "Line#", "Token#", "Category", "Content");
         switch(dest){
             case 0: {
                 while(to_print != NULL) {
-                    printf("%d: #%d \t %s \t %s\n", to_print->line_no, to_print->token_num, to_print->category, to_print->content);
+                    printf("%6d: %5d# %20s %20s\n", to_print->line_no, to_print->token_num, to_print->category, to_print->content);
                     to_print = to_print->next;
                 }
                 break;
@@ -80,6 +81,7 @@
                 break;
             }
         }
+        printf("--------------------------------------------------------\n");
     }
     
 %}
@@ -310,11 +312,13 @@ line_comment        "//".*
                                     } 
                                 }
 <SC_COMMENT>"*"+                {/*Ignore it*/} 
-<SC_COMMENT>[^/*\n]+            {/*Ignore it*/}
+<SC_COMMENT>[^/*\n]+            {/*Ignore it*/} 
 <SC_COMMENT>[/]                 {/*Ignore it*/} 
 <SC_COMMENT>\n                  {/*Ignore it*/} 
 
-<SC_COMMENT>{EOFile}   {   printf("ERROR: comment doesn't end lineno:%d\n",yylineno);}  
+<SC_COMMENT><<EOF>>             {   BEGIN(INITIAL);        
+                                    printf("ERROR: comment doesn't end lineno:%d\n",yylineno);
+                                }  
                              
 
 {line_comment}                  {

@@ -31,10 +31,17 @@ local
 15.2
 jkfsagdhl_jf
 { } [ ] ( ) ; , : :: . ..
-/* sadad /*nesdafskdasl/*dsadasdsada*/*/ 
+/* sadad /*nesdafskdasl /* dsadasdsada */ */ 
+* two line
 */
-// fsdafsdafafdasfdsafsadfa
+"this is a string" // fsdafsdafafdasfdsafsadfa
+
+
 "a fucking string"
 
-" a fucking \
-2 line string "
+" a fucking 
+2 line string " 
+this
+
+
+/*
