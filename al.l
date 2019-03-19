@@ -1,4 +1,5 @@
 %{  
+    //Τμήμα ορισμών
     /*includes*/
     #include <stdlib.h>
     #include <string.h>
@@ -155,10 +156,14 @@ line_comment        "//".*
 %x SC_COMMENT STRING
 
 %%
+
+/*Τμήμα κανόνων*/
+
 {new_line}          {/*Ignore it*/}
 {whitespace}*       {/*Ignore it*/}
 {and}               {
                         add_new_token("and", "KEYWORD", yylineno);
+                        return and;
                     }
 {or}                {
                         add_new_token("or", "KEYWORD", yylineno);
@@ -305,7 +310,7 @@ line_comment        "//".*
                                     } 
                                 }
 <SC_COMMENT>"*"+                {/*Ignore it*/} 
-<SC_COMMENT>[^/*\n]+            {/*Ignore it*/} //TODO:
+<SC_COMMENT>[^/*\n]+            {/*Ignore it*/}
 <SC_COMMENT>[/]                 {/*Ignore it*/} 
 <SC_COMMENT>\n                  {/*Ignore it*/} 
 
@@ -359,7 +364,7 @@ line_comment        "//".*
 
 <STRING>{EOFile}   {   printf("ERROR: string doesn't end lineno:%d\n",yylineno);}  
 
-.                   { printf("Other token\n");}
+.                   { printf("ERROR: Other token\n");}
 
 %%
 
