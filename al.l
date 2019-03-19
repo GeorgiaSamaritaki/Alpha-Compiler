@@ -357,6 +357,10 @@ line_comment        "//".*
                         while ( *yptr ) *string_buf_ptr++ = *yptr++;
                     }
 
+<STRING>{EOFile}   {   printf("ERROR: string doesn't end lineno:%d\n",yylineno);}  
+
+.                   { printf("Other token\n");}
+
 %%
 
 int main(int argc, char *argv[]){
