@@ -4,9 +4,10 @@
     #include <stdlib.h>
     #include <string.h>
     #include <stdio.h>
+    #include "parser.h"
 
-    /*Define alpha_yylex*/
-    #define YY_DECL int alpha_yylex (void* ylval)
+    /*Define yylex*/
+    #define YY_DECL int yylex (void* ylval)
     #define MAX_STR_CONST 2048
 
     /*For keeping track of nested comments*/
@@ -115,11 +116,11 @@ local       "local"
 assign      "="
 plus        "+"
 minus       "-"
-mul         "*"
+mul          "*"
 division    "/"
 mod         "%"
-increament  "++"
-decreament  "--"
+increment  "++"
+decrement   "--"
 b_equals      "=="
 b_not_equal   "!="
 b_greater     ">"
@@ -155,7 +156,7 @@ line_comment        "//".*
 
 
 /*Conditions for comments and strings*/
-%x SC_COMMENT STRING
+%x SC_COMMENT SRULE
 
 %%
 
@@ -168,139 +169,182 @@ line_comment        "//".*
                     }
 {or}                {
                         add_new_token("or", "KEYWORD", yylineno);
+                        return or;
                     }
 {not}               {
                         add_new_token("not", "KEYWORD", yylineno);
+                        return not;
                     }
 {true}              {
                         add_new_token("true", "KEYWORD", yylineno);
+                        return true;
                     }
 {false}             {
                         add_new_token("false", "KEYWORD", yylineno);
+                        return false;
                     }
 {nil}               {
                         add_new_token("nil", "KEYWORD", yylineno);
+                        return NIL;
                     }
 {if}                {
                         add_new_token("if", "KEYWORD", yylineno);
+                        return IF;
                     }
 {else}              {
                         add_new_token("else", "KEYWORD", yylineno);
+                        return ELSE;
                     }
 {while}             {
                         add_new_token("while", "KEYWORD", yylineno);
+                        return WHILE;
                     }
 {for}               {
                         add_new_token("for", "KEYWORD", yylineno);
+                        return FOR;
                     }
 {break}             {
                         add_new_token("break", "KEYWORD", yylineno);
+                        return BREAK;
                     }
 {continue}          {
                         add_new_token("continue", "KEYWORD", yylineno);
+                        return CONTINUE;
                     }
 {function}          {
                         add_new_token("function", "KEYWORD", yylineno);
+                        return function;
                     }
 {return}            {
                         add_new_token("return", "KEYWORD", yylineno);
+                        return RETURN;
                     }
 {local}             {
                         add_new_token("local", "KEYWORD", yylineno);
+                        return local;
                     }
 {assign}            {
                         add_new_token("=", "OPERATOR", yylineno);
+                        return assign;
                     }
 {plus}              {
                         add_new_token("+", "OPERATOR", yylineno);
+                        return plus;
                     }
 {minus}             {    
                         add_new_token("-", "OPERATOR", yylineno);
+                        return minus;
                     }
 {mul}               {
                         add_new_token("*", "OPERATOR", yylineno);
+                        return mul;
                     }
 {division}          {
                         add_new_token("/", "OPERATOR", yylineno);
+                        return division;
                     }
 {mod}               {
                         add_new_token("%", "OPERATOR", yylineno);
+                        return mod;
                     }
-{increament}        {
+{increment}         {
                         add_new_token("++", "OPERATOR", yylineno);
+                        return increment;
                     }
-{decreament}        {
+{decrement}         {
                         add_new_token("--", "OPERATOR", yylineno);
+                        return decrement;
                     }
 {b_equals}          {
                         add_new_token("==", "OPERATOR", yylineno);
+                        return b_equals;
                     }
 {b_not_equal}       {
                         add_new_token("!=", "OPERATOR", yylineno);
+                        return b_not_equal;
                     }
 {b_greater}         {
                         add_new_token(">", "OPERATOR", yylineno);
+                        return b_greater;
                     }
 {b_greater_eq}      {
                         add_new_token(">=", "OPERATOR", yylineno);
+                        return b_greater_eq;
                     }
 {b_less}            {
                         add_new_token("<", "OPERATOR", yylineno);
+                        return b_less;
                     }
 {b_less_eq}         {
                         add_new_token("<=", "OPERATOR", yylineno);
+                        return b_less_eq;
                     }
 {integer}           {
                         add_new_token(yytext, "INT_CONST", yylineno);
+                        return integer;
                     }
 {real}              {
                         add_new_token(yytext, "REAL_CONST", yylineno);
+                        return real;
                     }
 {id}                {
                         add_new_token(yytext, "IDENTIFIER", yylineno);
+                        return id;
                     }
 {left_curly}        {
                         add_new_token("{", "PUNCTUATION_MARK", yylineno);
+                        return left_curly;
                     }
 {right_curly}       {
                         add_new_token("}", "PUNCTUATION_MARK", yylineno);
+                        return right_curly;
                     }
 {left_bracket}      {
                         add_new_token("[", "PUNCTUATION_MARK", yylineno);
+                        return left_bracket;
                     }
 {right_bracket}     {
                         add_new_token("]", "PUNCTUATION_MARK", yylineno);
+                        return right_bracket;
                     }
 {left_parenthesis}  {
                         add_new_token("(", "PUNCTUATION_MARK", yylineno);
+                        return left_parenthesis;
                     }
 {right_parenthesis} {
                         add_new_token(")", "PUNCTUATION_MARK", yylineno);
+                        return right_parenthesis;
                     }
 {semicolon}         {
                         add_new_token(";", "PUNCTUATION_MARK", yylineno);
+                        return semicolon;
                     }
 {comma}             {
                         add_new_token(",", "PUNCTUATION_MARK", yylineno);
+                        return comma;
                     }
 {colon}             {
                         add_new_token(":", "PUNCTUATION_MARK", yylineno);
+                        return colon;
                     }
 {double_colon}      {
                         add_new_token("::", "PUNCTUATION_MARK", yylineno);
+                        return double_colon;
                     }
 {dot}               {
                         add_new_token(".", "PUNCTUATION_MARK", yylineno);
+                        return dot;
                     }
 {double_dot}        {
                         add_new_token("..", "PUNCTUATION_MARK", yylineno);
+                        return double_dot;
                     }
 {start_comment}     {
                         BEGIN(SC_COMMENT);
                     }
 <SC_COMMENT>{start_comment}     { 
                                     ++comment_nesting; 
-                                    add_new_token("/**/", "NESTED_COMMENT", yylineno);
+                                    add_new_token("/**/", "NESTED_COMMENT", yylineno); 
                                 }
 <SC_COMMENT>"*"+"/"             { 
                                     if (comment_nesting)
@@ -325,48 +369,51 @@ line_comment        "//".*
                                 }
 {string}            {
                         string_buf_ptr = string_buf; 
-                        BEGIN(STRING);
+                        BEGIN(SRULE);
+                        
                     }
-<STRING>\"          { 
+<SRULE>\"      { 
                         BEGIN(INITIAL);
                         *string_buf_ptr = '\0';
-                        add_new_token(string_buf, "STRING", yylineno);
+                        add_new_token(string_buf, "string", yylineno);
+                        return STRING;
                     }
-<STRING>\\[0-7]{1,3}        {
-                                int result;
-                                (void) sscanf( yytext + 1, "%o", &result );
-                                if ( result > 0xff )
-                                    *string_buf_ptr++ = result;
-                            }
-<STRING>\\[0-9]+    {
+<SRULE>\\[0-7]{1,3} {
+                        int result;
+                        (void) sscanf( yytext + 1, "%o", &result );
+                        if ( result > 0xff )
+                            *string_buf_ptr++ = result;
+                    }
+<SRULE>\\[0-9]+    {
                         printf("Bad escape sequence\n");
                     }
-<STRING>\\n         {
+<SRULE>\\n         {
                         *string_buf_ptr++ = '\n';
                     }
-<STRING>\\t         {
+<SRULE>\\t         {
                         *string_buf_ptr++ = '\t';
                     }         
-<STRING>\\r         {
+<SRULE>\\r         {
                         *string_buf_ptr++ = '\r';
                     }
-<STRING>\\b         {   
+<SRULE>\\b         {   
                         *string_buf_ptr++ = '\b';
                     }
-<STRING>\\f         {
+<SRULE>\\f         {
                         *string_buf_ptr++ = '\f';
                     }
-<STRING>\\(.|\n)    {
+<SRULE>\\(.|\n)    {
                         *string_buf_ptr++ = yytext[1];
                         printf("[%s]\n", string_buf);
                     }
-<STRING>[^\\\n\"]+  {
+<SRULE>[^\\\n\"]+  {
                         char *yptr = yytext;
                         while ( *yptr ) *string_buf_ptr++ = *yptr++;
                     }
 
-<STRING>{EOFile}   {   printf("ERROR: string doesn't end lineno:%d\n",yylineno);}  
+<SRULE><<EOF>>     {   printf("ERROR: string doesn't end lineno:%d\n",yylineno);}  
 
+[\n]+               { return new_line; }
 .                   { printf("ERROR: Other token\n");}
 
 %%
@@ -390,7 +437,7 @@ int main(int argc, char *argv[]){
     yyin = fp;
 
     /*Call lex function*/
-    alpha_yylex(token_head);
+    yylex(token_head);
 
     if( argc == 2 ) {
         /*Output to stdout*/

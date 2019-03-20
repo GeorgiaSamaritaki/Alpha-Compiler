@@ -1,14 +1,13 @@
 %{
     #include <stdio.h>
     int yyerror(char *yaccProvidedMessage);
-    int alpha_yylex(void);
+    int yylex(void);
 
     extern int yylineno;
     extern char* yytext;
     extern FILE* yyin;
-
 %}
-
+%defines
 
 %union { 
     char* stringValue; 
@@ -17,7 +16,6 @@
 }
 
 %start program
-%token ID INTEGER
 %token new_line    
 %token whitespace  
 %token EOFile  
@@ -27,27 +25,30 @@
 %token or          
 %token not         
 %token true        
-%token false       
-%token nil         
-%token if          
-%token else        
-%token while       
-%token for         
-%token break       
-%token continue    
+%token false  
+/*C keywords*/
+%token NIL         
+%token IF          
+%token ELSE        
+%token WHILE       
+%token FOR         
+%token BREAK       
+%token CONTINUE    
 %token function    
-%token return      
+%token RETURN   
+
 %token local       
 
 /*Operators*/
 %token assign      
 %token plus        
-%token minus       
+%token minus  
+%token uminus
 %token mul         
 %token division    
 %token mod         
-%token increament  
-%token decreament  
+%token increment  
+%token decrement  
 %token b_equals    
 %token b_not_equal 
 %token b_greater   
@@ -64,15 +65,15 @@
 %token id           
 
 /*String have to be implemented in code*/
-%token string  
+%token STRING  
 
 /*Punstuation marks*/
 %token left_curly          
 %token right_curly         
 %token left_bracket        
 %token right_bracket       
-%token left_parenthesis    
-%token right_parenthesis   
+%token left_parenthesis     
+%token  right_parenthesis   
 %token semicolon           
 %token comma               
 %token colon               
@@ -90,141 +91,144 @@
 %right      assign
 %left	    or
 %left	    and 
-%nonassoc   b_not_equal b_equal
+%nonassoc   b_not_equal b_equals
 %nonassoc	b_greater   b_greater_eq  b_less  b_less_eq 
 
 %left       plus    minus
 %left       mul     division    mod
-%right      not     increment   decreament UMINUS
+%right      not     increment   decrement uminus
 
 %left	    dot     double_dot
 %left       comma
 
 %left       left_bracket        right_bracket
-%left       left_parenthesis    right_parenthesis
+%left       left_parenthesis      right_parenthesis
 %left       left_curly          right_curly
 
 
 %%
 
-/*
-    print
-    input
-    objectmemberkeys
-    objecttotalmembers
-    objectcopy
-    totalarguments
-    argument
-    typeof
-    strtonum
-    sqrt
-    cos
-    sin
-*/
 
-program:    statements
-            | /*empty*/
-            ;
+program:    statements;
 
-stmt:       expr ;
+stmt:       expr  semicolon
             | ifstmt
             | whilestmt
             | forstmt
             | returnstmt
-            | break;
-            | continue;
+            | BREAK semicolon
+            | CONTINUE semicolon
             | block
             | funcdef
-            | /*empty*/;
+            | semicolon;
 
 statements: statements stmt
             | /*empty*/;
 
 expr:       assignexpr
-            | expr op expr
-            | term ;
+            | opexpr
+            | term;
 
-op:         + | - | * | / | % | > | >= | < | <= | == | != | and | or ;
+opexpr:       expr plus         expr 
+            | expr minus        expr 
+            | expr mul          expr
+            | expr division     expr 
+            | expr mod          expr
+            | expr b_greater    expr 
+            | expr b_greater_eq expr 
+            | expr b_less       expr
+            | expr b_less_eq    expr 
+            | expr b_equals     expr 
+            | expr b_not_equal  expr
+            | expr and          expr 
+            | expr or           expr;
 
-term:       ( expr )
+
+term:       left_parenthesis  expr  right_parenthesis
             | not expr
-            | - expr
-            | ++lvalue
-            | lvalue++
-            | --lvalue
-            | lvalue--
+            | minus expr  %prec uminus
+            |  increment lvalue
+            | lvalue increment 
+            |  decrement lvalue
+            | lvalue decrement 
             | primary;
 
-assginexpr: lvalue = expr;
+assignexpr: lvalue assign expr;
 
 primary:    lvalue
             | call
             | objectdef
-            | ( funcdef )
+            | left_parenthesis  funcdef  right_parenthesis
             | const;
 
 lvalue:     id
             | local id
-            | :: id
+            | double_colon id
             | member;
 
-member:     lvalue . id
-            | lvalue [ expr ]
-            | call . id
-            | call [ expr ];
+member:     lvalue dot id
+            | lvalue left_bracket expr  right_bracket
+            | call dot id
+            | call left_bracket expr  right_bracket;
 
-call:       call ( elist )
+call:       call left_parenthesis  elist  right_parenthesis
             | lvalue callsuffix
-            | ( funcdef) ( elist );
+            | left_parenthesis  funcdef right_parenthesis left_parenthesis  elist  right_parenthesis;
 
 callsuffix: normcall
             | methodcall;
 
-normcall:   ( elist );
+normcall:   left_parenthesis  elist  right_parenthesis;
 
-methodcall: .. id ( elist ) // equivalent to lvalue.id(lvalue, elist);
+methodcall: real id left_parenthesis  elist  right_parenthesis ; 
+            // equivalent to lvalue.id(lvalue, elist)
 
 elist_l:    expr
-            | elist_l ',' expr;
-elist:      elist_l 
-            | /*empty*/;
+            | elist_l comma expr;
 
+elist:      elist_l
+            |/*empty*/;
 
-objectdef:  [ elist | indexed | /*empty*/ ];
+objectdef:  left_bracket elist right_bracket
+            |left_bracket indexed  right_bracket;
 
-indexedelem:{ expr : expr };
+indexedelem:left_curly expr colon expr right_curly; // { expr : expr}
 
-indexed_l:  indexedelem
-            | indexed_l ',' indexedelem;
+indexed:    indexedelem 
+            | indexed comma indexedelem;
 
-indexed:    indexed_l 
-            | /*empty*/;
+block_l:    stmt | block_l stmt ;
 
-block_l:    block_l stmt | /*empty*/;
-
-block:      { block_l };
+block:      left_curly block_l right_curly 
+            | left_curly right_curly;
 
 funcdef_l:  id | /*empty*/;
 
-funcdef:    function funcdef_l (idlist) block;
+funcdef:    function funcdef_l left_parenthesis idlist right_parenthesis block;
 
-const:      number | string | nil | true | false;
+number:     integer | real ;
+const:      number | STRING | NIL | true | false;
 
-idlist_l:   id
-            | idlist_l ',' id;
-idlist:     idlist_l 
+//id can be empty
+idlist:     id
+            |idlist comma id;
+
+elsestmt:   ELSE stmt 
             | /*empty*/;
 
-elsestmt:   else stmt | /*empty*/;
+ifstmt:     IF left_parenthesis  expr right_parenthesis elsestmt;
 
-ifstmt:     if ( expr ) stmt elsestmt;
+whilestmt:  WHILE left_parenthesis  expr right_parenthesis stmt;
 
-whilestmt:  while ( expr ) stmt;
+forstmt:    FOR left_parenthesis  elist semicolon expr semicolon elist right_parenthesis stmt;
 
-forstmt:    for ( elist; expr; elist) stmt;
+returnstmt: RETURN expr semicolon
+            | RETURN semicolon;
 
-returnexpr: expr | /*empty*/;
-
-returnstmt: return returnexpr;
 
 %%
+int yyerror(char* yaccProvidedMessage){
+    fprintf(stderr, "%s: at line %d, before token: %s\n",yaccProvidedMessage,yylineno,yytext);
+    fprintf(stderr,"INPUT NOT VALID\n");
+}
+
