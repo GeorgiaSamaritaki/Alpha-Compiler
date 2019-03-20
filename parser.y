@@ -87,7 +87,6 @@
 
 %token other
 
-
 %right      assign
 %left	    or
 %left	    and 
@@ -124,7 +123,7 @@
 */
 
 program:    statements
-            | 
+            | /*empty*/
             ;
 
 stmt:       expr ;
@@ -200,7 +199,6 @@ indexed_l:  indexedelem
 
 indexed:    indexed_l 
             | /*empty*/;
-
 
 block_l:    block_l stmt | /*empty*/;
 
