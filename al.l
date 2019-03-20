@@ -159,7 +159,6 @@ line_comment        "//".*
 
 %%
 
-/*Τμήμα κανόνων*/
 
 {new_line}          {/*Ignore it*/}
 {whitespace}*       {/*Ignore it*/}
