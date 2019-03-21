@@ -4,10 +4,10 @@
     #include <stdlib.h>
     #include <string.h>
     #include <stdio.h>
-    #include "parser.h"
+    #include "parser.hpp"
 
     /*Define yylex*/
-    #define YY_DECL int yylex (void* ylval)
+    #define YY_DECL int yylex(void)
     #define MAX_STR_CONST 2048
 
     /*For keeping track of nested comments*/
@@ -33,26 +33,26 @@
     /*Add a new token to the list of tokens*/
     void add_new_token(char* content, char* category, int line_no) {
         struct alpha_token_t *tmp=token_head;
-        struct alpha_token_t *new = (struct alpha_token_t*)malloc(sizeof(struct alpha_token_t));
+        struct alpha_token_t *new_token = (struct alpha_token_t*)malloc(sizeof(struct alpha_token_t));
        
         /*Initialize fields*/
-        new->line_no = line_no;
-        new->next = NULL;
-        new->content = strdup(content);
-        new->category = strdup(category);
+        new_token->line_no = line_no;
+        new_token->next = NULL;
+        new_token->content = strdup(content);
+        new_token->category = strdup(category);
 
         if(tmp == NULL){
-            /*New token is the first*/
-            new->token_num = 1;
-            token_head = new;
+            /*new_token token is the first*/
+            new_token->token_num = 1;
+            token_head = new_token;
             return;
         }
         while( tmp->next != NULL){
             tmp=tmp->next;
         }
         /*tmp now points to the last token in the list*/
-        new->token_num = tmp->token_num + 1;
-        tmp->next = new;
+        new_token->token_num = tmp->token_num + 1;
+        tmp->next = new_token;
         return;
     }
 
@@ -97,11 +97,11 @@ new_line    [\n]
 whitespace  [\t\r' ']
 EOFile      "<<EOF>>"
 /*Keywords*/
-and         "and"
-or          "or"
-not         "not"
-true        "true"
-false       "false"
+AND         "and"
+OR          "or"
+NOT         "not"
+TRUE        "true"
+FALSE       "false"
 nil         "nil"
 if          "if"
 else        "else"
@@ -161,27 +161,29 @@ line_comment        "//".*
 %%
 
 
-{new_line}          {/*Ignore it*/}
 {whitespace}*       {/*Ignore it*/}
-{and}               {
+{new_line}+         { 
+                        // return new_line;
+                    }
+{AND}               {
                         add_new_token("and", "KEYWORD", yylineno);
-                        return and;
+                        return AND;
                     }
-{or}                {
+{OR}                {
                         add_new_token("or", "KEYWORD", yylineno);
-                        return or;
+                        return OR;
                     }
-{not}               {
+{NOT}               {
                         add_new_token("not", "KEYWORD", yylineno);
-                        return not;
+                        return NOT;
                     }
-{true}              {
+{TRUE}              {
                         add_new_token("true", "KEYWORD", yylineno);
-                        return true;
+                        return TRUE;
                     }
-{false}             {
+{FALSE}             {
                         add_new_token("false", "KEYWORD", yylineno);
-                        return false;
+                        return FALSE;
                     }
 {nil}               {
                         add_new_token("nil", "KEYWORD", yylineno);
@@ -413,12 +415,11 @@ line_comment        "//".*
 
 <SRULE><<EOF>>     {   printf("ERROR: string doesn't end lineno:%d\n",yylineno);}  
 
-[\n]+               { return new_line; }
 .                   { printf("ERROR: Other token\n");}
 
 %%
 
-int main(int argc, char *argv[]){
+/*int main(int argc, char *argv[]){
     
     FILE* fp;
 
@@ -426,26 +427,26 @@ int main(int argc, char *argv[]){
         printf("Invalid arguments number given %d\n", argc);
         exit(-1);
     }
-
+*/
     /*Read text from file*/
-    if( !( fp = fopen(argv[1],"r") ) ){
+/*    if( !( fp = fopen(argv[1],"r") ) ){
         printf("An error occured while openning the file\n");
         exit(-1);
     }
-
+*/
     /*Set the open file as the input file of lex*/
-    yyin = fp;
+//    yyin = fp;
 
     /*Call lex function*/
-    yylex(token_head);
+ /*   yylex();
 
     if( argc == 2 ) {
-        /*Output to stdout*/
-        print_all_tokens(0, NULL);
+*/        /*Output to stdout*/
+ /*       print_all_tokens(0, NULL);
     }
     if( argc == 3 ){
-        /*Output to file*/
-        print_all_tokens(1, argv[2]);
+   */     /*Output to file*/
+    /*    print_all_tokens(1, argv[2]);
     } 
     return 0;
-}
+}*/

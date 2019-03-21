@@ -1,19 +1,19 @@
 
-all: parser.c al.c al 
+all: parser.cpp al.cpp al 
 
-al.c: al.l
-	flex --outfile=al.c al.l
+al.cpp: al.l
+	flex --outfile=al.cpp al.l
 
-parser.c: parser.y	
-	bison --yacc -v --defines --output=parser.c parser.y
+parser.cpp: parser.y	
+	bison --yacc -v --defines --output=parser.cpp parser.y
 
 al:
-	gcc -o al al.c parser.c
+	gcc -Wno-write-strings -o al parser.cpp al.cpp
 
 clean: 
 	touch *
-	rm parser.h
-	rm parser.c
-	rm al.c
+	rm parser.hpp
+	rm parser.cpp
+	rm al.cpp
 	rm al
 	

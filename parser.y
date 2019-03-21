@@ -1,12 +1,14 @@
 %{
     #include <stdio.h>
-    int yyerror(char *yaccProvidedMessage);
+    
+    int yyerror(char* yaccProvidedMessage);
     int yylex(void);
 
     extern int yylineno;
     extern char* yytext;
     extern FILE* yyin;
 %}
+
 %defines
 
 %union { 
@@ -21,11 +23,11 @@
 %token EOFile  
     
 /*Keywords*/
-%token and         
-%token or          
-%token not         
-%token true        
-%token false  
+%token AND         
+%token OR          
+%token NOT         
+%token TRUE        
+%token FALSE  
 /*C keywords*/
 %token NIL         
 %token IF          
@@ -89,14 +91,14 @@
 %token other
 
 %right      assign
-%left	    or
-%left	    and 
+%left	    OR
+%left	    AND 
 %nonassoc   b_not_equal b_equals
 %nonassoc	b_greater   b_greater_eq  b_less  b_less_eq 
 
 %left       plus    minus
 %left       mul     division    mod
-%right      not     increment   decrement uminus
+%right      NOT     increment   decrement uminus
 
 %left	    dot     double_dot
 %left       comma
@@ -111,124 +113,146 @@
 
 program:    statements;
 
-stmt:       expr  semicolon
-            | ifstmt
-            | whilestmt
-            | forstmt
-            | returnstmt
-            | BREAK semicolon
-            | CONTINUE semicolon
-            | block
-            | funcdef
-            | semicolon;
+stmt:       expr         {printf("expr ");      }  semicolon {printf("';'\n");}
+            | ifstmt     {printf("'ifstmt' ");  }
+            | whilestmt  {printf("'whilestmt'");}
+            | forstmt    {printf("'forstmt' "); }
+            | returnstmt {printf("returnstmt ");}
+            | BREAK      {printf("Break ");     } semicolon {printf(" ';'\n ");}
+            | CONTINUE   {printf("Continue ");  } semicolon {printf(" ';'\n ");}
+            | block      {printf("'block' ");   }
+            | funcdef    {printf("'funcdef' "); }
+            | semicolon  {printf("';'\n ");     };
+            
 
-statements: statements stmt
-            | /*empty*/;
+statements: statements {printf("statements ");} stmt {printf("stmt ");}
+            | /*empty*/{printf("emptystatements ");};
 
-expr:       assignexpr
-            | opexpr
-            | term;
+expr:       assignexpr  {printf("assignexpr ");}
+            | opexpr    {printf("opexpr ");}
+            | term      {printf("term ");};     
 
-opexpr:       expr plus         expr 
-            | expr minus        expr 
-            | expr mul          expr
-            | expr division     expr 
-            | expr mod          expr
-            | expr b_greater    expr 
-            | expr b_greater_eq expr 
-            | expr b_less       expr
-            | expr b_less_eq    expr 
-            | expr b_equals     expr 
-            | expr b_not_equal  expr
-            | expr and          expr 
-            | expr or           expr;
+opexpr:       expr plus         expr {printf("expr + expr");}  
+            | expr minus        expr {printf("expr - expr");}
+            | expr mul          expr {printf("expr * expr");}
+            | expr division     expr {printf("expr / expr");}
+            | expr mod          expr {printf("expr % expr");}
+            | expr b_greater    expr {printf("expr > expr");}
+            | expr b_less       expr {printf("expr < expr");}
+            | expr b_greater_eq expr {printf("expr >= expr");}
+            | expr b_less_eq    expr {printf("expr <= expr");}
+            | expr b_equals     expr {printf("expr == expr");}
+            | expr b_not_equal  expr {printf("expr != expr");}
+            | expr AND          expr {printf("expr && expr");}
+            | expr OR           expr {printf("expr || expr");} ;
 
+term:       left_parenthesis {printf("'('");} expr {printf("expr");}  right_parenthesis {printf("')'");}
+            | NOT {printf("not");} expr {printf("expr");}
+            | minus {printf("'-'");} expr {printf("expr");}  %prec uminus
+            | increment {printf("'++'");} lvalue {printf("lvalue ");}
+            | lvalue {printf("lvalue ");} increment {printf("'++'");} 
+            | decrement {printf("'--'");} lvalue {printf("lvalue ");}
+            | lvalue {printf("lvalue ");} decrement {printf("'--'");} 
+            | primary {printf("primary ");};
 
-term:       left_parenthesis  expr  right_parenthesis
-            | not expr
-            | minus expr  %prec uminus
-            |  increment lvalue
-            | lvalue increment 
-            |  decrement lvalue
-            | lvalue decrement 
-            | primary;
+assignexpr: lvalue {printf("lvalue ");} assign {printf("'='");} expr {printf("expr");};
 
-assignexpr: lvalue assign expr;
-
-primary:    lvalue
+primary:    lvalue {printf("lvalue ");}
             | call
             | objectdef
-            | left_parenthesis  funcdef  right_parenthesis
-            | const;
+            | left_parenthesis funcdef right_parenthesis {printf("'(' funcdef ')'");}
+            | const {printf("const ");}
+            ;
 
-lvalue:     id
-            | local id
-            | double_colon id
-            | member;
+lvalue:     id {printf("'id'");}
+            | local id {printf("'id'");}
+            | double_colon id {printf("'id'");}
+            | member {printf("'member'");};
 
-member:     lvalue dot id
-            | lvalue left_bracket expr  right_bracket
-            | call dot id
-            | call left_bracket expr  right_bracket;
+member:     lvalue {printf("lvalue ");} dot id {printf("'id'");}
+            | lvalue left_bracket expr right_bracket {printf("lvalue '[' expr ']'");}
+            | call dot id {printf("'id'");}
+            | call left_bracket expr right_bracket {printf("'[' expr ']'");};
 
-call:       call left_parenthesis  elist  right_parenthesis
-            | lvalue callsuffix
-            | left_parenthesis  funcdef right_parenthesis left_parenthesis  elist  right_parenthesis;
+call:       call left_parenthesis elist right_parenthesis {printf("'(' elist ')'");}
+            | lvalue {printf("lvalue ");} callsuffix {printf("callsuffix ");} 
+            | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {printf("'(' funcdef ')''(' elist ')'");};
 
-callsuffix: normcall
-            | methodcall;
+callsuffix: normcall  {printf("normcall ");} 
+            | methodcall {printf("methodcall ");} ;
 
-normcall:   left_parenthesis  elist  right_parenthesis;
+normcall:   left_parenthesis elist right_parenthesis {printf("'(' elist ')'");};
 
-methodcall: real id left_parenthesis  elist  right_parenthesis ; 
-            // equivalent to lvalue.id(lvalue, elist)
+methodcall: double_dot id left_parenthesis elist right_parenthesis {printf("..id '(' elist ')'");} ; 
 
-elist_l:    expr
-            | elist_l comma expr;
+elist_l:    expr {printf("elist_lexpr");}
+            | elist_l comma expr {printf("elist_l , elist_lexpr");};
 
-elist:      elist_l
-            |/*empty*/;
+elist:      elist_l {printf("elist ");}
+            |/*empty*/  {printf("emptyelist ");};
 
-objectdef:  left_bracket elist right_bracket
-            |left_bracket indexed  right_bracket;
+objectdef:  left_bracket elist right_bracket {printf("'[' elist ']'");}
+            |left_bracket indexed right_bracket {printf("'[' indexed ']'");};
 
-indexedelem:left_curly expr colon expr right_curly; // { expr : expr}
+indexedelem: left_curly expr colon expr right_curly {printf("'{' expr: expr'}'");}; 
+            // { expr {printf("expr");} : expr {printf("expr");}}
 
-indexed:    indexedelem 
-            | indexed comma indexedelem;
+indexed:    indexedelem {printf("indexedelem ");} 
+            | indexed comma indexedelem {printf("indexed , indexedelem ");};
 
-block_l:    stmt | block_l stmt ;
+block_l:    stmt {printf("stmt ");} 
+            | block_l {printf("block_l ");} stmt {printf("stmt ");} ;
 
-block:      left_curly block_l right_curly 
-            | left_curly right_curly;
+block:      left_curly {printf("'{'");} block_l right_curly {printf("'}'");} 
+            | left_curly {printf("'{'");} right_curly {printf("'}'");};
 
-funcdef_l:  id | /*empty*/;
+funcdef_l:  id {printf("'id'");} | /*empty*/{printf("emptyfuncdef_l ");};
 
-funcdef:    function funcdef_l left_parenthesis idlist right_parenthesis block;
+funcdef:    function {printf("function ");} funcdef_l  {printf("funcdef_l ");} left_parenthesis {printf("'('");} idlist right_parenthesis {printf("')'");} block;
 
-number:     integer | real ;
-const:      number | STRING | NIL | true | false;
+number:     integer {printf("'int'");}
+            | real  {printf("'real'");};
+const:      number {printf("'number'");}
+            | STRING {printf("'string'");}
+            | NIL {printf("'nil'");}
+            | TRUE {printf("'true'");}
+            | FALSE{printf("'false'");};
 
-//id can be empty
-idlist:     id
-            |idlist comma id;
+//idlist {printf("'id'");} can be empty
+idlist:     id {printf("'id'");}
+            |idlist comma {printf("','");} id {printf("'id'");};
 
-elsestmt:   ELSE stmt 
-            | /*empty*/;
+// idlist:     idlist_l {printf("idlist ");} 
+//             | /*empty*/ {printf("emptyidlist ");};
 
-ifstmt:     IF left_parenthesis  expr right_parenthesis elsestmt;
+elsestmt:   ELSE {printf("else ");} stmt {printf("stmt ");}
+            | /*empty*/ {printf("emptyelse ");};
 
-whilestmt:  WHILE left_parenthesis  expr right_parenthesis stmt;
+ifstmt:     IF left_parenthesis {printf("'('");} expr {printf("expr");} right_parenthesis {printf("')'");} elsestmt {printf("elsestmt");};
 
-forstmt:    FOR left_parenthesis  elist semicolon expr semicolon elist right_parenthesis stmt;
+whilestmt:  WHILE left_parenthesis {printf("'('");} expr {printf("expr");} right_parenthesis {printf("')'");} stmt {printf("stmt");};
 
-returnstmt: RETURN expr semicolon
-            | RETURN semicolon;
+forstmt:    FOR left_parenthesis {printf("'('");} elist {printf("elist");} semicolon expr {printf("expr");} semicolon elist {printf("elist");} right_parenthesis {printf("')'");} stmt;
 
-
+returnstmt: RETURN { printf("return "); } expr {printf("expr");} semicolon {printf("';'\n");}
+            | RETURN { printf("return "); } semicolon {printf("';'\n");};
 %%
 int yyerror(char* yaccProvidedMessage){
     fprintf(stderr, "%s: at line %d, before token: %s\n",yaccProvidedMessage,yylineno,yytext);
     fprintf(stderr,"INPUT NOT VALID\n");
 }
 
+int main(int argc, char* argv[]){
+    
+    FILE* fp;
+    
+    // if( !( fp = fopen(argv[1],"r") ) ){
+    //     printf("An error occured while openning the file\n");
+    //     exit(-1);
+    // }
+
+    yyin = stdin;
+
+    yyparse();
+    return 0;
+}
