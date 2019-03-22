@@ -1,6 +1,7 @@
 %{
     #include <stdio.h>
-    
+    #include "symtable.hpp"
+
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
 
@@ -113,38 +114,38 @@
 
 program:    statements;
 
-stmt:       expr         {printf("expr ");      }  semicolon {printf("';'\n");}
-            | ifstmt     {printf("'ifstmt' ");  }
-            | whilestmt  {printf("'whilestmt'");}
-            | forstmt    {printf("'forstmt' "); }
-            | returnstmt {printf("returnstmt ");}
-            | BREAK      {printf("Break ");     } semicolon {printf(" ';'\n ");}
-            | CONTINUE   {printf("Continue ");  } semicolon {printf(" ';'\n ");}
-            | block      {printf("'block' ");   }
-            | funcdef    {printf("'funcdef' "); }
-            | semicolon  {printf("';'\n ");     };
+stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \n\n");}
+            | ifstmt     {printf("stmt->ifstmt \n\n");    }
+            | whilestmt  {printf("stmt->whilestmt\n\n");  }
+            | forstmt    {printf("stmt->forstmt   \n\n");   }
+            | returnstmt {printf("stmt->returnstmt \n\n");}
+            | {printf("\n\n-----\n\nstmt->block1 ");} block      {printf("stmt->block2 \n\n----\n\n");}
+            | funcdef    {printf("stmt->funcdef \n\n");   }
+            | BREAK      {printf("stmt->Break ");     } semicolon {printf(" ';'  \n\n");}
+            | CONTINUE   {printf("stmt->Continue");  } semicolon {printf(" ';'  \n\n");}
+            | semicolon  {printf("';'  \n\n");       };
             
 
-statements: statements {printf("statements ");} stmt {printf("stmt ");}
-            | /*empty*/{printf("emptystatements ");};
+statements: statements  stmt 
+            | /*empty*/;
 
 expr:       assignexpr  {printf("assignexpr ");}
             | opexpr    {printf("opexpr ");}
             | term      {printf("term ");};     
 
-opexpr:       expr plus         expr {printf("expr + expr");}  
-            | expr minus        expr {printf("expr - expr");}
-            | expr mul          expr {printf("expr * expr");}
-            | expr division     expr {printf("expr / expr");}
-            | expr mod          expr {printf("expr % expr");}
-            | expr b_greater    expr {printf("expr > expr");}
-            | expr b_less       expr {printf("expr < expr");}
-            | expr b_greater_eq expr {printf("expr >= expr");}
-            | expr b_less_eq    expr {printf("expr <= expr");}
-            | expr b_equals     expr {printf("expr == expr");}
-            | expr b_not_equal  expr {printf("expr != expr");}
-            | expr AND          expr {printf("expr && expr");}
-            | expr OR           expr {printf("expr || expr");} ;
+opexpr:       expr plus         expr {printf("'expr + expr' ");}  
+            | expr minus        expr {printf("'expr - expr' ");}
+            | expr mul          expr {printf("'expr * expr' ");}
+            | expr division     expr {printf("'expr / expr' ");}
+            | expr mod          expr {printf("'expr % expr' ");}
+            | expr b_greater    expr {printf("'expr > expr' ");}
+            | expr b_less       expr {printf("'expr < expr' ");}
+            | expr b_greater_eq expr {printf("'expr >= expr' ");}
+            | expr b_less_eq    expr {printf("'expr <= expr' ");}
+            | expr b_equals     expr {printf("'expr == expr' ");}
+            | expr b_not_equal  expr {printf("'expr != expr' ");}
+            | expr AND          expr {printf("'expr && expr' ");}
+            | expr OR           expr {printf("'expr || expr' ");} ;
 
 term:       left_parenthesis {printf("'('");} expr {printf("expr");}  right_parenthesis {printf("')'");}
             | NOT {printf("not");} expr {printf("expr");}
@@ -185,8 +186,8 @@ normcall:   left_parenthesis elist right_parenthesis {printf("'(' elist ')'");};
 
 methodcall: double_dot id left_parenthesis elist right_parenthesis {printf("..id '(' elist ')'");} ; 
 
-elist_l:    expr {printf("elist_lexpr");}
-            | elist_l comma expr {printf("elist_l , elist_lexpr");};
+elist_l:    expr 
+            | elist_l comma expr;
 
 elist:      elist_l {printf("elist ");}
             |/*empty*/  {printf("emptyelist ");};
@@ -200,42 +201,38 @@ indexedelem: left_curly expr colon expr right_curly {printf("'{' expr: expr'}'")
 indexed:    indexedelem {printf("indexedelem ");} 
             | indexed comma indexedelem {printf("indexed , indexedelem ");};
 
-block_l:    stmt {printf("stmt ");} 
-            | block_l {printf("block_l ");} stmt {printf("stmt ");} ;
 
-block:      left_curly {printf("'{'");} block_l right_curly {printf("'}'");} 
-            | left_curly {printf("'{'");} right_curly {printf("'}'");};
+block:      left_curly {printf("'{' block ");} statements right_curly {printf("'}'"); hide(scope--);};
 
-funcdef_l:  id {printf("'id'");} | /*empty*/{printf("emptyfuncdef_l ");};
+func_name:  id {printf("'func_id'");} | /*empty*/{printf("'annonymousfunc' ");};
 
-funcdef:    function {printf("function ");} funcdef_l  {printf("funcdef_l ");} left_parenthesis {printf("'('");} idlist right_parenthesis {printf("')'");} block;
+funcdef:    function {printf("function ");} func_name left_parenthesis {scope++; printf("'('");} idlist right_parenthesis {printf("')'");} block/**/;
 
-number:     integer {printf("'int'");}
-            | real  {printf("'real'");};
-const:      number {printf("'number'");}
-            | STRING {printf("'string'");}
-            | NIL {printf("'nil'");}
-            | TRUE {printf("'true'");}
-            | FALSE{printf("'false'");};
+number:     integer     {printf("'int'");}
+            | real      {printf("'real'");};
+
+const:      number      {printf("'number'");}
+            | STRING    {printf("'string'");}
+            | NIL       {printf("'nil'");}
+            | TRUE      {printf("'true'");}
+            | FALSE     {printf("'false'");};
 
 //idlist {printf("'id'");} can be empty
-idlist:     id {printf("'id'");}
-            |idlist comma {printf("','");} id {printf("'id'");};
+idlist_l:   id {printf("'idlist_id1'");}
+            |idlist_l comma id {printf("'idlsit id1+'");};
 
-// idlist:     idlist_l {printf("idlist ");} 
-//             | /*empty*/ {printf("emptyidlist ");};
+idlist:     idlist_l {printf("idlist ");} 
+             | /*empty*/ {printf("emptyidlist ");};
 
-elsestmt:   ELSE {printf("else ");} stmt {printf("stmt ");}
-            | /*empty*/ {printf("emptyelse ");};
+ifstmt:     IF left_parenthesis expr right_parenthesis  stmt ELSE stmt { printf(" \"if(expr) stmt else stmt\" "); } 
+            | IF left_parenthesis expr right_parenthesis stmt ;
 
-ifstmt:     IF left_parenthesis {printf("'('");} expr {printf("expr");} right_parenthesis {printf("')'");} elsestmt {printf("elsestmt");};
-
-whilestmt:  WHILE left_parenthesis {printf("'('");} expr {printf("expr");} right_parenthesis {printf("')'");} stmt {printf("stmt");};
+whilestmt:  WHILE left_parenthesis expr right_parenthesis stmt {printf(" \"while(expr) stmt else stmt\" ");};
 
 forstmt:    FOR left_parenthesis {printf("'('");} elist {printf("elist");} semicolon expr {printf("expr");} semicolon elist {printf("elist");} right_parenthesis {printf("')'");} stmt;
 
-returnstmt: RETURN { printf("return "); } expr {printf("expr");} semicolon {printf("';'\n");}
-            | RETURN { printf("return "); } semicolon {printf("';'\n");};
+returnstmt: RETURN { printf("return "); } expr {printf("expr");} semicolon {printf("';'");}
+            | RETURN { printf("return "); } semicolon {printf("';'");};
 %%
 int yyerror(char* yaccProvidedMessage){
     fprintf(stderr, "%s: at line %d, before token: %s\n",yaccProvidedMessage,yylineno,yytext);
@@ -246,12 +243,12 @@ int main(int argc, char* argv[]){
     
     FILE* fp;
     
-    // if( !( fp = fopen(argv[1],"r") ) ){
-    //     printf("An error occured while openning the file\n");
-    //     exit(-1);
-    // }
-
-    yyin = stdin;
+    if( !( fp = fopen(argv[1],"r") ) ){
+        printf("An error occured while openning the file\n");
+        exit(-1);
+    }
+    yyin = fp;
+    // initialize();
 
     yyparse();
     return 0;
