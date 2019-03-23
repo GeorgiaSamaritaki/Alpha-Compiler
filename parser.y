@@ -5,6 +5,10 @@
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
 
+    
+SymTable symbol_table = *new SymTable();
+
+
     extern int yylineno;
     extern char* yytext;
     extern FILE* yyin;
@@ -202,7 +206,7 @@ indexed:    indexedelem {printf("indexedelem ");}
             | indexed comma indexedelem {printf("indexed , indexedelem ");};
 
 
-block:      left_curly {printf("'{' block ");} statements right_curly {printf("'}'"); hide(scope--);};
+block:      left_curly {printf("'{' block ");} statements right_curly {printf("'}'"); symbol_table.hide(scope--);};
 
 func_name:  id {printf("'func_id'");} | /*empty*/{printf("'annonymousfunc' ");};
 

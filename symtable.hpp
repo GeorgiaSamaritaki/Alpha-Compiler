@@ -38,6 +38,7 @@ typedef struct SymbolTableEntry {
   SymbolTableEntry *scope_next;
 } SymbolTableEntry;
 
+
 class SymTable {
  private:
   SymbolTableEntry **symbol_table;
@@ -45,26 +46,26 @@ class SymTable {
   unsigned int size;
   vector<SymbolTableEntry *> scopes;  // scopes.at(i) push_back(entry)
 
-  char *get_name(SymbolTableEntry *entry) {
+  const char *get_name(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
-        return newnode->value.funcVal->name;
+        return entry->value.funcVal->name;
       case GLOBAL:
       case LOCAL:
       case FORMAL:
-        return newnode->value.varVal->name;
+        return entry->value.varVal->name;
     }
   }
-  char *get_scope(SymbolTableEntry *entry) {
+  unsigned int get_scope(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
-        return newnode->value.funcVal->scope;
+        return entry->value.funcVal->scope;
       case GLOBAL:
       case LOCAL:
       case FORMAL:
-        return newnode->value.varVal->scope;
+        return entry->value.varVal->scope;
     }
   }
   bool is_var(SymbolType symtyp) {
@@ -88,11 +89,12 @@ class SymTable {
   }
 
   static unsigned int SymTable_hash(const char *pcKey) {
-    size_t ui;
-    unsigned int uiHash = 0U;
-    for (ui = 0U; pcKey[ui] != '\0'; ui++)
-      uiHash = uiHash * HASH_MULTIPLIER + pcKey[ui];
-    return uiHash % buckets;
+    // size_t ui;
+    // unsigned int uiHash = 0U;
+    // for (ui = 0U; pcKey[ui] != '\0'; ui++)
+    //   uiHash = uiHash * HASH_MULTIPLIER + pcKey[ui];
+    // return uiHash % buckets;
+    return 0;
   }
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
@@ -123,22 +125,20 @@ class SymTable {
         break;
     }
 
-    newnode->next = SymbolTableEntry[SymTable_hash(name)];
-    SymbolTableEntry[SymTable_hash(name)] = newnode;
+    newnode->next = symbol_table[SymTable_hash(name)];
+    symbol_table[SymTable_hash(name)] = newnode;
 
     if (myscope > scopes.size() + 1) {
       // error case
-    }else if(myscope == scopes.size(){ //add new level of scopes
+    }else if(myscope == scopes.size()){ //add new level of scopes
       newnode->scope_next = NULL;
     }else{ //connect to current scope list
       newnode->scope_next = scopes.at(myscope);
     }
-    scopes.insert(myscope ,newnnode);
+    scopes.insert( scopes.begin() + myscope ,newnode);
 
     size++;
 
-    expand();
-    return 1;
   }
 
   /* local x; function f() calls this
@@ -159,7 +159,7 @@ class SymTable {
 
       if (scope == get_scope(curr)) {
         // name refers to previous declaration / no need to insert
-        if (is_var(symtyp)) declared = 1;
+        if (is_var(symtp)) declared = 1;
         // print error redefinition
         else
           return -1;
@@ -168,10 +168,11 @@ class SymTable {
 
     return declared;
   }
+  //  x 
   int lookUp_allscope(const char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
     int declared = 0;
-    unsigned int available_scopes = scope - func_scope + 1;
+    unsigned int min_scope = scope - func_scope + 1;
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || name != get_name(curr)) continue;
@@ -179,12 +180,13 @@ class SymTable {
       // print  libfunc error
       if (curr->type = LIBFUNC) return -1;
 
-      if (scope == get_scope(curr)) {
-        // name refers to previous declaration / no need to insert
-        if (is_var(symtyp)) declared = 1;
-        // print error redefinition
+      if(scope <= get_scope(curr) && scope >= min_scope ){
+        if (is_var(symtp)) 
+          declared = 1;
+        
+        // name refers to previous declaration of func/ no need to insert
         else
-          return -1;
+          declared = 1;
       }
     }
 
@@ -194,11 +196,12 @@ class SymTable {
   int hide(int scope) {
     if (scope > scopes.size()) return -1;
     SymbolTableEntry *curr = scopes.at(scope);
-    char *curr_name = get_name(curr);
+    const char *curr_name = get_name(curr);
     while (curr) {
       curr->isActive = false;
       curr = curr->scope_next;
     }
     return 0;
   }
-}
+};
+

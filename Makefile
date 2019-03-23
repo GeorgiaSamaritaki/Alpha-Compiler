@@ -8,7 +8,7 @@ parser.cpp: parser.y
 	bison --yacc -v --defines --output=parser.cpp parser.y
 
 al:
-	g++ -Wno-write-strings -o al parser.cpp al.cpp symtable.cpp
+	g++ -Wno-write-strings -o al parser.cpp al.cpp 
 
 clean: 	
 	touch *
