@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <iostream>
 #include <vector>
 
 using namespace std;
@@ -66,6 +67,31 @@ class SymTable {
       case LOCAL:
       case FORMAL:
         return entry->value.varVal->scope;
+    }
+  }
+  unsigned int get_lineno(SymbolTableEntry *entry) {
+    switch (entry->type) {
+      case USERFUNC:
+      case LIBFUNC:
+        return entry->value.funcVal->line;
+      case GLOBAL:
+      case LOCAL:
+      case FORMAL:
+        return entry->value.varVal->line;
+    }
+  }
+  char* enumtostring(SymbolType s) {
+    switch (s) {
+      case USERFUNC:
+        return "user function";
+      case LIBFUNC:
+        return "library function";
+      case GLOBAL:
+        return "global var";
+      case LOCAL:
+        return "local var";
+      case FORMAL:
+        return "formal var";
     }
   }
   bool is_var(SymbolType symtyp) {
@@ -152,14 +178,19 @@ class SymTable {
     int declared = 0;
 
     for (; curr; curr = curr->next) {
-      if (!curr->isActive) continue;
+      if (!curr->isActive || name != get_name(curr)) continue;
 
       // print  libfunc error
       if (curr->type = LIBFUNC) return -1;
 
-      if (scope == get_scope(curr)) {
+      if (scope == get_scope(curr) || get_scope(curr) == 0 ) {
         // name refers to previous declaration / no need to insert
-        if (is_var(symtp)) declared = 1;
+        if (is_var(symtp)) {
+          
+          if(is_var(curr->type) )declared = 1; //var
+          else declared = 2;  //func
+
+        }
         // print error redefinition
         else
           return -1;
@@ -168,7 +199,12 @@ class SymTable {
 
     return declared;
   }
-  //  x 
+
+  /*  x()   x= 5 x=7 
+   *  return -1: error libfunc/ redefinition
+   *  return  0: need to be defined
+   *  return  1: already declared refers to previous declaration
+   */
   int lookUp_allscope(const char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
     int declared = 0;
@@ -180,19 +216,20 @@ class SymTable {
       // print  libfunc error
       if (curr->type = LIBFUNC) return -1;
 
-      if(scope <= get_scope(curr) && scope >= min_scope ){
+      if((scope <= get_scope(curr) && scope >= min_scope)|| get_scope(curr) == 0 ){
+
+        // name refers to previous declaration of var/ no need to insert
         if (is_var(symtp)) 
           declared = 1;
         
         // name refers to previous declaration of func/ no need to insert
         else
-          declared = 1;
+          declared = 2;
       }
     }
 
     return declared;
   }
-
   int hide(int scope) {
     if (scope > scopes.size()) return -1;
     SymbolTableEntry *curr = scopes.at(scope);
@@ -203,5 +240,16 @@ class SymTable {
     }
     return 0;
   }
+  void print() {
+    SymbolTableEntry *curr;
+    for(int i =0; i<scopes.size();i++){
+      curr = scopes.at(i);
+      while (curr) {
+        cout << "\"" << get_name(curr) << "\" [" << curr->type <<"] (lineno:" << get_lineno(curr) <<") (scope:"<< get_scope(curr) <<")"<<endl;
+        curr = curr->scope_next;
+      }
+    }
+  }
+
 };
 

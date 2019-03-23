@@ -284,6 +284,7 @@ line_comment        "//".*
                     }
 {integer}           {
                         add_new_token(yytext, "INT_CONST", yylineno);
+                        yylval.intValue = atoi(yytext);
                         return integer;
                     }
 {real}              {
@@ -292,6 +293,7 @@ line_comment        "//".*
                     }
 {id}                {
                         add_new_token(yytext, "IDENTIFIER", yylineno);
+                        yylval.stringValue = strdup(yytext);
                         return id;
                     }
 {left_curly}        {
@@ -379,6 +381,7 @@ line_comment        "//".*
                         BEGIN(INITIAL);
                         *string_buf_ptr = '\0';
                         add_new_token(string_buf, "string", yylineno);
+                        
                         return STRING;
                     }
 <SRULE>\\[0-7]{1,3} {

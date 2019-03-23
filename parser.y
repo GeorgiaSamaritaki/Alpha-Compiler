@@ -6,7 +6,7 @@
     int yylex(void);
 
     
-SymTable symbol_table = *new SymTable();
+    SymTable symbol_table = *new SymTable();
 
 
     extern int yylineno;
@@ -170,7 +170,21 @@ primary:    lvalue {printf("lvalue ");}
             ;
 
 lvalue:     id {printf("'id'");}
-            | local id {printf("'id'");}
+            | local id { 
+                int switchl =symbol_table.lookUp_curscope(yylval.stringValue, LOCAL);       
+                switch( switchl ){
+                    case 0: {//undefined
+                        symbol_table.insert(yylval.stringValue, yylineno, (scope?GLOBAL:LOCAL));
+                        symbol_table.print();
+                    }
+                    case 1:{
+                        //symbol_table.change_value()
+                    } //defined as var
+                    case 2:{} //defined as func
+                    default:{}
+                }
+                printf("'local id'");
+            }
             | double_colon id {printf("'id'");}
             | member {printf("'member'");};
 
