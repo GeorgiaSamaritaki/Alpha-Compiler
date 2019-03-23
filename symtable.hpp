@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 #include <string>
 #include <iostream>
 #include <vector>
+
+#define HASH_MUL 65599
 
 using namespace std;
 
@@ -38,7 +41,6 @@ typedef struct SymbolTableEntry {
   SymbolTableEntry *next;
   SymbolTableEntry *scope_next;
 } SymbolTableEntry;
-
 
 class SymTable {
  private:
@@ -107,20 +109,37 @@ class SymTable {
   }
 
  public:
-  SymTable() { initialize(); }
+  SymTable() {
+    symbol_table = new SymbolTableEntry *[100];
+
+    initialize();
+  }
 
   void initialize() {
     // init scopes
+    scope = 0;
+    func_scope = 0;
+
     // insert all libfuncs
+    insert("sin", 0, LIBFUNC);
+    insert("cos", 0, LIBFUNC);
+    insert("sqrt", 0, LIBFUNC);
+    insert("print", 0, LIBFUNC);
+    insert("input", 0, LIBFUNC);
+    insert("typeof", 0, LIBFUNC);
+    insert("argument", 0, LIBFUNC);
+    insert("strtonum", 0, LIBFUNC);
+    insert("objectcopy", 0, LIBFUNC);
+    insert("totalarguments", 0, LIBFUNC);
+    insert("objectmemberkeys", 0, LIBFUNC);
+    insert("objecttotalmembers", 0, LIBFUNC);
   }
 
-  static unsigned int SymTable_hash(const char *pcKey) {
-    // size_t ui;
-    // unsigned int uiHash = 0U;
-    // for (ui = 0U; pcKey[ui] != '\0'; ui++)
-    //   uiHash = uiHash * HASH_MULTIPLIER + pcKey[ui];
-    // return uiHash % buckets;
-    return 0;
+  static unsigned int SymTable_hash(const char *name) {
+    size_t ui;
+    unsigned int uiHash = 0U;
+    for (ui = 0U; name[ui] != '\0'; ui++) uiHash = uiHash * HASH_MUL + name[ui];
+    return uiHash % 100;
   }
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
@@ -156,15 +175,14 @@ class SymTable {
 
     if (myscope > scopes.size() + 1) {
       // error case
-    }else if(myscope == scopes.size()){ //add new level of scopes
+    } else if (myscope == scopes.size()) {  // add new level of scopes
       newnode->scope_next = NULL;
-    }else{ //connect to current scope list
+    } else {  // connect to current scope list
       newnode->scope_next = scopes.at(myscope);
     }
-    scopes.insert( scopes.begin() + myscope ,newnode);
+    scopes.insert(scopes.begin() + myscope, newnode);
 
     size++;
-
   }
 
   /* local x; function f() calls this
@@ -252,4 +270,3 @@ class SymTable {
   }
 
 };
-
