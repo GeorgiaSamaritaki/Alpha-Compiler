@@ -5,7 +5,8 @@
 
 using namespace std;
 
-extern int scope;
+unsigned int scope;
+unsigned int func_scope;
 
 typedef struct Variable {
   const char *name;
@@ -37,16 +38,6 @@ typedef struct SymbolTableEntry {
   SymbolTableEntry *scope_next;
 } SymbolTableEntry;
 
-void initialize();
-void insert(string name, unsigned int scope, unsigned int lineno,
-            SymbolType symtp);
-SymbolTableEntry *lookUp(int key);
-/*
-Απενεργοποίηση (όχι διαγραφή) όλων
-των συμβόλων ενός επιπέδου εμβέλειας
-*/
-int hide(int scope);
-
 class SymTable {
  private:
   SymbolTableEntry **symbol_table;
@@ -76,47 +67,24 @@ class SymTable {
         return newnode->value.varVal->scope;
     }
   }
+  bool is_var(SymbolType symtyp) {
+    switch (symtyp) {
+      case USERFUNC:
+      case LIBFUNC:
+        return false;
+      case GLOBAL:
+      case LOCAL:
+      case FORMAL:
+        return true;
+    }
+  }
 
  public:
   SymTable() { initialize(); }
 
   void initialize() {
+    // init scopes
     // insert all libfuncs
-  }
-
-  static void expand() {
-    struct binding *contents, *cur, *next;
-    int i;
-    if (buckets == MAX_HASH || size < buckets) return;
-
-    contents = NULL; /* transfer all bindings in a list*/
-    for (i = 0; i < buckets; i++) {
-      cur = table[i];
-      while (cur) {
-        next = cur->next;
-        cur->next = contents;
-        contents = cur;
-        cur = next;
-      }
-      table[i] = NULL;
-    }
-
-    /*define the next size*/
-    buckets = getNextSize(buckets);
-    table = NULL;  // FIXME:
-                   // realloc(table, buckets *
-                   // sizeof(struct binding));
-    // assert(table);
-
-    /*add again the bindings*/
-    cur = contents;
-    while (cur) {
-      next = cur->next;
-      i = SymTable_hash(cur->key, buckets);
-      cur->next = table[i];
-      table[i] = cur;
-      cur = next;
-    }
   }
 
   static unsigned int SymTable_hash(const char *pcKey) {
@@ -132,6 +100,7 @@ class SymTable {
     char *newkey;
     int myscope = scope;
     SymbolTableEntry *newnode = new SymbolTableEntry();
+    newnode->next = NULL;
     // assert(oSymTable && pcKey);
 
     strcpy(newkey, name);
@@ -158,10 +127,10 @@ class SymTable {
     SymbolTableEntry[SymTable_hash(name)] = newnode;
 
     if (myscope > scopes.size() + 1) {
-      // error
-    }else if(myscope == scopes.size(){
+      // error case
+    }else if(myscope == scopes.size(){ //add new level of scopes
       newnode->scope_next = NULL;
-    }else{
+    }else{ //connect to current scope list
       newnode->scope_next = scopes.at(myscope);
     }
     scopes.insert(myscope ,newnnode);
@@ -172,24 +141,64 @@ class SymTable {
     return 1;
   }
 
-  SymbolTableEntry *lookUp(const char *name) {
+  /* local x; function f() calls this
+   *  return -1: error libfunc/ redefinition
+   *  return  0: need to be defined
+   *  return  1: already declared refers to previous declaration
+   */
+
+  int lookUp_curscope(const char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
-    char *curr_name = get_name(curr);
-    while (curr) {
-      if (strcmp(curr_name, name) == 0) return curr;
-      curr = curr->next;
+    int declared = 0;
+
+    for (; curr; curr = curr->next) {
+      if (!curr->isActive) continue;
+
+      // print  libfunc error
+      if (curr->type = LIBFUNC) return -1;
+
+      if (scope == get_scope(curr)) {
+        // name refers to previous declaration / no need to insert
+        if (is_var(symtyp)) declared = 1;
+        // print error redefinition
+        else
+          return -1;
+      }
     }
-    return NULL;
+
+    return declared;
+  }
+  int lookUp_allscope(const char *name, SymbolType symtp) {
+    SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
+    int declared = 0;
+    unsigned int available_scopes = scope - func_scope + 1;
+
+    for (; curr; curr = curr->next) {
+      if (!curr->isActive || name != get_name(curr)) continue;
+
+      // print  libfunc error
+      if (curr->type = LIBFUNC) return -1;
+
+      if (scope == get_scope(curr)) {
+        // name refers to previous declaration / no need to insert
+        if (is_var(symtyp)) declared = 1;
+        // print error redefinition
+        else
+          return -1;
+      }
+    }
+
+    return declared;
   }
 
   int hide(int scope) {
-    SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
-    // char* curr_name = get_name(curr);
-    // while (curr) {
-    //   if (strcmp(curr_name, name) == 0) return 1;
-    //   curr = curr->next;
-    // }
-    // return NULL;
+    if (scope > scopes.size()) return -1;
+    SymbolTableEntry *curr = scopes.at(scope);
+    char *curr_name = get_name(curr);
+    while (curr) {
+      curr->isActive = false;
+      curr = curr->scope_next;
+    }
     return 0;
   }
 }

@@ -119,7 +119,7 @@ stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \
             | whilestmt  {printf("stmt->whilestmt\n\n");  }
             | forstmt    {printf("stmt->forstmt   \n\n");   }
             | returnstmt {printf("stmt->returnstmt \n\n");}
-            | {printf("\n\n-----\n\nstmt->block1 ");} block      {printf("stmt->block2 \n\n----\n\n");}
+            | {printf("\n\n-----\n\nstmt->block1 "); scope++;} block      {printf("stmt->block2 \n\n----\n\n");}
             | funcdef    {printf("stmt->funcdef \n\n");   }
             | BREAK      {printf("stmt->Break ");     } semicolon {printf(" ';'  \n\n");}
             | CONTINUE   {printf("stmt->Continue");  } semicolon {printf(" ';'  \n\n");}
@@ -206,7 +206,7 @@ block:      left_curly {printf("'{' block ");} statements right_curly {printf("'
 
 func_name:  id {printf("'func_id'");} | /*empty*/{printf("'annonymousfunc' ");};
 
-funcdef:    function {printf("function ");} func_name left_parenthesis {scope++; printf("'('");} idlist right_parenthesis {printf("')'");} block/**/;
+funcdef:    function {printf("function ");} func_name left_parenthesis {scope++; func_scope++; printf("'('");} idlist right_parenthesis {printf("')'");} block { func_scope--; };
 
 number:     integer     {printf("'int'");}
             | real      {printf("'real'");};
