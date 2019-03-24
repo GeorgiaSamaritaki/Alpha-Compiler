@@ -103,3 +103,42 @@ function v(y) {
 function ff() {
     function hh() { return v(); } // ::g is visible in g::h
 }
+
+
+local xx;
+function xx(){};
+
+function yy(){};
+local yy;
+
+local zz;
+{
+    local zz;
+}
+
+local vv;
+{
+    function vv(){};
+}
+
+function bb(){}
+{
+    local bb;
+}
+
+function nn(){};
+nn = 4;
+
+function mm(){
+    mm;
+}
+
+local aa;
+{
+    aa = 2; 
+}
+
+local ss;
+ss = 2;
+
+dd(3);
