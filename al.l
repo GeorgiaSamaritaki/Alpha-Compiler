@@ -34,7 +34,7 @@
     void add_new_token(char* content, char* category, int line_no) {
         struct alpha_token_t *tmp=token_head;
         struct alpha_token_t *new_token = (struct alpha_token_t*)malloc(sizeof(struct alpha_token_t));
-        printf("(token:\'%s\" \"%s\" \"lineno:%d\")", content, category, line_no);
+        // printf("(token:\'%s\" \"%s\" \"lineno:%d\")", content, category, line_no);
 
         /*Initialize fields*/
         new_token->line_no = line_no;
