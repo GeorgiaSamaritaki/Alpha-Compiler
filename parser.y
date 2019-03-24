@@ -175,7 +175,7 @@ lvalue:     id {printf("'id'");}
                 switch( switchl ){
                     case 0: {//undefined
                         symbol_table.insert(yylval.stringValue, yylineno, (scope?GLOBAL:LOCAL));
-                        symbol_table.print();
+                        
                     }
                     case 1:{
                         //symbol_table.change_value()
@@ -269,5 +269,6 @@ int main(int argc, char* argv[]){
     // initialize();
 
     yyparse();
+    symbol_table.print();
     return 0;
 }

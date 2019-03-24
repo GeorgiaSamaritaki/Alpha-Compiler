@@ -144,18 +144,18 @@ class SymTable {
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
   void insert(const char *name, unsigned int lineno, SymbolType symtp) {
-    char *newkey;
     int myscope = scope;
     SymbolTableEntry *newnode = new SymbolTableEntry();
     newnode->next = NULL;
-    // assert(oSymTable && pcKey);
+    newnode->scope_next = NULL;
+    newnode->isActive = true;
 
-    strcpy(newkey, name);
     newnode->type = symtp;
     switch (symtp) {
       case LIBFUNC:
         myscope = 0;
       case USERFUNC:
+        newnode->value.funcVal = new Function();
         newnode->value.funcVal->line = lineno;
         newnode->value.funcVal->scope = myscope;
         newnode->value.funcVal->name = name;
@@ -164,6 +164,7 @@ class SymTable {
         myscope = 0;
       case LOCAL:
       case FORMAL:
+        newnode->value.varVal = new Variable();
         newnode->value.varVal->line = lineno;
         newnode->value.varVal->scope = myscope;
         newnode->value.varVal->name = name;
@@ -177,12 +178,12 @@ class SymTable {
       // error case
     } else if (myscope == scopes.size()) {  // add new level of scopes
       newnode->scope_next = NULL;
+      scopes.resize(myscope+1);
     } else {  // connect to current scope list
       newnode->scope_next = scopes.at(myscope);
     }
-    scopes.insert(scopes.begin() + myscope, newnode);
+    scopes[myscope] = newnode;
 
-    size++;
   }
 
   /* local x; function f() calls this
@@ -196,10 +197,9 @@ class SymTable {
     int declared = 0;
 
     for (; curr; curr = curr->next) {
-      if (!curr->isActive || name != get_name(curr)) continue;
-
+      if (!curr->isActive || strcmp(name,get_name(curr)) ) continue;
       // print  libfunc error
-      if (curr->type = LIBFUNC) return -1;
+      if (curr->type == LIBFUNC) return -1;
 
       if (scope == get_scope(curr) || get_scope(curr) == 0 ) {
         // name refers to previous declaration / no need to insert
@@ -229,10 +229,10 @@ class SymTable {
     unsigned int min_scope = scope - func_scope + 1;
 
     for (; curr; curr = curr->next) {
-      if (!curr->isActive || name != get_name(curr)) continue;
-
+      if (!curr->isActive || strcmp(name,get_name(curr)) ) continue;
+      
       // print  libfunc error
-      if (curr->type = LIBFUNC) return -1;
+      if (curr->type == LIBFUNC) return -1;
 
       if((scope <= get_scope(curr) && scope >= min_scope)|| get_scope(curr) == 0 ){
 
@@ -249,7 +249,7 @@ class SymTable {
     return declared;
   }
   int hide(int scope) {
-    if (scope > scopes.size()) return -1;
+    if (scope >= scopes.size()) return -1;
     SymbolTableEntry *curr = scopes.at(scope);
     const char *curr_name = get_name(curr);
     while (curr) {
@@ -258,12 +258,15 @@ class SymTable {
     }
     return 0;
   }
+
   void print() {
     SymbolTableEntry *curr;
-    for(int i =0; i<scopes.size();i++){
+    printf("\n---------------------------------------------------------------------------------------------\n");
+    for(int i = 0; i< scopes.size();i++){
       curr = scopes.at(i);
-      while (curr) {
-        cout << "\"" << get_name(curr) << "\" [" << curr->type <<"] (lineno:" << get_lineno(curr) <<") (scope:"<< get_scope(curr) <<")"<<endl;
+      
+      while (curr != NULL) {
+        cout << "\"" << get_name(curr) << "\" [" << enumtostring(curr->type) <<"] (lineno:" << get_lineno(curr) <<") (scope:"<< get_scope(curr) <<")\n"<<endl;
         curr = curr->scope_next;
       }
     }
