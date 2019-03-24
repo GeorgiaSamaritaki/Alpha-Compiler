@@ -123,7 +123,7 @@ stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \
             | whilestmt  {printf("stmt->whilestmt\n\n");  }
             | forstmt    {printf("stmt->forstmt   \n\n");   }
             | returnstmt {printf("stmt->returnstmt \n\n");}
-            | {printf("\n\n-----\n\nstmt->block1 "); scope++;} block      {printf("stmt->block2 \n\n----\n\n");}
+            | {printf("\n\n-----\n\nstmt->block1 "); scope++;} block      {printf("stmt->block2 \n\n----\n\n");} //maybe scope++ after left curly
             | funcdef    {printf("stmt->funcdef \n\n");   }
             | BREAK      {printf("stmt->Break ");     } semicolon {printf(" ';'  \n\n");}
             | CONTINUE   {printf("stmt->Continue");  } semicolon {printf(" ';'  \n\n");}
@@ -151,25 +151,25 @@ opexpr:       expr plus         expr {printf("'expr + expr' ");}
             | expr AND          expr {printf("'expr && expr' ");}
             | expr OR           expr {printf("'expr || expr' ");} ;
 
-term:       left_parenthesis {printf("'('");} expr {printf("expr");}  right_parenthesis {printf("')'");}
-            | NOT {printf("not");} expr {printf("expr");}
-            | minus {printf("'-'");} expr {printf("expr");}  %prec uminus
-            | increment {printf("'++'");} lvalue {printf("lvalue ");}
-            | lvalue {printf("lvalue ");} increment {printf("'++'");} 
-            | decrement {printf("'--'");} lvalue {printf("lvalue ");}
-            | lvalue {printf("lvalue ");} decrement {printf("'--'");} 
+term:       left_parenthesis expr  right_parenthesis {printf("'(' expr ')'");} 
+            | NOT expr {printf("NOT expr");}
+            | minus expr %prec uminus {printf("-expr");}
+            | increment {printf("'++'");} lvalue {printf("lvalue ");} //lookup maybe
+            | lvalue {printf("lvalue ");} increment {printf("'++'");} //lookup maybe(before ++?)
+            | decrement {printf("'--'");} lvalue {printf("lvalue ");} //lookup maybe
+            | lvalue {printf("lvalue ");} decrement {printf("'--'");}  //lookup maybe (before --?)
             | primary {printf("primary ");};
 
-assignexpr: lvalue {printf("lvalue ");} assign {printf("'='");} expr {printf("expr");};
+assignexpr: lvalue {printf("lvalue ");} assign expr {printf(" = expr");}; //lookup (before assign?)
 
-primary:    lvalue {printf("lvalue ");}
-            | call
-            | objectdef
+primary:    lvalue  {printf("lvalue ");}
+            | call  {printf("call ");}
+            | objectdef     {printf("objectdef ");}
             | left_parenthesis funcdef right_parenthesis {printf("'(' funcdef ')'");}
             | const {printf("const ");}
             ;
 
-lvalue:     id {printf("'id'");}
+lvalue:     id {printf("'id'");} //lookup
             | local id { 
                 int switchl =symbol_table.lookUp_curscope(yylval.stringValue, LOCAL);       
                 switch( switchl ){
@@ -185,16 +185,16 @@ lvalue:     id {printf("'id'");}
                 }
                 printf("'local id'");
             }
-            | double_colon id {printf("'id'");}
-            | member {printf("'member'");};
+            | double_colon id {printf("'id'");} //lookup(gloabal)
+            | member {printf("'member'");}; 
 
-member:     lvalue {printf("lvalue ");} dot id {printf("'id'");}
+member:     lvalue dot id {printf("'lvalue.id'");}
             | lvalue left_bracket expr right_bracket {printf("lvalue '[' expr ']'");}
-            | call dot id {printf("'id'");}
+            | call dot id {printf("'call().id'");}
             | call left_bracket expr right_bracket {printf("'[' expr ']'");};
 
-call:       call left_parenthesis elist right_parenthesis {printf("'(' elist ')'");}
-            | lvalue {printf("lvalue ");} callsuffix {printf("callsuffix ");} 
+call:       call left_parenthesis elist right_parenthesis {printf("call'(' elist ')'");}
+            | lvalue callsuffix {printf("lvalue callsuffix ");} 
             | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {printf("'(' funcdef ')''(' elist ')'");};
 
 callsuffix: normcall  {printf("normcall ");} 
@@ -208,7 +208,7 @@ elist_l:    expr
             | elist_l comma expr;
 
 elist:      elist_l {printf("elist ");}
-            |/*empty*/  {printf("emptyelist ");};
+            |/*empty*/  {printf("empty_elist ");};
 
 objectdef:  left_bracket elist right_bracket {printf("'[' elist ']'");}
             |left_bracket indexed right_bracket {printf("'[' indexed ']'");};
@@ -219,10 +219,10 @@ indexedelem: left_curly expr colon expr right_curly {printf("'{' expr: expr'}'")
 indexed:    indexedelem {printf("indexedelem ");} 
             | indexed comma indexedelem {printf("indexed , indexedelem ");};
 
-
 block:      left_curly {printf("'{' block ");} statements right_curly {printf("'}'"); symbol_table.hide(scope--);};
 
-func_name:  id {printf("'func_id'");} | /*empty*/{printf("'annonymousfunc' ");};
+func_name:  id {printf("'func_id'");}  //lookup
+            | /*empty*/{printf("'annonymousfunc' ");}; //probably insert with $_name(anonymous)
 
 funcdef:    function {printf("function ");} func_name left_parenthesis {scope++; func_scope++; printf("'('");} idlist right_parenthesis {printf("')'");} block { func_scope--; };
 
@@ -236,25 +236,26 @@ const:      number      {printf("'number'");}
             | FALSE     {printf("'false'");};
 
 //idlist {printf("'id'");} can be empty
-idlist_l:   id {printf("'idlist_id1'");}
+idlist_l:   id {printf("'idlist_id1'");} //lookup
             |idlist_l comma id {printf("'idlsit id1+'");};
 
 idlist:     idlist_l {printf("idlist ");} 
-             | /*empty*/ {printf("emptyidlist ");};
+            | /*empty*/ {printf("emptyidlist ");};
 
 ifstmt:     IF left_parenthesis expr right_parenthesis  stmt ELSE stmt { printf(" \"if(expr) stmt else stmt\" "); } 
-            | IF left_parenthesis expr right_parenthesis stmt ;
+            | IF left_parenthesis expr right_parenthesis stmt { printf(" \"if(expr) stmt\" ");};
 
 whilestmt:  WHILE left_parenthesis expr right_parenthesis stmt {printf(" \"while(expr) stmt else stmt\" ");};
 
-forstmt:    FOR left_parenthesis {printf("'('");} elist {printf("elist");} semicolon expr {printf("expr");} semicolon elist {printf("elist");} right_parenthesis {printf("')'");} stmt;
+forstmt:    FOR left_parenthesis elist semicolon expr semicolon elist right_parenthesis {printf("for'(' elist; expr; elist ')'");} stmt;
 
-returnstmt: RETURN { printf("return "); } expr {printf("expr");} semicolon {printf("';'");}
-            | RETURN { printf("return "); } semicolon {printf("';'");};
+returnstmt: RETURN expr semicolon {printf("return expr';'");}
+            | RETURN semicolon {printf("return';'");};
 %%
+
 int yyerror(char* yaccProvidedMessage){
-    fprintf(stderr, "%s: at line %d, before token: %s\n",yaccProvidedMessage,yylineno,yytext);
-    fprintf(stderr,"INPUT NOT VALID\n");
+    printf("%s: at line %d, before token: %s\n",yaccProvidedMessage,yylineno,yytext);
+    printf("INPUT NOT VALID\n");
 }
 
 int main(int argc, char* argv[]){
