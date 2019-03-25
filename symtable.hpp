@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <iomanip>
 #include <iostream>
 #include <stack>
 #include <string>
@@ -126,6 +127,7 @@ class SymTable {
     insert("totalarguments", 0, LIBFUNC);
     insert("objectmemberkeys", 0, LIBFUNC);
     insert("objecttotalmembers", 0, LIBFUNC);
+    printf("\n\n");
   }
 
  public:
@@ -149,7 +151,7 @@ class SymTable {
     newnode->scope_next = NULL;
     newnode->isActive = true;
 
-    printf("\nscope: %d %s %s\n", scope, name, enumtostring(symtp));
+    printf("(inserting %s in scope: %d as %s)", name, scope, enumtostring(symtp));
 
     newnode->type = symtp;
     switch (symtp) {
@@ -192,9 +194,8 @@ class SymTable {
    *  return  1: already declared refers to previous declaration
    */
 
-  int lookUp_curscope(const char *name, SymbolType symtp) {
+  int lookUp_curscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
-    int declared = 0;
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
@@ -203,19 +204,14 @@ class SymTable {
 
       if (scope == get_scope(curr)) {
         // name refers to previous declaration / no need to insert
-        if (is_var(symtp)) {
-          if (is_var(curr->type))
-            declared = 1;  // var
-          else
-            declared = 2;  // func
-        }
-        // print error redefinition
+        if (is_var(curr->type))
+          return 1;  // var
         else
-          return -1;
+          return 2;  // func
       }
     }
 
-    return declared;
+    return 0;
   }
 
   /*  x()   x= 5 x=7
@@ -223,23 +219,32 @@ class SymTable {
    *  return  0: need to be defined
    *  return  1: already declared refers to previous declaration
    */
-  int lookUp_allscope(const char *name) {
+  int lookUp_allscope(const char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
     int declared = 0;
+     int func_scope = 0; 
+     if(is_var(symtp)) func_scope =  last_func.top();
+        
+     
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
 
       // print  libfunc error
       if (curr->type == LIBFUNC) return -1;
 
-      if ((scope >= get_scope(curr) && get_scope(curr) > last_func.top()) ||
-          get_scope(curr) == 0) {
-        // name refers to previous declaration of var/ no need to insert
-        if (is_var(curr->type)) declared = 1;
-
-        // name refers to previous declaration of func/ no need to insert
-        else
-          declared = 2;
+      if (( scope >= get_scope(curr) && get_scope(curr) > func_scope ) ) {
+        if (is_var(symtp)) {
+          // name refers to previous declaration of var/ no need to insert
+          if (is_var(curr->type)) { return 1;}  // var
+          // name refers to previous declaration of func/ no need to insert
+          else
+            return 2;                            // func
+        } else {                                 // if you a func is looked for
+          if (is_var(curr->type)) declared = 1;  // var
+          // name refers to previous declaration of func/ no need to insert
+          else
+            return 2;  // func
+        }
       }
     }
 
@@ -258,17 +263,31 @@ class SymTable {
 
   void print() {
     SymbolTableEntry *curr;
-    printf(
-        "\n--------------------------------------------------------------------"
-        "-------------------------\n");
+    unsigned int max_name = 0;
+    unsigned int max_lineno = 0;
+
     for (int i = 0; i < scopes.size(); i++) {
       curr = scopes.at(i);
+      while (curr != NULL) {
+        if (strlen(get_name(curr)) > max_name)
+          max_name = strlen(get_name(curr));
+        curr = curr->scope_next;
+      }
+    }
+
+    for (int i = 0; i < scopes.size(); i++) {
+      curr = scopes.at(i);
+      printf("\n%s Scope %d %s\n", string((max_name + 50) / 2, '-').c_str(), i,
+             string((max_name + 50) / 2, '-').c_str());
 
       while (curr != NULL) {
-        cout << "\"" << get_name(curr) << "\" [" << enumtostring(curr->type)
-             << "] (lineno:" << get_lineno(curr)
-             << ") (scope:" << get_scope(curr) << ")\n"
-             << endl;
+        cout << setw(max_name - strlen(get_name(curr)) + 2) << "\""
+             << get_name(curr) << "\""
+             << setw(16 - strlen(enumtostring(curr->type)) + 3) << "["
+             << enumtostring(curr->type) << "]  ";
+        printf("(lineno:%3d) (scope:%2d) (active:%d)\n", get_lineno(curr),
+               get_scope(curr), curr->isActive);
+
         curr = curr->scope_next;
       }
     }

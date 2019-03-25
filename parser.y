@@ -13,25 +13,7 @@
     extern char* yytext;
     extern FILE* yyin;
 
-    void lvalue_check(const char* name){
-        int switchl = symbol_table.lookUp_allscope(name); 
-        switch( switchl ){
-            case 2: {
-                //Function
-                yyerror("Attempting to use function as variale");
-                break;
-            }
-            case 1: {
-                //Var found
-                printf("Var found\n");
-                break;
-            }
-            case 0: {
-                yyerror("variable undefined");
-                break;
-            }  
-        }  
-    }
+   
 
 %}
 
@@ -41,6 +23,7 @@
     char* stringValue; 
     int intValue;   
     double realValue; 
+    
 }
 
 %start program
@@ -180,39 +163,76 @@ term:       left_parenthesis expr  right_parenthesis {printf(" term->(expr) ");}
                 printf(" term->-expr ");
                 }
             | increment {printf(" term->++lvalue ");} lvalue { 
-                lvalue_check(yylval.stringValue); 
+                switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                        case 2: { yyerror("Attempting to use function as variable"); break;}
+                        case 1: { printf("Var found\n"); break; }
+                        case 0: { yyerror("variable undefined"); }  
+                    }
                 } //lookup maybe
             | lvalue {
-                lvalue_check(yylval.stringValue);
+                switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                        case 2: { yyerror("Attempting to use function as variable"); break;}
+                        case 1: { printf("Var found\n"); break; }
+                        case 0: { yyerror("variable undefined"); }  
+                    } 
                 } increment {printf(" term->lvalue++ ");} //lookup maybe(before ++?)
             | decrement {printf(" term->--lvalue ");} lvalue {
-                lvalue_check(yylval.stringValue);
+                switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                        case 2: { yyerror("Attempting to use function as variable"); break;}
+                        case 1: { printf("Var found\n"); break; }
+                        case 0: { yyerror("variable undefined"); }  
+                    } 
                 } //lookup maybe
             | lvalue {
-                lvalue_check(yylval.stringValue);
+                switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                        case 2: { yyerror("Attempting to use function as variable"); break;}
+                        case 1: { printf("Var found\n"); break; }
+                        case 0: { yyerror("variable undefined");}  
+                    }
                 } decrement {printf(" term->lvalue-- ");}  //lookup maybe (before --?)
             | primary {printf(" term->primary ");};
 
-assignexpr: lvalue {printf(" assignexpr->lvalue ");} assign expr {printf(" assignexpr->=expr ");}; //lookup (before assign?)
+assignexpr: lvalue {
+                switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                        case 2: { yyerror("Function can only be r-value"); break;}
+                        case 1: { printf("assignexpr:Var found\n"); break; }
+                        case 0: { symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));}  
+                }
+                printf(" assignexpr->lvalue ");
+                
+                } assign expr {printf(" assignexpr->=expr ");}; //lookup (before assign?)
 
-primary:    lvalue  {printf(" primary->lvalue ");}
+primary:    lvalue  {
+                switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                        case 2: { printf("Function Found"); break;}
+                        case 1: { printf("Var found top: %d scope %d\n",last_func.top()); break; }
+                        case 0: { symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL)); }  
+                    }
+            printf(" primary->lvalue ");}
             | call  {printf(" primary->call ");}
             | objectdef     {printf(" primary->objectdef ");}
             | left_parenthesis funcdef right_parenthesis {printf(" primary->(funcdef) ");}
             | const {printf(" primary->const ");}
             ;
 
-lvalue:     id {printf(" lvalue->id ");} //lookup
-            | local id { 
-                int switchl = symbol_table.lookUp_curscope(yylval.stringValue, LOCAL);       
-                switch( switchl ){
+lvalue:     id {printf(" lvalue->id '%s'",yylval.stringValue);} //lookup
+            | local id {     
+                printf(" local id %s ",yylval.stringValue);
+                switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
                         symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                        break;
                     }
                     case 1:{
                         //symbol_table.change_value()
+                        break;
                     } //defined as var
-                    case 2:{} //defined as fgunc
+                    case 2:{
+                        break;
+                    } //defined as fgunc
+                    case -1:{
+                        yyerror("shadowing of library functions not allowed");
+                    }
                     default:{}
                 }
                 printf("'local id'");
@@ -221,7 +241,7 @@ lvalue:     id {printf(" lvalue->id ");} //lookup
                 unsigned int scope_tmp =scope;
                 scope = 0; 
 
-                switch( symbol_table.lookUp_curscope(yylval.stringValue, LOCAL)  ){
+                switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
                     case 0: {//undefined
                         yyerror("global variable not found");
                     }
@@ -254,7 +274,24 @@ callsuffix: normcall  {printf(" callsuffix->normcall ");}
 
 normcall:   left_parenthesis elist right_parenthesis {printf(" normcall->(elist) ");};
 
-methodcall: double_dot id left_parenthesis elist right_parenthesis {printf(" methodcall->..id(elist) ");} ; 
+methodcall: double_dot id {
+                // switch( lookUp_allscope(yylval.stringValue,USERFUNC) == 1){ 
+                //     case 2:{
+                //         //function found so it can be called
+                //         break;
+                //     }
+                //     case 0:{ 
+                //         yyerror("no function found to be referenced");
+                //         break;  
+                //     }
+                //     case 1:{    
+                //         yyerror("variable cannot be called as function");
+                //         break;
+                //     }
+                //     default:{ yyerror("unknown error occured") }
+                // }
+                // printf(" idlist_l->id1+ ");
+            }left_parenthesis elist right_parenthesis {printf(" methodcall->..id(elist) ");} ; 
 
 elist_l:    expr {printf(" elist_l->expr ");}
             | elist_l comma expr {printf(" elist_l->elist_l,expr ");};
@@ -271,19 +308,31 @@ indexedelem: left_curly expr colon expr right_curly {printf(" indexedelem->{expr
 indexed:    indexedelem {printf(" indexed->indexedelem ");} 
             | indexed comma indexedelem {printf(" indexed->indexed,indexedelem ");};
 
-block:      left_curly {printf(" block->{ ");} statements right_curly {printf(" block->statements} "); symbol_table.hide(scope--);};
+block:      left_curly { printf(" block->{ "); } statements right_curly { printf(" block->statements}\n "); symbol_table.hide(scope--);};
 
 func_name:  id {
-                if(symbol_table.lookUp_curscope(yylval.stringValue, USERFUNC) == -1) yyerror("function name already used");
-                else symbol_table.insert(yyval.stringValue, yylineno, USERFUNC);
+                switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
+                    case 1 :{} 
+                    case 2 :{}
+                    case -1:{
+                        yyerror("function name already used");// error: var redefined as a function
+                        break;
+                    }
+                    case 0: {//undefined
+                        symbol_table.insert(yylval.stringValue, yylineno, USERFUNC);
+                    }
+                }
+                
                 printf(" func_name->func_id ");
-
                 }  //lookup
             | /*empty*/{
-                char* name =(char*) "$sanonymous" +( char*)anonymous_count;
+                char name[100];
+                sprintf(name, "%s%d","$sanonymous",  anonymous_count );
+                anonymous_count++;
                 symbol_table.insert(name, yylineno, USERFUNC); printf(" func_name->annonymousfunc ");}; //probably insert with $_name(anonymous)
 
-funcdef:    function  func_name left_parenthesis { last_func.push(scope); scope++; printf(" funcdef->( ");} idlist right_parenthesis {printf(" funcdef->) ");} block { last_func.pop(); };
+funcdef:    function func_name left_parenthesis { last_func.push(scope); scope++; printf(" funcdef->( ");} 
+                        idlist right_parenthesis {printf(" funcdef->) ");} block { last_func.pop(); };
 
 number:     integer     {printf(" number-> int ");}
             | real      {printf(" number-> real ");};
@@ -295,8 +344,21 @@ const:      number      {printf(" const->number ");}
             | FALSE     {printf(" const->false ");};
 
 //idlist {printf("'id'");} can be empty
-idlist_l:   id {printf(" idlist_l->id1 ");} //lookup
-            |idlist_l comma id {printf(" idlist_l->id1+ ");};
+idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); printf(" idlist_l->id1 ");} //lookup
+            |idlist_l comma id {
+                switch(  symbol_table.lookUp_curscope(yylval.stringValue)){ 
+                    case 0:{ 
+                        symbol_table.insert(yylval.stringValue,yylineno, FORMAL);
+                        break;  
+                    }
+                    case 1:{    
+                        yyerror("variable redefined in same scope");
+                        break;
+                    }
+                    default:{ yyerror("unknown error occured"); }
+                }
+                printf(" idlist_l->id1+ ");
+                };
 
 idlist:     idlist_l {printf(" idlist->idlist_l ");} 
             | /*empty*/ {printf(" idlist->emptyidlist ");};
@@ -313,7 +375,7 @@ returnstmt: RETURN expr semicolon {printf("returnstmt=>\"return expr;\" ");}
 %%
 
 int yyerror(char* yaccProvidedMessage){
-    printf("%s: at line %d, before token: %s\n",yaccProvidedMessage,yylineno,yytext);
+    printf("\n~~~~~~~~~~ ERROR:line %d, before token: \"%s\" message: %s\n",yylineno,yytext,yaccProvidedMessage);
     printf("INPUT NOT VALID\n");
 }
 
