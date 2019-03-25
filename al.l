@@ -34,7 +34,7 @@
     void add_new_token(char* content, char* category, int line_no) {
         struct alpha_token_t *tmp=token_head;
         struct alpha_token_t *new_token = (struct alpha_token_t*)malloc(sizeof(struct alpha_token_t));
-        // printf("(token:\'%s\" \"%s\" \"lineno:%d\")", content, category, line_no);
+        //printf("(token:\'%s\" \"%s\" \"lineno:%d\")", content, category, line_no);
 
         /*Initialize fields*/
         new_token->line_no = line_no;
@@ -130,11 +130,11 @@ b_less        "<"
 b_less_eq     "<="
 /*Constants-Identifiers*/
 digit       [0-9]
-letter      [A-Za-z]    
+letter      [a-zA-Z]    
 underscore  "_"
 integer     {digit}+
 real        ({digit})+\.({digit})+
-id          {letter}({digit}|{letter}|{underscore})* 
+id          {letter}({digit}|{letter}|{underscore})*
 /*String have to be implemented in code*/
 string      \"
 /*Punstuation marks*/

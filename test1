@@ -20,13 +20,15 @@ function g(x,y) { // g global, x,y local με scope 1, τυπικά ορίσμα
     return h;        //       το h είναι η αναγνωριστικό τοπικής συνάρτησης με scope 1
         
 }
-
+b();
+h[c];
 add = (function(x,y){return x+y; });    //    το add είναι global, τα x,y είναι local arguments με scope 1.
  {                                            
 
     local x = ::x;                      //   το x είναι νέο local με scope 1, το ::x είναι το global x.
     x++;                                //        
-    local f = (function(){return x;});  //  το f είναι νέο local με scope 1, η πρόσβαση στο x είναι το προηγούμενο local με scope 1 (εκτός της f, αλλά όχι top global δηλ. error reporting).                                           
+    local f = (function(){return x;});  //  το f είναι νέο local με scope 1, η πρόσβαση στο x είναι το προηγούμενο local με scope 1 
+                                        // (εκτός της f, αλλά όχι top global δηλ. error reporting).                                           
 }                                       //
                                         //
 function f(a,b){                        //   τα a,b είναι arguments με scope 1

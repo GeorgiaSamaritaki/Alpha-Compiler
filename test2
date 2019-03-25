@@ -1,4 +1,5 @@
-input(e);
+
+input(x); //Αυτόματη δήλωση global x, χρήση global input library function
 
 read(a); //error undefined func
 
@@ -20,16 +21,13 @@ function f() {}
 local f; //ok, found locally
 
 local print; //ok, found in scope 0
-
-local d; //new global var in scope 0
+local y; //new global var in scope 0
 {
     local f; //new local var in scope 1
     local print; //error: trying to
     //shadow libfunc
 }
-
 function g(a, b) { local a =  local b; }
-
 x = y = 1; //new variables x, y
 {
     x = 2; //ok, refers to global x
@@ -56,10 +54,9 @@ k = 1;
 
 function k() {} //error: x is var
 
-function sin() {} //error: func
-//shadows libfunc
+//function sin() {}; //error: func shadows libfunc
 
-l(1, 2); //new variable y, not
+//l(1, 2); //new variable y, not
  //function y
 
 function p(x, y, z) {}
@@ -94,51 +91,3 @@ add = (function(x,y){return x+y; });
 function f(a,b){ 
     local a = local b; 
 }
-
-function v(y) {
-    function c(x) { return x*y; } // error: var f::y not accessible in g
-    return c(x);    
-}
-
-function ff() {
-    function hh() { return v(); } // ::g is visible in g::h
-}
-
-
-local xx;
-function xx(){};
-
-function yy(){};
-local yy;
-
-local zz;
-{
-    local zz;
-}
-
-local vv;
-{
-    function vv(){};
-}
-
-function bb(){}
-{
-    local bb;
-}
-
-function nn(){};
-nn = 4;
-
-function mm(){
-    mm;
-}
-
-local aa;
-{
-    aa = 2; 
-}
-
-local ss;
-ss = 2;
-
-dd(3);
