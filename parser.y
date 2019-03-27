@@ -13,7 +13,6 @@
     extern char* yytext;
     extern FILE* yyin;
 
-   
 
 %}
 
@@ -274,14 +273,17 @@ lvalue:     id {
                         break;
                     } //defined as fgunc
                     case -1:{
-                        yyerror("shadowing of library functions not allowed");
+                       yyerror("shadowing of library functions not allowed");
+                    break;
+                    }
+                    case -2:{
                     }
                     default:{}
                 }
                 printf("'local id'");
             }
             | double_colon id {
-                unsigned int scope_tmp =scope;
+                unsigned int scope_tmp = scope;
                 scope = 0; 
 
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
@@ -379,10 +381,17 @@ block:      left_curly { printf("\n\n-----enter block ------ "); } block_l right
 
 func_name:  id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
-                    case 1 :{} 
-                    case 2 :{}
-                    case -1:{
-                        yyerror("function name already used");// error: var redefined as a function
+                    case 1 :{
+                        yyerror("function name already used as var");// error: var redefined as a function
+                        break;
+                    } 
+                    case 2 :{
+                        yyerror("function name already used as func");// error: var redefined as a function
+                        break;
+                    }
+                    case -1:{}
+                    case -2:{
+                        yyerror("shadowing of library functions not allowed");
                         break;
                     }
                     case 0: {//undefined
@@ -420,6 +429,10 @@ idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); prin
                     }
                     case 1:{    
                         yyerror("variable redefined in same scope");
+                        break;
+                    }
+                    case -1:{
+                        yyerror("formal arguement trying to shadow library func");
                         break;
                     }
                     default:{ yyerror("unknown error occured"); }

@@ -1,8 +1,11 @@
 ﻿hy340-project
-Καλησπερα
+csd3833 Prinianakis Antonis 
+csd3846 Stefanidi Eleni
+csd3840 Samaritaki Georgia
 
-References: 
-About comments https://stackoverflow.com/questions/34493467/how-to-handle-nested-comment-in-flex?fbclid=IwAR0yoJvFl1yYR3szRhfVbKxCC-mGYZBwtyb7G9goBZ3OCWNpWTf6stMTHGY
+C++:
+https://www.gnu.org/software/bison/manual/bison.html#C_002b_002b-Parsers
+https://www.gnu.org/software/bison/manual/html_node/Contextual-Precedence.html
 
-About String: 
-https://stackoverflow.com/questions/54655121/how-to-make-the-c-string-lexer-example-work?fbclid=IwAR1Lx25nUT-1K0dXIunby3Bz35PdnfoKMN04y-cPyX356_0HXISqxlY-gPQ
+conflicts:
+https://efxa.org/2014/05/17/techniques-for-resolving-common-grammar-conflicts-in-parsers/

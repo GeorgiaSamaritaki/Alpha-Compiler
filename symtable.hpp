@@ -40,7 +40,7 @@ typedef struct SymbolTableEntry {
   union {
     Variable *varVal;
     Function *funcVal;
-  } value;
+  } value;              
   enum SymbolType type;
   SymbolTableEntry *next;
   SymbolTableEntry *scope_next;
@@ -136,6 +136,11 @@ class SymTable {
  public:
   SymTable(unsigned int s_size = 100) : size(s_size) {
     symbol_table = new SymbolTableEntry *[size];
+    for(int i=0;i<size;i++){ //idk why this wrorks
+      SymbolTableEntry *newnode = new SymbolTableEntry();
+      newnode->isActive = false;
+      symbol_table[i] = newnode;
+    }
     initialize();
   }
 
@@ -212,7 +217,10 @@ class SymTable {
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
-      if (curr->type == LIBFUNC) return -1;
+      if (curr->type == LIBFUNC) {
+        if(scope != 0) return -1;
+        else return -2; // reference to global func
+      }
 
       if (scope == get_scope(curr)) {
         // name refers to previous declaration / no need to insert
@@ -225,6 +233,7 @@ class SymTable {
 
     return 0;
   }
+
   SymbolTableEntry *find_node(char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
@@ -283,6 +292,7 @@ class SymTable {
 
     return declared;
   }
+
   int hide(int scope) {
     if (scope >= scopes.size()) return -1;
     SymbolTableEntry *curr = scopes.at(scope);
