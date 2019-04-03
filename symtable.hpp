@@ -100,8 +100,10 @@ class SymTable {
     }
   }
   bool is_var(SymbolType symtyp) {
+
     switch (symtyp) {
       case USERFUNC:
+        return false;
       case LIBFUNC:
         return false;
       case GLOBAL:
@@ -216,6 +218,7 @@ class SymTable {
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
+      
       // print  libfunc error
       if (curr->type == LIBFUNC) {
         if(scope != 0) return -1;
@@ -226,8 +229,10 @@ class SymTable {
         // name refers to previous declaration / no need to insert
         if (is_var(curr->type))
           return 1;  // var
-        else
+        else{
+
           return 2;  // func
+        }
       }
     }
 

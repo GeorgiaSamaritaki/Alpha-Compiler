@@ -260,19 +260,25 @@ lvalue:     id {
             } //lookup
             | local id {     
                 printf(" local id %s ",yylval.stringValue);
+                SymbolType a;
                 switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
                         symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                        a = (scope?LOCAL:GLOBAL);
                         break;
                     }
                     case 1:{
                         //symbol_table.change_value()
+                        a = (scope?LOCAL:GLOBAL);
                         break;
                     } //defined as var
                     case 2:{
+                        a = USERFUNC;
+
                         break;
                     } //defined as fgunc
                     case -1:{
+                        a = LIBFUNC;
                        yyerror("shadowing of library functions not allowed");
                     break;
                     }
@@ -280,7 +286,8 @@ lvalue:     id {
                     }
                     default:{}
                 }
-                printf("'local id'");
+                $$ = symbol_table.find_node(yylval.stringValue,a);
+                printf("'local id'\n");
             }
             | double_colon id {
                 unsigned int scope_tmp = scope;
