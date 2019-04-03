@@ -24,13 +24,13 @@ unsigned int anonymous_count;
 enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
 
 typedef struct Variable {
-  const char *name;
+  char *name;
   unsigned int scope;
   unsigned int line;
 } Variable;
 
 typedef struct Function {
-  const char *name;
+  char *name;
   vector<SymbolTableEntry *> args;
   unsigned int scope;
   unsigned int line;
@@ -41,7 +41,7 @@ typedef struct SymbolTableEntry {
   union {
     Variable *varVal;
     Function *funcVal;
-  } value;              
+  } value;
   enum SymbolType type;
   SymbolTableEntry *next;
   SymbolTableEntry *scope_next;
@@ -53,7 +53,7 @@ class SymTable {
   unsigned int size;
   vector<SymbolTableEntry *> scopes;  // scopes.at(i) push_back(entry)
 
-  const char *get_name(SymbolTableEntry *entry) {
+  char *get_name(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
@@ -101,8 +101,10 @@ class SymTable {
     }
   }
   bool is_var(SymbolType symtyp) {
+
     switch (symtyp) {
       case USERFUNC:
+        return false;
       case LIBFUNC:
         return false;
       case GLOBAL:
@@ -150,7 +152,7 @@ class SymTable {
     initialize();
   }
 
-  unsigned int SymTable_hash(const char *name) {
+  unsigned int SymTable_hash(char *name) {
     size_t ui;
     unsigned int uiHash = 0U;
     for (ui = 0U; name[ui] != '\0'; ui++) uiHash = uiHash * HASH_MUL + name[ui];
@@ -165,6 +167,7 @@ class SymTable {
   }
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
+  void insert(char *name, unsigned int lineno, SymbolType symtp) {
   SymbolTableEntry* insert(const char *name, unsigned int lineno, SymbolType symtp) {
     int myscope = scope;
     SymbolTableEntry *newnode = new SymbolTableEntry();
@@ -200,8 +203,19 @@ class SymTable {
     newnode->next = symbol_table[SymTable_hash(name)];
     symbol_table[SymTable_hash(name)] = newnode;
 
-    if (myscope > scopes.size() + 1) {
-      // error case
+    if (myscope > scopes.size()) {
+      // We got deeper in scopes without any vars in the scopes between
+      SymbolTableEntry *dummy = new SymbolTableEntry();
+      dummy->next = NULL;
+      dummy->scope_next = NULL;
+      dummy->isActive = false;
+      dummy->type = LOCAL;
+      dummy->value.varVal = new Variable();
+      dummy->value.varVal->name = strdup("$dummy");
+      for (int i = scopes.size(); i < myscope; i++) {
+        scopes.push_back(dummy);
+      }
+      return;
     } else if (myscope == scopes.size()) {  // add new level of scopes
       newnode->scope_next = NULL;
       scopes.resize(myscope + 1);
@@ -218,30 +232,29 @@ class SymTable {
    *  return  1: already declared refers to previous declaration
    */
 
-  int lookUp_curscope(const char *name) {
+  int lookUp_curscope(char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
+      
       // print  libfunc error
-      if (curr->type == LIBFUNC) {
-        if(scope != 0) return -1;
-        else return -2; // reference to global func
-      }
+      if (curr->type == LIBFUNC) return -1;
 
       if (scope == get_scope(curr)) {
         // name refers to previous declaration / no need to insert
         if (is_var(curr->type)){
           return 1;  // var
         }
-        else
+        else{
+
           return 2;  // func
+        }
       }
     }
 
     return 0;
   }
-
   SymbolTableEntry *find_node(char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
@@ -250,13 +263,10 @@ class SymTable {
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
-      if (scope >= get_scope(curr) && (int)get_scope(curr) > func_scope){
-          if(symtp == curr->type ) {
-            return curr;
-          }
-          if(is_var(symtp) && is_var(curr->type)) return curr;
+      if (scope >= get_scope(curr) && (int)get_scope(curr) > func_scope) {
+        if (symtp == curr->type) return curr;
+        if (is_var(symtp) && is_var(curr->type)) return curr;
       }
-      
     }
     return NULL;
   }
@@ -266,14 +276,15 @@ class SymTable {
    *  return  0: need to be defined
    *  return  1: already declared refers to previous declaration
    */
-  int lookUp_allscope(const char *name, SymbolType symtp) {
+  int lookUp_allscope(char *name, SymbolType symtp) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
     int declared = 0;
     int func_scope = -1;
+
     if (is_var(symtp)) func_scope = last_func.top();
-    
-    
-    for (; curr; curr = curr->next) {
+
+    for (; curr != NULL; curr = curr->next) {
+      // printf("dsfg\n");
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
       if (curr->type == LIBFUNC) return -1;
@@ -283,7 +294,7 @@ class SymTable {
       //     get_name(curr),get_scope(curr),name,scope,func_scope,scope >=
       //     get_scope(curr),(int)get_scope(curr) > func_scope);
       if ((scope >= get_scope(curr) && (int)get_scope(curr) > func_scope) ||
-      get_scope(curr) == 0) {
+          get_scope(curr) == 0) {
         if (is_var(symtp)) {
           // name refers to previous declaration of var/ no need to insert
           if (is_var(curr->type)) {
@@ -303,11 +314,10 @@ class SymTable {
 
     return declared;
   }
-
   int hide(int scope) {
     if (scope >= scopes.size()) return -1;
     SymbolTableEntry *curr = scopes.at(scope);
-    const char *curr_name = get_name(curr);
+    char *curr_name = get_name(curr);
     while (curr) {
       curr->isActive = false;
       curr = curr->scope_next;
@@ -335,6 +345,11 @@ class SymTable {
              string((max_name + 50) / 2, '-').c_str());
 
       while (curr != NULL) {
+        if (!strcmp(curr->value.varVal->name, "$dummy")) {
+          // dummy node -> dont print
+          curr = curr->scope_next;
+          continue;
+        }
         cout << setw(max_name - strlen(get_name(curr)) + 2) << "\""
              << get_name(curr) << "\""
              << setw(16 - strlen(enumtostring(curr->type)) + 3) << "["
