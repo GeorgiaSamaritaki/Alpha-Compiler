@@ -1,12 +1,12 @@
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include<assert.h>
 #include <iomanip>
 #include <iostream>
 #include <stack>
 #include <string>
 #include <vector>
- 
+
 #define HASH_MUL 65599
 
 using namespace std;
@@ -41,7 +41,7 @@ typedef struct SymbolTableEntry {
   union {
     Variable *varVal;
     Function *funcVal;
-  } value;              
+  } value;
   enum SymbolType type;
   SymbolTableEntry *next;
   SymbolTableEntry *scope_next;
@@ -144,7 +144,7 @@ class SymTable {
     newnode->type = LOCAL;
     newnode->next = NULL;
     newnode->scope_next = NULL;
-    for(int i=0;i<size;i++){ //idk why this wrorks
+    for (int i = 0; i < size; i++) {  // idk why this wrorks
       symbol_table[i] = newnode;
     }
     initialize();
@@ -165,7 +165,8 @@ class SymTable {
   }
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
-  SymbolTableEntry* insert(const char *name, unsigned int lineno, SymbolType symtp) {
+  SymbolTableEntry *insert(const char *name, unsigned int lineno,
+                           SymbolType symtp) {
     int myscope = scope;
     SymbolTableEntry *newnode = new SymbolTableEntry();
 
@@ -173,7 +174,7 @@ class SymTable {
     newnode->scope_next = NULL;
     newnode->isActive = true;
 
-    printf("(inserting %s in scope: %d as %s)", name, scope,
+    printf("(inserting %s in scope: %d as %s)\n", name, scope,
            enumtostring(symtp));
 
     newnode->type = symtp;
@@ -200,18 +201,18 @@ class SymTable {
     newnode->next = symbol_table[SymTable_hash(name)];
     symbol_table[SymTable_hash(name)] = newnode;
 
-     if (myscope > scopes.size()) { 
-      // We got deeper in scopes without any vars in the scopes between 
-      SymbolTableEntry *dummy = new SymbolTableEntry(); 
-      dummy->next = NULL; 
-      dummy->scope_next = NULL; 
-      dummy->isActive = false; 
-      dummy->type = LOCAL; 
-      dummy->value.varVal = new Variable(); 
-      dummy->value.varVal->name = strdup("$dummy"); 
-      for (int i = scopes.size(); i < myscope; i++) { 
-        scopes.push_back(dummy); 
-      } 
+    if (myscope > scopes.size()) {
+      // We got deeper in scopes without any vars in the scopes between
+      SymbolTableEntry *dummy = new SymbolTableEntry();
+      dummy->next = NULL;
+      dummy->scope_next = NULL;
+      dummy->isActive = false;
+      dummy->type = LOCAL;
+      dummy->value.varVal = new Variable();
+      dummy->value.varVal->name = strdup("$dummy");
+      for (int i = scopes.size(); i <= myscope; i++) {
+        scopes.push_back(dummy);
+      }
     } else if (myscope == scopes.size()) {  // add new level of scopes
       newnode->scope_next = NULL;
       scopes.resize(myscope + 1);
@@ -235,16 +236,17 @@ class SymTable {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
       if (curr->type == LIBFUNC) {
-        if(scope != 0) return -1;
-        else return -2; // reference to global func
+        if (scope != 0)
+          return -1;
+        else
+          return -2;  // reference to global func
       }
 
       if (scope == get_scope(curr)) {
         // name refers to previous declaration / no need to insert
-        if (is_var(curr->type)){
+        if (is_var(curr->type)) {
           return 1;  // var
-        }
-        else
+        } else
           return 2;  // func
       }
     }
@@ -256,17 +258,16 @@ class SymTable {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
     int func_scope = -1;
-    if (is_var(symtp) && symtp!=GLOBAL) func_scope = last_func.top();
+    if (is_var(symtp) && symtp != GLOBAL) func_scope = last_func.top();
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
-      if (scope >= get_scope(curr) && (int)get_scope(curr) > func_scope){
-          if(symtp == curr->type ) {
-            return curr;
-          }
-          if(is_var(symtp) && is_var(curr->type)) return curr;
+      if (scope >= get_scope(curr) && (int)get_scope(curr) > func_scope) {
+        if (symtp == curr->type) {
+          return curr;
+        }
+        if (is_var(symtp) && is_var(curr->type)) return curr;
       }
-      
     }
     return NULL;
   }
@@ -281,8 +282,7 @@ class SymTable {
     int declared = 0;
     int func_scope = -1;
     if (is_var(symtp)) func_scope = last_func.top();
-    
-    
+
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
@@ -293,7 +293,7 @@ class SymTable {
       //     get_name(curr),get_scope(curr),name,scope,func_scope,scope >=
       //     get_scope(curr),(int)get_scope(curr) > func_scope);
       if ((scope >= get_scope(curr) && (int)get_scope(curr) > func_scope) ||
-      get_scope(curr) == 0) {
+          get_scope(curr) == 0) {
         if (is_var(symtp)) {
           // name refers to previous declaration of var/ no need to insert
           if (is_var(curr->type)) {
@@ -345,11 +345,11 @@ class SymTable {
              string((max_name + 50) / 2, '-').c_str());
 
       while (curr != NULL) {
-        if (!strcmp(curr->value.varVal->name, "$dummy")) { 
-          // dummy node -> dont print 
-          curr = curr->scope_next; 
-          continue; 
-        } 
+        if (!strcmp(curr->value.varVal->name, "$dummy")) {
+          // dummy node -> dont print
+          curr = curr->scope_next;
+          continue;
+        }
         cout << setw(max_name - strlen(get_name(curr)) + 2) << "\""
              << get_name(curr) << "\""
              << setw(16 - strlen(enumtostring(curr->type)) + 3) << "["

@@ -137,32 +137,32 @@ stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \
 statements: statements   stmt 
             | /*empty*/ ;
 
-expr:       assignexpr  {printf(" expr->assignexpr ");}
-            | opexpr    {printf(" expr->opexpr ");}
-            | term      {printf(" expr->term ");};     
+expr:       assignexpr  {printf("expr->assignexpr \n");}
+            | opexpr    {printf("expr->opexpr \n");}
+            | term      {printf("expr->term \n");};     
 
-opexpr:       expr plus         expr {printf(" opexr->expr+expr ");}  
-            | expr minus        expr {printf(" opexr->expr-expr ");}
-            | expr mul          expr {printf(" opexr->expr*expr ");}
-            | expr division     expr {printf(" opexr->expr/expr ");}
-            | expr mod          expr {printf(" opexr->expr\%expr ");}
-            | expr b_greater    expr {printf(" opexr->expr>expr ");}
-            | expr b_less       expr {printf(" opexr->expr<expr ");}
-            | expr b_greater_eq expr {printf(" opexr->expr>=expr ");}
-            | expr b_less_eq    expr {printf(" opexr->expr<=expr ");}
-            | expr b_equals     expr {printf(" opexr->expr==expr ");}
-            | expr b_not_equal  expr {printf(" opexr->expr!=expr ");}
-            | expr AND          expr {printf(" opexr->expr&&expr ");}
-            | expr OR           expr {printf(" opexr->expr||expr ");} ;
+opexpr:       expr plus         expr {printf("opexr->expr+expr \n");}  
+            | expr minus        expr {printf("opexr->expr-expr \n");}
+            | expr mul          expr {printf("opexr->expr*expr \n");}
+            | expr division     expr {printf("opexr->expr/expr \n");}
+            | expr mod          expr {printf("opexr->expr\%expr \n");}
+            | expr b_greater    expr {printf("opexr->expr>expr \n");}
+            | expr b_less       expr {printf("opexr->expr<expr \n");}
+            | expr b_greater_eq expr {printf("opexr->expr>=expr \n");}
+            | expr b_less_eq    expr {printf("opexr->expr<=expr \n");}
+            | expr b_equals     expr {printf("opexr->expr==expr \n");}
+            | expr b_not_equal  expr {printf("opexr->expr!=expr \n");}
+            | expr AND          expr {printf("opexr->expr&&expr \n");}
+            | expr OR           expr {printf("opexr->expr||expr \n");} ;
 
-term:       left_parenthesis expr  right_parenthesis {printf(" term->(expr) ");} 
+term:       left_parenthesis expr  right_parenthesis {printf("term->(expr) \n");} 
             | NOT expr {
-                printf(" term->NOTexpr ");
+                printf("term->NOTexpr \n");
                 }
             | minus expr %prec uminus {
-                printf(" term->-expr ");
+                printf("term->-expr \n");
                 }
-            | increment {printf(" term->++lvalue ");} lvalue { 
+            | increment {printf("term->++lvalue \n");} lvalue { 
                 if($3 != NULL) {
                     if($3->type == USERFUNC) yyerror("Cannot increment function");
                     else if($3->type == LIBFUNC) yyerror("Cannot increment libfunc");
@@ -179,8 +179,8 @@ term:       left_parenthesis expr  right_parenthesis {printf(" term->(expr) ");}
                 }else{ //define as new var
                     yyerror("variable undefined");
                 } 
-            } increment {printf(" term->lvalue++ ");} //lookup maybe(before ++?)
-            | decrement {printf(" term->--lvalue ");} lvalue {
+            } increment {printf("term->lvalue++ \n");} //lookup maybe(before ++?)
+            | decrement {printf("term->--lvalue \n");} lvalue {
                 if($3 != NULL) {
                     if($3->type == USERFUNC) yyerror("Cannot increment function");
                     else if($3->type == LIBFUNC) yyerror("Cannot increment libfunc");
@@ -197,8 +197,8 @@ term:       left_parenthesis expr  right_parenthesis {printf(" term->(expr) ");}
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
-                } decrement {printf(" term->lvalue-- ");}  //lookup maybe (before --?)
-            | primary {printf(" term->primary ");};
+                } decrement {printf("term->lvalue-- \n");}  //lookup maybe (before --?)
+            | primary {printf("term->primary \n");};
 
 assignexpr: lvalue {
                 if($1 != NULL) {
@@ -209,9 +209,9 @@ assignexpr: lvalue {
                     symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 }
 
-                printf(" assignexpr->lvalue ");
+                printf("assignexpr->lvalue \n");
                 
-                } assign expr {printf(" assignexpr->=expr ");}; //lookup (before assign?)
+                } assign expr {printf("assignexpr->=expr \n");}; //lookup (before assign?)
 
 primary:    lvalue  {
                 if($1 != NULL) {
@@ -222,7 +222,7 @@ primary:    lvalue  {
                     //else we're changing old value
                 }else{ //define as new var
                     if(return_flag) yyerror("return values undefined in this scope");
-                            else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                    else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 }
                 //LVALUE
                 // switch( symbol_table.lookUp_allscope(yylval.stringValue,(scope?LOCAL:GLOBAL)) ){
@@ -237,15 +237,15 @@ primary:    lvalue  {
                 //             else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 //          }  
                 //     }
-            printf(" primary->lvalue ");}
-            | call  {printf(" primary->call ");}
-            | objectdef     {printf(" primary->objectdef ");}
-            | left_parenthesis funcdef right_parenthesis {printf(" primary->(funcdef) ");}
-            | const {printf(" primary->const ");}
+                printf("primary->lvalue \n");}
+            | call  {printf("primary->call \n");}
+            | objectdef     {printf("primary->objectdef \n");}
+            | left_parenthesis funcdef right_parenthesis {printf("primary->(funcdef) \n");}
+            | const {printf("primary->const \n");}
             ;
 
 lvalue:     id {
-                printf(" lvalue->ids '%s'",yylval.stringValue);
+                printf("lvalue->ids '%s'\n",yylval.stringValue);
                 switch(symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
                     case 0:{
                         $$ = NULL;
@@ -262,11 +262,11 @@ lvalue:     id {
                 }
             } //lookup
             | local id {     
-                printf(" local id %s ",yylval.stringValue);
-
+                printf("local id %s \n",yylval.stringValue);
                 switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
                         $$ = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                        break;
                     }
                     case 1:{
                         //symbol_table.change_value()
@@ -284,7 +284,6 @@ lvalue:     id {
                     break;
                     }
                 }
-                printf("'local id'");
             }
             | double_colon id {
                 unsigned int scope_tmp = scope;
@@ -315,9 +314,9 @@ lvalue:     id {
                 }
 
                 scope = scope_tmp;
-                printf(" lvalue->::id ");
+                printf("lvalue->::id \n");
                 }
-            | member { $$ = NULL; printf(" lvalue->member ");}; 
+            | member { $$ = NULL; printf("lvalue->member \n");}; 
 
 member:     lvalue{
                 if($1 != NULL) {
@@ -327,8 +326,8 @@ member:     lvalue{
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
-                printf(" idlist_l->id1+ ");
-            }dot id {printf(" member->lvalue.id ");}
+                printf("idlist_l->id1+ \n");
+            }dot id {printf("member->lvalue.id \n");}
             | lvalue {
                 if($1 != NULL) {
                     if($1->type == USERFUNC) yyerror("cannot use function as array");
@@ -345,11 +344,11 @@ member:     lvalue{
                 //     }
                 //     default:{  }
                 // }
-            }left_bracket expr right_bracket {printf(" member->lvalue[expr] ");}
-            | call dot id {printf(" member->call().id ");}
-            | call left_bracket expr right_bracket {printf(" member->[expr] ");};
+            }left_bracket expr right_bracket {printf("member->lvalue[expr] \n");}
+            | call dot id {printf("member->call().id \n");}
+            | call left_bracket expr right_bracket {printf("member->[expr] \n");};
 
-call:       call left_parenthesis elist right_parenthesis {printf(" call->call(elist) ");}
+call:       call left_parenthesis elist right_parenthesis {printf("call->call(elist) \n");}
             | lvalue{
                 
                 // LVALUE
@@ -361,39 +360,39 @@ call:       call left_parenthesis elist right_parenthesis {printf(" call->call(e
                     default:{ 
                         }
                 }
-                printf(" idlist_l->id1+ ");
+                printf("idlist_l->id1+ \n");
             } callsuffix {
-                printf(" call->lvaluecallsuffix  lvalue'%s'()",yylval.stringValue);
+                printf("call->lvaluecallsuffix  lvalue'%s'()\n",yylval.stringValue);
                 } 
-            | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {printf(" call->(funcdef)(elist) ");};
+            | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {printf("call->(funcdef)(elist) \n");};
 
-callsuffix: normcall  {printf(" callsuffix->normcall ");} 
-            | methodcall {printf(" callsuffix->methodcall ");} ;
+callsuffix: normcall  {printf("callsuffix->normcall \n");} 
+            | methodcall {printf("callsuffix->methodcall \n");} ;
 
-normcall:   left_parenthesis elist right_parenthesis {printf(" normcall->(elist) ");};
+normcall:   left_parenthesis elist right_parenthesis {printf("normcall->(elist) \n");};
 
 methodcall: double_dot id {//maybe needs code
-            }left_parenthesis elist right_parenthesis {printf(" methodcall->..id(elist) ");} ; 
+            }left_parenthesis elist right_parenthesis {printf("methodcall->..id(elist) \n");} ; 
 
-elist_l:    expr {printf(" elist_l->expr ");}
-            | elist_l comma expr {printf(" elist_l->elist_l,expr ");};
+elist_l:    expr {printf("elist_l->expr \n");}
+            | elist_l comma expr {printf("elist_l->elist_l,expr \n");};
 
-elist:      elist_l {printf(" elist->elist_l ");}
-            |/*empty*/  {printf(" elist->empty ");};
+elist:      elist_l {printf("elist->elist_l \n");}
+            |/*empty*/  {printf("elist->empty \n");};
 
-objectdef:  left_bracket elist right_bracket {printf(" objextdef->[elist]");}
-            |left_bracket indexed right_bracket {printf(" objectdef->[indexed] ");};
+objectdef:  left_bracket elist right_bracket {printf("objextdef->[elist]\n");}
+            |left_bracket indexed right_bracket {printf("objectdef->[indexed] \n");};
 
-indexedelem: left_curly expr colon expr right_curly {printf(" indexedelem->{expr:expr} ");}; 
+indexedelem: left_curly expr colon expr right_curly {printf("indexedelem->{expr:expr} \n");}; 
             // { expr {printf("expr");} : expr {printf("expr");}}
 
-indexed:    indexedelem {printf(" indexed->indexedelem ");} 
-            | indexed comma indexedelem {printf(" indexed->indexed,indexedelem ");};
+indexed:    indexedelem {printf("indexed->indexedelem \n");} 
+            | indexed comma indexedelem {printf("indexed->indexed,indexedelem \n");};
 
 block_l:    block_l stmt
             |/*empty*/;
 
-block:      left_curly { printf("\n\n-----enter block ------ "); } block_l right_curly { printf("-----exit block ------\n\n"); symbol_table.hide(scope--);};
+block:      left_curly { printf("\n\n-----enter block ------ \n"); } block_l right_curly { printf("\n-----exit block ------\n\n"); symbol_table.hide(scope--);};
 
 func_name:  id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
@@ -415,28 +414,28 @@ func_name:  id {
                     }
                 }
                 
-                printf(" func_name->func_id ");
+                printf("func_name->func_id \n");
                 }  //lookup
             | /*empty*/{
                 char name[100]; 
                 sprintf(name, "%s%d","$anonymous",  anonymous_count );
                 anonymous_count++;
-                symbol_table.insert(name, yylineno, USERFUNC); printf(" func_name->annonymousfunc ");}; //probably insert with $_name(anonymous)
+                symbol_table.insert(name, yylineno, USERFUNC); printf("func_name->annonymousfunc \n");}; //probably insert with $_name(anonymous)
 
-funcdef:    function func_name left_parenthesis { last_func.push(scope); scope++; printf(" funcdef->( ");} 
-                        idlist right_parenthesis {printf(" funcdef->) ");} block { last_func.pop(); };
+funcdef:    function func_name left_parenthesis { last_func.push(scope); scope++; printf("funcdef->( ");} 
+                        idlist right_parenthesis {printf("funcdef->) \n");} block { last_func.pop(); };
 
-number:     integer     {printf(" number->int ");}
-            | real      {printf(" number->real ");};
+number:     integer     {printf("number->int \n");}
+            | real      {printf("number->real \n");};
 
-const:      number      {printf(" const->number ");}
-            | STRING    {printf(" const->string ");}
-            | NIL       {printf(" const->nil ");}
-            | TRUE      {printf(" const->true ");}
-            | FALSE     {printf(" const->false ");};
+const:      number      {printf("const->number \n");}
+            | STRING    {printf("const->string \n");}
+            | NIL       {printf("const->nil \n");}
+            | TRUE      {printf("const->true \n");}
+            | FALSE     {printf("const->false \n");};
 
 //idlist {printf("'id'");} can be empty
-idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); printf(" idlist_l->id1 ");} //lookup
+idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); printf("idlist_l->id1 \n");} //lookup
             |idlist_l comma id {
                 switch(  symbol_table.lookUp_curscope(yylval.stringValue)){ 
                     case 0:{ 
@@ -453,30 +452,30 @@ idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); prin
                     }
                     default:{ yyerror("unknown error occured"); }
                 }
-                printf(" idlist_l->id1+ ");
+                printf("idlist_l->id1+ \n");
                 };
 
-idlist:     idlist_l {printf(" idlist->idlist_l ");} 
-            | /*empty*/ {printf(" idlist->emptyidlist ");};
+idlist:     idlist_l {printf("idlist->idlist_l \n");} 
+            | /*empty*/ {printf("idlist->emptyidlist \n");};
 
-ifstmt:     IF left_parenthesis expr right_parenthesis  stmt ELSE stmt { printf(" ifstmt->\"if(expr) stmt else stmt\" "); } 
-            | IF left_parenthesis expr right_parenthesis stmt { printf(" ifstmt->\"if(expr) stmt\" ");};
+ifstmt:     IF left_parenthesis expr right_parenthesis  stmt ELSE stmt { printf("ifstmt->\"if(expr) stmt else stmt\" \n"); } 
+            | IF left_parenthesis expr right_parenthesis stmt { printf("ifstmt->\"if(expr) stmt\" \n");};
 
-whilestmt:  WHILE left_parenthesis expr right_parenthesis stmt {printf(" whilestmt->\"while(expr) stmt else stmt\" ");};
+whilestmt:  WHILE left_parenthesis expr right_parenthesis stmt {printf("whilestmt->\"while(expr) stmt else stmt\" \n");};
 
-forstmt:    FOR left_parenthesis elist semicolon expr semicolon elist right_parenthesis {printf(" forstmt->\"for(elist; expr; elist)\" ");} stmt;
+forstmt:    FOR left_parenthesis elist semicolon expr semicolon elist right_parenthesis {printf("forstmt->\"for(elist; expr; elist)\" \n");} stmt;
 
 returnstmt: RETURN {
                 return_flag = true;
                 if(last_func.top() == -1) yyerror("return statement without function");
-            }expr semicolon {return_flag = false; printf("returnstmt=>\"return expr;\" ");}
+            }expr semicolon {return_flag = false; printf("returnstmt=>\"return expr;\" \n");}
             | RETURN{ 
                 if(last_func.top() == -1) yyerror("return statement without function");
-            }semicolon {printf(" returnstmt->return; ");};
+            }semicolon {printf("returnstmt->return; \n");};
 %%
 
 int yyerror(char* yaccProvidedMessage){
-     printf("\033[1;31m");
+    printf("\033[1;31m");
     printf("\n_____________ERROR:line %d, before token: \"%s\" message: %s____________\n"
         ,yylineno,yytext,yaccProvidedMessage);
         printf("\033[0m");
