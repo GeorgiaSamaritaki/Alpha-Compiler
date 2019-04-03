@@ -260,7 +260,7 @@ lvalue:     id {
             } //lookup
             | local id {     
                 printf(" local id %s ",yylval.stringValue);
-                SymbolType a;
+                SymbolType a; //TODO: FIX IT IT'S BAKALIKO
                 switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
                         symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
