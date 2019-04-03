@@ -52,8 +52,8 @@ class SymTable {
   SymbolTableEntry **symbol_table;
   unsigned int size;
   vector<SymbolTableEntry *> scopes;  // scopes.at(i) push_back(entry)
-
-  const char *get_name(SymbolTableEntry *entry) {
+public:
+  static const char *get_name(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
@@ -64,7 +64,7 @@ class SymTable {
         return entry->value.varVal->name;
     }
   }
-  unsigned int get_scope(SymbolTableEntry *entry) {
+  static unsigned int get_scope(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
@@ -75,7 +75,7 @@ class SymTable {
         return entry->value.varVal->scope;
     }
   }
-  unsigned int get_lineno(SymbolTableEntry *entry) {
+  static unsigned int get_lineno(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
@@ -86,7 +86,7 @@ class SymTable {
         return entry->value.varVal->line;
     }
   }
-  char *enumtostring(SymbolType s) {
+  static char *enumtostring(SymbolType s) {
     switch (s) {
       case USERFUNC:
         return "user function";
@@ -100,7 +100,7 @@ class SymTable {
         return "formal var";
     }
   }
-  bool is_var(SymbolType symtyp) {
+  static bool is_var(SymbolType symtyp) {
     switch (symtyp) {
       case USERFUNC:
       case LIBFUNC:
@@ -134,7 +134,7 @@ class SymTable {
     printf("\n\n");
   }
 
- public:
+ 
   SymTable(unsigned int s_size = 100) : size(s_size) {
     symbol_table = new SymbolTableEntry *[size];
     SymbolTableEntry *newnode = new SymbolTableEntry();
@@ -256,7 +256,7 @@ class SymTable {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
     int func_scope = -1;
-    if (is_var(symtp) && symtp!=GLOBAL) func_scope = last_func.top();
+    if (symtp == LOCAL) func_scope = last_func.top();
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
@@ -276,25 +276,16 @@ class SymTable {
    *  return  0: need to be defined
    *  return  1: already declared refers to previous declaration
    */
-  int lookUp_allscope(const char *name, SymbolType symtp) {
+  int lookUp_allscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
     int declared = 0;
-    int func_scope = -1;
-    if (is_var(symtp)) func_scope = last_func.top();
-    
     
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
       if (curr->type == LIBFUNC) return -1;
 
-      // printf("[allscope:checking curr %s scope %d for %s scope %d funcscopr
-      // %d || %d k %d]",
-      //     get_name(curr),get_scope(curr),name,scope,func_scope,scope >=
-      //     get_scope(curr),(int)get_scope(curr) > func_scope);
-      if ((scope >= get_scope(curr) && (int)get_scope(curr) > func_scope) ||
-      get_scope(curr) == 0) {
-        if (is_var(symtp)) {
+      if (scope >= get_scope(curr)){
           // name refers to previous declaration of var/ no need to insert
           if (is_var(curr->type)) {
             return 1;
@@ -302,12 +293,6 @@ class SymTable {
           // name refers to previous declaration of func/ no need to insert
           else
             return 2;                            // func
-        } else {                                 // if you a func is looked for
-          if (is_var(curr->type)) declared = 1;  // var
-          // name refers to previous declaration of func/ no need to insert
-          else
-            return 2;  // func
-        }
       }
     }
 

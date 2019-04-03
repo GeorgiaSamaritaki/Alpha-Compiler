@@ -2,6 +2,10 @@
 
 	local x = 4;
 
-	function f(){}
+	function f(){
+		x=6;
+		x--;
+		local x;
+	}
 }
 

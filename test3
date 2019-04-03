@@ -10,7 +10,7 @@ function v(y) {
 v = 2;
 
 function f() {
-    function h() { return v(); } // ::g is visible in g::h
+    function h() { return v(); } // ::v is visible in f::h
 }
 
 
@@ -39,7 +39,7 @@ function n(){};
 n = 4;
 
 function m(){
-    m;
+    m; // 
 }
 
 local a;

@@ -164,36 +164,48 @@ term:       left_parenthesis expr  right_parenthesis {printf(" term->(expr) ");}
                 }
             | increment {printf(" term->++lvalue ");} lvalue { 
                 if($3 != NULL) {
-                    if($3->type == USERFUNC) yyerror("Cannot increment function");
-                    else if($3->type == LIBFUNC) yyerror("Cannot increment libfunc");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($3) <= last_func.top() && (int)symbol_table.get_scope($3)!=0){
+                        yyerror("Cant reference variable out of scope");
+                    }else {
+                        if($3->type == USERFUNC) yyerror("Cannot increment function");
+                        else if($3->type == LIBFUNC) yyerror("Cannot increment libfunc");
+                    }
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
             } //lookup maybe
             | lvalue {
                 if($1 != NULL) {
-                    if($1->type == USERFUNC) yyerror("Cannot increment function");
-                    else if($1->type == LIBFUNC) yyerror("Cannot increment libfunc");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($1) <= last_func.top() && (int)symbol_table.get_scope($1)!=0){
+                        yyerror("Cant reference variable out of scope");
+                    }else{
+                        if($1->type == USERFUNC) yyerror("Cannot increment function");
+                        else if($1->type == LIBFUNC) yyerror("Cannot increment libfunc");
+                    }
                 }else{ //define as new var
                     yyerror("variable undefined");
                 } 
             } increment {printf(" term->lvalue++ ");} //lookup maybe(before ++?)
             | decrement {printf(" term->--lvalue ");} lvalue {
                 if($3 != NULL) {
-                    if($3->type == USERFUNC) yyerror("Cannot increment function");
-                    else if($3->type == LIBFUNC) yyerror("Cannot increment libfunc");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($3) <= last_func.top() && (int)symbol_table.get_scope($3)!=0 ){
+                        yyerror("Cant reference variable out of scope");
+                    }else {   
+                        if($3->type == USERFUNC) yyerror("Cannot increment function");
+                        else if($3->type == LIBFUNC) yyerror("Cannot increment libfunc");
+                    }
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
                 } //lookup maybe
             | lvalue {
                 if($1 != NULL) {
-                    if($1->type == USERFUNC) yyerror("Cannot increment function");
-                    else if($1->type == LIBFUNC) yyerror("Cannot increment libfunc");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($1) <= last_func.top() && (int)symbol_table.get_scope($1)!=0){
+                        yyerror("Cant reference variable out of scope");
+                    }else {   
+                        if($1->type == USERFUNC) yyerror("Cannot increment function");
+                        else if($1->type == LIBFUNC) yyerror("Cannot increment libfunc");
+                    }
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
@@ -202,10 +214,14 @@ term:       left_parenthesis expr  right_parenthesis {printf(" term->(expr) ");}
 
 assignexpr: lvalue {
                 if($1 != NULL) {
-                    if($1->type == USERFUNC) yyerror("Cannot assign to function");
-                    else if($1->type == LIBFUNC) yyerror("Cannot assign to libfunc");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($1) <= last_func.top() && (int)symbol_table.get_scope($1)!=0){
+                        yyerror("Cant reference variable out of scope");
+                    }else { 
+                        if($1->type == USERFUNC) yyerror("Cannot assign to function");
+                        else if($1->type == LIBFUNC) yyerror("Cannot assign to libfunc");
+                    }
                 }else{ //define as new var
+                printf("inserting in assign\n");
                     symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 }
 
@@ -215,28 +231,15 @@ assignexpr: lvalue {
 
 primary:    lvalue  {
                 if($1 != NULL) {
-                    if($1->type == USERFUNC) {}
-                    else if($1->type == LIBFUNC){}
-                    else if($1->type == LOCAL){}
-                    else if($1->type == LIBFUNC){}
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
+                            printf("fuck? %d %d\n",(int)symbol_table.get_scope($1),last_func.top() );
+                            yyerror("Cant reference variable out of scope");
+                    }
                 }else{ //define as new var
                     if(return_flag) yyerror("return values undefined in this scope");
-                            else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                    else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 }
-                //LVALUE
-                // switch( symbol_table.lookUp_allscope(yylval.stringValue,(scope?LOCAL:GLOBAL)) ){
-                //         case 2: { printf("Function Found"); break;}
-                //         case 1: { printf("-Var found top: %d scope %d-",last_func.top()); break; }
-                //         case -1: {
-                //             break;
-                //         } 
-                //         case 0: { 
-                //             printf("primary:");
-                //             if(return_flag) yyerror("return values undefined in this scope");
-                //             else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
-                //          }  
-                //     }
+
             printf(" primary->lvalue ");}
             | call  {printf(" primary->call ");}
             | objectdef     {printf(" primary->objectdef ");}
@@ -245,14 +248,16 @@ primary:    lvalue  {
             ;
 
 lvalue:     id {
-                printf(" lvalue->ids '%s'",yylval.stringValue);
-                switch(symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
+                printf(" lvalue->id '%s'",yylval.stringValue);
+                switch(symbol_table.lookUp_allscope(yylval.stringValue) ){
                     case 0:{
                         $$ = NULL;
                         break;
                         }
                     case 1:{
                         $$ = symbol_table.find_node(yylval.stringValue,LOCAL);
+                        if($$ == NULL)
+                            $$ = symbol_table.find_node(yylval.stringValue,GLOBAL);
                         break;}
                     case 2:{
                         $$ = symbol_table.find_node(yylval.stringValue,USERFUNC); break;}
@@ -267,6 +272,7 @@ lvalue:     id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
                         $$ = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                        break;
                     }
                     case 1:{
                         //symbol_table.change_value()
@@ -293,6 +299,7 @@ lvalue:     id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
                     case 0: {//undefined
                         yyerror("global variable not found");
+                        $$ = NULL;
                         break;
                     }
                     case 1:{//ok var found
@@ -321,9 +328,13 @@ lvalue:     id {
 
 member:     lvalue{
                 if($1 != NULL) {
-                    if($1->type == USERFUNC) yyerror("cannot member function");
-                    else if($1->type == LIBFUNC) yyerror("cannot member libfunc");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
+                        yyerror("Cant reference variable out of scope");
+                    }
+                    else {
+                        if($1->type == USERFUNC) yyerror("cannot member function");
+                        else if($1->type == LIBFUNC) yyerror("cannot member libfunc");
+                    }
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
@@ -331,35 +342,33 @@ member:     lvalue{
             }dot id {printf(" member->lvalue.id ");}
             | lvalue {
                 if($1 != NULL) {
-                    if($1->type == USERFUNC) yyerror("cannot use function as array");
-                    else if($1->type == LIBFUNC) yyerror("cannot use libfunc as array");
-                    //else we're changing old value
+                    if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
+                            yyerror("Cant reference variable out of scope");
+                    }else{
+                        if($1->type == USERFUNC) yyerror("cannot use function as array");
+                        else if($1->type == LIBFUNC) yyerror("cannot use libfunc as array");
+                    }
                 }else{ //define as new var
                     yyerror("array undefined");
                 }
-                //LVALUE
-                // switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL)){ 
-                //     case 2:{ //function found so it can be called
-                //         yyerror("lvalue is a function");
-                //         break;
-                //     }
-                //     default:{  }
-                // }
             }left_bracket expr right_bracket {printf(" member->lvalue[expr] ");}
             | call dot id {printf(" member->call().id ");}
             | call left_bracket expr right_bracket {printf(" member->[expr] ");};
 
 call:       call left_parenthesis elist right_parenthesis {printf(" call->call(elist) ");}
             | lvalue{
-                
-                // LVALUE
-                switch( symbol_table.lookUp_allscope(yylval.stringValue,USERFUNC)){ 
-                    case 2:{break;}
-                    case 0:{ }
-                    case 1:{ yyerror("function was not found"); 
-                        break;}
-                    default:{ 
-                        }
+                if($1 != NULL) {
+                    if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
+                            yyerror("Cant reference variable out of scope");
+                    }else{
+                        if($1->type == USERFUNC) {}
+                        else if($1->type == LIBFUNC) {}
+                        else if($1->type == LOCAL||$1->type == GLOBAL) {
+                            yyerror("cant use variable as function");
+                            }
+                    }
+                }else{ //define as new var
+                    yyerror("function not found");
                 }
                 printf(" idlist_l->id1+ ");
             } callsuffix {

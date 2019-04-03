@@ -20,8 +20,8 @@ function g(x,y) {       // g global, x,y local με scope 1, τυπικά ορί
     return h;           //       το h είναι η αναγνωριστικό τοπικής συνάρτησης με scope 1
         
 }
-b();
-h[c];
+b();  //FIXME: ERROR
+h[c]; //FIXME: ERROR
 add = (function(x,y){return x+y; });    //    το add είναι global, τα x,y είναι local arguments με scope 1.
 {                                            
 
