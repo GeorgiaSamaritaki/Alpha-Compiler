@@ -3,7 +3,7 @@
     #include <stdlib.h>
     #include "symtable.hpp"
 
-    int yyerror(char const* yaccProvidedMessage);
+    int yyerror(char* yaccProvidedMessage);
     int yylex(void);
 
     SymTable symbol_table = *new SymTable();
@@ -13,11 +13,10 @@
     extern char* yytext;
     extern FILE* yyin;
 
+
 %}
 
 %defines
-
-%error-verbose
 
 %union { 
     char* stringValue; 
@@ -74,7 +73,7 @@
 %token underscore  
 %token integer     
 %token real        
-%token <stringValue>id           
+%token id           
 
 /*String have to be implemented in code*/
 %token STRING  
@@ -288,7 +287,7 @@ lvalue:     id {
                 printf("'local id'");
             }
             | double_colon id {
-                unsigned int scope_tmp =scope;
+                unsigned int scope_tmp = scope;
                 scope = 0; 
 
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
@@ -394,14 +393,21 @@ indexed:    indexedelem {printf(" indexed->indexedelem ");}
 block_l:    block_l stmt
             |/*empty*/;
 
-block:      left_curly { printf("\n\n-----enter block ------ \n"); } block_l right_curly { printf("\n-----exit block ------\n\n"); symbol_table.hide(scope--);};
+block:      left_curly { printf("\n\n-----enter block ------ "); } block_l right_curly { printf("-----exit block ------\n\n"); symbol_table.hide(scope--);};
 
 func_name:  id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
-                    case 1 :{} 
-                    case 2 :{}
-                    case -1:{
-                        yyerror("function name already used");// error: var redefined as a function
+                    case 1 :{
+                        yyerror("function name already used as var");// error: var redefined as a function
+                        break;
+                    } 
+                    case 2 :{
+                        yyerror("function name already used as func");// error: var redefined as a function
+                        break;
+                    }
+                    case -1:{}
+                    case -2:{
+                        yyerror("shadowing of library functions not allowed");
                         break;
                     }
                     case 0: {//undefined
@@ -441,6 +447,10 @@ idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); prin
                         yyerror("variable redefined in same scope");
                         break;
                     }
+                    case -1:{
+                        yyerror("formal arguement trying to shadow library func");
+                        break;
+                    }
                     default:{ yyerror("unknown error occured"); }
                 }
                 printf(" idlist_l->id1+ ");
@@ -465,7 +475,7 @@ returnstmt: RETURN {
             }semicolon {printf(" returnstmt->return; ");};
 %%
 
-int yyerror(char const* yaccProvidedMessage){
+int yyerror(char* yaccProvidedMessage){
      printf("\033[1;31m");
     printf("\n_____________ERROR:line %d, before token: \"%s\" message: %s____________\n"
         ,yylineno,yytext,yaccProvidedMessage);

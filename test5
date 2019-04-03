@@ -1,0 +1,7 @@
+{
+
+	local x = 4;
+
+	function f(){}
+}
+

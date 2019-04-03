@@ -2,7 +2,7 @@
 function v(y) {
     function c(x) { 
         return x*y; 
-    } // error: var f::y not accessible in g
+        } // error: var f::y not accessible in g
 
     return c();    
 }
@@ -47,5 +47,5 @@ local a;
     a = 2; 
 }
 
-local v;
-v = 2;
+local s;
+s = 2;
