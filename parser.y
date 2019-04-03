@@ -3,7 +3,7 @@
     #include <stdlib.h>
     #include "symtable.hpp"
 
-    int yyerror(char* yaccProvidedMessage);
+    int yyerror(char const* yaccProvidedMessage);
     int yylex(void);
 
     SymTable symbol_table = *new SymTable();
@@ -13,10 +13,11 @@
     extern char* yytext;
     extern FILE* yyin;
 
-
 %}
 
 %defines
+
+%error-verbose
 
 %union { 
     char* stringValue; 
@@ -73,7 +74,7 @@
 %token underscore  
 %token integer     
 %token real        
-%token id           
+%token <stringValue>id           
 
 /*String have to be implemented in code*/
 %token STRING  
@@ -245,7 +246,7 @@ primary:    lvalue  {
             ;
 
 lvalue:     id {
-                printf(" lvalue->id '%s'",yylval.stringValue);
+                printf(" lvalue->id \n '%s'\n ",yylval.stringValue);
                 switch(symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
                     case 0:{
                         $$ = NULL;break;}
@@ -259,7 +260,7 @@ lvalue:     id {
                 }
             } //lookup
             | local id {     
-                printf(" local id %s ",yylval.stringValue);
+                printf(" local id \n%s ",yylval.stringValue);
                 switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
                         symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
@@ -273,17 +274,14 @@ lvalue:     id {
                         break;
                     } //defined as fgunc
                     case -1:{
-                       yyerror("shadowing of library functions not allowed");
-                    break;
-                    }
-                    case -2:{
+                        yyerror("shadowing of library functions not allowed");
                     }
                     default:{}
                 }
                 printf("'local id'");
             }
             | double_colon id {
-                unsigned int scope_tmp = scope;
+                unsigned int scope_tmp =scope;
                 scope = 0; 
 
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
@@ -377,21 +375,14 @@ indexed:    indexedelem {printf(" indexed->indexedelem ");}
 block_l:    block_l stmt
             |/*empty*/;
 
-block:      left_curly { printf("\n\n-----enter block ------ "); } block_l right_curly { printf("-----exit block ------\n\n"); symbol_table.hide(scope--);};
+block:      left_curly { printf("\n\n-----enter block ------ \n"); } block_l right_curly { printf("\n-----exit block ------\n\n"); symbol_table.hide(scope--);};
 
 func_name:  id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
-                    case 1 :{
-                        yyerror("function name already used as var");// error: var redefined as a function
-                        break;
-                    } 
-                    case 2 :{
-                        yyerror("function name already used as func");// error: var redefined as a function
-                        break;
-                    }
-                    case -1:{}
-                    case -2:{
-                        yyerror("shadowing of library functions not allowed");
+                    case 1 :{} 
+                    case 2 :{}
+                    case -1:{
+                        yyerror("function name already used");// error: var redefined as a function
                         break;
                     }
                     case 0: {//undefined
@@ -431,10 +422,6 @@ idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); prin
                         yyerror("variable redefined in same scope");
                         break;
                     }
-                    case -1:{
-                        yyerror("formal arguement trying to shadow library func");
-                        break;
-                    }
                     default:{ yyerror("unknown error occured"); }
                 }
                 printf(" idlist_l->id1+ ");
@@ -459,7 +446,7 @@ returnstmt: RETURN {
             }semicolon {printf(" returnstmt->return; ");};
 %%
 
-int yyerror(char* yaccProvidedMessage){
+int yyerror(char const* yaccProvidedMessage){
      printf("\033[1;31m");
     printf("\n_____________ERROR:line %d, before token: \"%s\" message: %s____________\n"
         ,yylineno,yytext,yaccProvidedMessage);
