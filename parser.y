@@ -245,40 +245,44 @@ primary:    lvalue  {
             ;
 
 lvalue:     id {
-                printf(" lvalue->id '%s'",yylval.stringValue);
+                printf(" lvalue->ids '%s'",yylval.stringValue);
                 switch(symbol_table.lookUp_allscope(yylval.stringValue,LOCAL) ){
                     case 0:{
-                        $$ = NULL;break;}
+                        $$ = NULL;
+                        break;
+                        }
                     case 1:{
                         $$ = symbol_table.find_node(yylval.stringValue,LOCAL);
                         break;}
                     case 2:{
                         $$ = symbol_table.find_node(yylval.stringValue,USERFUNC); break;}
+                    case -2:{}
                     case -1:{
                         $$ = symbol_table.find_node(yylval.stringValue,LIBFUNC); break; }
                 }
             } //lookup
             | local id {     
                 printf(" local id %s ",yylval.stringValue);
+
                 switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
                     case 0: {//undefined
-                        symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
-                        break;
+                        $$ = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                     }
                     case 1:{
                         //symbol_table.change_value()
+                        $$ = symbol_table.find_node(yylval.stringValue,LOCAL);
                         break;
                     } //defined as var
                     case 2:{
+                        $$ = symbol_table.find_node(yylval.stringValue,USERFUNC);
                         break;
                     } //defined as fgunc
+                    case -2:{}
                     case -1:{
+                        $$ = symbol_table.find_node(yylval.stringValue,LIBFUNC);
                        yyerror("shadowing of library functions not allowed");
                     break;
                     }
-                    case -2:{
-                    }
-                    default:{}
                 }
                 printf("'local id'");
             }
@@ -289,19 +293,31 @@ lvalue:     id {
                 switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
                     case 0: {//undefined
                         yyerror("global variable not found");
+                        break;
                     }
                     case 1:{//ok var found
                         //symbol_table.change_value()
+                       $$ = symbol_table.find_node(yylval.stringValue,GLOBAL);
+                       break;
                     } 
                     case 2:{//ok func found 
+                        $$ = symbol_table.find_node(yylval.stringValue,USERFUNC);
+                        break;
                     }
-                    default:{}
+                    case -2:{}
+                    case -1:{
+                       $$ = symbol_table.find_node(yylval.stringValue,LIBFUNC);
+                        break;
+                    }
+                    default:{
+                        assert(false);
+                    }
                 }
 
                 scope = scope_tmp;
-                printf(" lvalue->id ");
+                printf(" lvalue->::id ");
                 }
-            | member {printf(" lvalue->member ");}; 
+            | member { $$ = NULL; printf(" lvalue->member ");}; 
 
 member:     lvalue{
                 if($1 != NULL) {

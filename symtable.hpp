@@ -1,11 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
+#include<assert.h>
 #include <iomanip>
 #include <iostream>
 #include <stack>
 #include <string>
 #include <vector>
-
+ 
 #define HASH_MUL 65599
 
 using namespace std;
@@ -136,9 +137,14 @@ class SymTable {
  public:
   SymTable(unsigned int s_size = 100) : size(s_size) {
     symbol_table = new SymbolTableEntry *[size];
+    SymbolTableEntry *newnode = new SymbolTableEntry();
+    newnode->isActive = false;
+    newnode->value.varVal = new Variable();
+    newnode->value.funcVal->name = strdup("$Dummy");
+    newnode->type = LOCAL;
+    newnode->next = NULL;
+    newnode->scope_next = NULL;
     for(int i=0;i<size;i++){ //idk why this wrorks
-      SymbolTableEntry *newnode = new SymbolTableEntry();
-      newnode->isActive = false;
       symbol_table[i] = newnode;
     }
     initialize();
@@ -159,7 +165,7 @@ class SymTable {
   }
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
-  void insert(const char *name, unsigned int lineno, SymbolType symtp) {
+  SymbolTableEntry* insert(const char *name, unsigned int lineno, SymbolType symtp) {
     int myscope = scope;
     SymbolTableEntry *newnode = new SymbolTableEntry();
 
@@ -203,6 +209,7 @@ class SymTable {
       newnode->scope_next = scopes.at(myscope);
     }
     scopes[myscope] = newnode;
+    return newnode;
   }
 
   /* local x; function f() calls this
@@ -224,8 +231,9 @@ class SymTable {
 
       if (scope == get_scope(curr)) {
         // name refers to previous declaration / no need to insert
-        if (is_var(curr->type))
+        if (is_var(curr->type)){
           return 1;  // var
+        }
         else
           return 2;  // func
       }
@@ -238,12 +246,14 @@ class SymTable {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
     int func_scope = -1;
-    if (is_var(symtp)) func_scope = last_func.top();
+    if (is_var(symtp) && symtp!=GLOBAL) func_scope = last_func.top();
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       if (scope >= get_scope(curr) && (int)get_scope(curr) > func_scope){
-          if(symtp == curr->type ) return curr;
+          if(symtp == curr->type ) {
+            return curr;
+          }
           if(is_var(symtp) && is_var(curr->type)) return curr;
       }
       
@@ -261,7 +271,8 @@ class SymTable {
     int declared = 0;
     int func_scope = -1;
     if (is_var(symtp)) func_scope = last_func.top();
-
+    
+    
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
