@@ -50,9 +50,10 @@ typedef struct SymbolTableEntry {
 class SymTable {
  private:
   SymbolTableEntry **symbol_table;
+  SymbolTableEntry *dummy;
   unsigned int size;
   vector<SymbolTableEntry *> scopes;  // scopes.at(i) push_back(entry)
-public:
+ public:
   static const char *get_name(SymbolTableEntry *entry) {
     switch (entry->type) {
       case USERFUNC:
@@ -104,6 +105,7 @@ public:
     switch (symtyp) {
       case USERFUNC:
       case LIBFUNC:
+      default:
         return false;
       case GLOBAL:
       case LOCAL:
@@ -134,18 +136,18 @@ public:
     printf("\n\n");
   }
 
- 
   SymTable(unsigned int s_size = 100) : size(s_size) {
     symbol_table = new SymbolTableEntry *[size];
-    SymbolTableEntry *newnode = new SymbolTableEntry();
-    newnode->isActive = false;
-    newnode->value.varVal = new Variable();
-    newnode->value.funcVal->name = strdup("$dummy");
-    newnode->type = LOCAL;
-    newnode->next = NULL;
-    newnode->scope_next = NULL;
+
+    dummy = new SymbolTableEntry();
+    dummy->next = NULL;
+    dummy->scope_next = NULL;
+    dummy->isActive = false;
+    dummy->type = LOCAL;
+    dummy->value.varVal = new Variable();
+    dummy->value.varVal->name = strdup("$dummy");
     for (int i = 0; i < size; i++) {  // idk why this wrorks
-      symbol_table[i] = newnode;
+      symbol_table[i] = dummy;
     }
     initialize();
   }
@@ -158,10 +160,15 @@ public:
   }
 
   void insert_arg(SymbolTableEntry *newnode) {
+    // there was an error in the declaration of the function so dont do anything
+    if (last_func.top() != (scope - 1)) return;
+
     SymbolTableEntry *function = scopes.at(last_func.top());
 
-    if (is_var(function->type)) printf("\n__________ERROR________\n");
-    function->value.funcVal->args.push_back(newnode);
+    if (!function->isActive || is_var(function->type)) {
+      printf("\n__can't insert arguement__\n");
+    } else
+      function->value.funcVal->args.push_back(newnode);
   }
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
@@ -169,6 +176,10 @@ public:
                            SymbolType symtp) {
     int myscope = scope;
     SymbolTableEntry *newnode = new SymbolTableEntry();
+    if (name == NULL) {
+      printf("____Null parameter in insert_____\n");
+      return NULL;
+    }
 
     newnode->next = NULL;
     newnode->scope_next = NULL;
@@ -189,6 +200,7 @@ public:
         break;
       case FORMAL:
         insert_arg(newnode);
+
       case GLOBAL:
       case LOCAL:
         newnode->value.varVal = new Variable();
@@ -203,13 +215,6 @@ public:
 
     if (myscope > scopes.size()) {
       // We got deeper in scopes without any vars in the scopes between
-      SymbolTableEntry *dummy = new SymbolTableEntry();
-      dummy->next = NULL;
-      dummy->scope_next = NULL;
-      dummy->isActive = false;
-      dummy->type = LOCAL;
-      dummy->value.varVal = new Variable();
-      dummy->value.varVal->name = strdup("$dummy");
       for (int i = scopes.size(); i <= myscope; i++) {
         scopes.push_back(dummy);
       }
@@ -280,20 +285,20 @@ public:
   int lookUp_allscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
     int declared = 0;
-    
+
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
       if (curr->type == LIBFUNC) return -1;
 
-      if (scope >= get_scope(curr)){
-          // name refers to previous declaration of var/ no need to insert
-          if (is_var(curr->type)) {
-            return 1;
-          }  // var
-          // name refers to previous declaration of func/ no need to insert
-          else
-            return 2;                            // func
+      if (scope >= get_scope(curr)) {
+        // name refers to previous declaration of var/ no need to insert
+        if (is_var(curr->type)) {
+          return 1;
+        }  // var
+        // name refers to previous declaration of func/ no need to insert
+        else
+          return 2;  // func
       }
     }
 

@@ -361,14 +361,6 @@ member:     lvalue{
                 }else{ //define as new var
                     yyerror("array undefined");
                 }
-                //LVALUE
-                // switch( symbol_table.lookUp_allscope(yylval.stringValue,LOCAL)){ 
-                //     case 2:{ //function found so it can be called
-                //         yyerror("lvalue is a function");
-                //         break;
-                //     }
-                //     default:{  }
-                // }
             }left_bracket expr right_bracket {printf("member->lvalue[expr] \n");}
             | call dot id {printf("member->call().id \n");}
             | call left_bracket expr right_bracket {printf("member->[expr] \n");};
@@ -390,7 +382,7 @@ call:       call left_parenthesis elist right_parenthesis {printf("call->call(el
                 }
                 printf("idlist_l->id1+ \n");
             } callsuffix {
-                printf("call->lvaluecallsuffix  lvalue'%s'()\n",yylval.stringValue);
+                printf("call->lvaluecallsuffix \n");
                 } 
             | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {printf("call->(funcdef)(elist) \n");};
 
