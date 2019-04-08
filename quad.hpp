@@ -71,3 +71,10 @@ typedef struct expr {
   unsigned char boolConst;
   struct expr* next;
 } expr;
+
+// Functions
+
+void expand() {}
+
+void emit(iopcode iop, expr* arg1, expr* arg2, expr* result, unsigned lable,
+          insigned line) {}
