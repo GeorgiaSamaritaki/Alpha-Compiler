@@ -2,6 +2,7 @@
     #include <stdio.h>
     #include <stdlib.h>
     #include "symtable.hpp"
+    #include "quad.hpp"
 
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
