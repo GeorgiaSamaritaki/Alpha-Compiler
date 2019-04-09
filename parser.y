@@ -1,13 +1,10 @@
 %{
     #include <stdio.h>
     #include <stdlib.h>
-    #include "symtable.hpp"
     #include "quad.hpp"
 
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
-
-    SymTable symbol_table = *new SymTable();
 
 
     extern int yylineno;
@@ -233,26 +230,13 @@ assignexpr: lvalue {
 primary:    lvalue  {
                 if($1 != NULL) {
                     if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
-                            printf("fuck? %d %d\n",(int)symbol_table.get_scope($1),last_func.top() );
                             yyerror("Cant reference variable out of scope");
                     }
                 }else{ //define as new var
                     if(return_flag) yyerror("return values undefined in this scope");
                     else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 }
-                //LVALUE
-                // switch( symbol_table.lookUp_allscope(yylval.stringValue,(scope?LOCAL:GLOBAL)) ){
-                //         case 2: { printf("Function Found"); break;}
-                //         case 1: { printf("-Var found top: %d scope %d-",last_func.top()); break; }
-                //         case -1: {
-                //             break;
-                //         } 
-                //         case 0: { 
-                //             printf("primary:");
-                //             if(return_flag) yyerror("return values undefined in this scope");
-                //             else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
-                //          }  
-                //     }
+
                 printf("primary->lvalue \n");}
             | call  {printf("primary->call \n");}
             | objectdef     {printf("primary->objectdef \n");}
@@ -262,75 +246,30 @@ primary:    lvalue  {
 
 lvalue:     id {
                 printf("lvalue->ids '%s'\n",yylval.stringValue);
-                switch(symbol_table.lookUp_allscope(yylval.stringValue) ){
-                    case 0:{
-                        $$ = NULL;
-                        break;
-                        }
-                    case 1:{
-                        $$ = symbol_table.find_node(yylval.stringValue,LOCAL);
-                        if($$ == NULL)
-                            $$ = symbol_table.find_node(yylval.stringValue,GLOBAL);
-                        break;}
-                    case 2:{
-                        $$ = symbol_table.find_node(yylval.stringValue,USERFUNC); break;}
-                    case -2:{}
-                    case -1:{
-                        $$ = symbol_table.find_node(yylval.stringValue,LIBFUNC); break; }
-                }
+                $$ = symbol_table.lookUp_allscope(yylval.stringValue); 
+
             } //lookup
             | local id {     
                 printf("local id %s \n",yylval.stringValue);
-                switch( symbol_table.lookUp_curscope(yylval.stringValue) ){
-                    case 0: {//undefined
-                        $$ = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
-                        break;
-                    }
-                    case 1:{
-                        //symbol_table.change_value()
-                        $$ = symbol_table.find_node(yylval.stringValue,LOCAL);
-                        break;
-                    } //defined as var
-                    case 2:{
-                        $$ = symbol_table.find_node(yylval.stringValue,USERFUNC);
-                        break;
-                    } //defined as fgunc
-                    case -2:{}
-                    case -1:{
-                        $$ = symbol_table.find_node(yylval.stringValue,LIBFUNC);
-                       yyerror("shadowing of library functions not allowed");
-                    break;
-                    }
+                SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
+                if(tmp ==  NULL) {//undefined
+                    $$ = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                }else{
+                    if(tmp->type == LIBFUNC)
+                        yyerror("shadowing of library functions not allowed");
+                    $$ = tmp;                    
+
                 }
             }
             | double_colon id {
                 unsigned int scope_tmp = scope;
                 scope = 0; 
+                SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
 
-                switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
-                    case 0: {//undefined
-                        yyerror("global variable not found");
-                        $$ = NULL;
-                        break;
-                    }
-                    case 1:{//ok var found
-                        //symbol_table.change_value()
-                       $$ = symbol_table.find_node(yylval.stringValue,GLOBAL);
-                       break;
-                    } 
-                    case 2:{//ok func found 
-                        $$ = symbol_table.find_node(yylval.stringValue,USERFUNC);
-                        break;
-                    }
-                    case -2:{}
-                    case -1:{
-                       $$ = symbol_table.find_node(yylval.stringValue,LIBFUNC);
-                        break;
-                    }
-                    default:{
-                        assert(false);
-                    }
-                }
+                if(tmp ==  NULL) //undefined
+                    yyerror("global variable not found");
+                  
+                $$ = tmp;                    
 
                 scope = scope_tmp;
                 printf("lvalue->::id \n");
@@ -343,45 +282,53 @@ member:     lvalue{
                         yyerror("Cant reference variable out of scope");
                     }
                     else {
-                        if($1->type == USERFUNC) yyerror("cannot member function");
-                        else if($1->type == LIBFUNC) yyerror("cannot member libfunc");
+                        if($1->type == USERFUNC) 
+                            yyerror("cannot member function");
+                        else if($1->type == LIBFUNC) 
+                            yyerror("cannot member libfunc");
                     }
                 }else{ //define as new var
                     yyerror("variable undefined");
                 }
-                printf("idlist_l->id1+ \n");
-            }dot id {printf("member->lvalue.id \n");}
+            } 
+            dot id { 
+                    printf("member->lvalue.id \n");
+                }
             | lvalue {
                 if($1 != NULL) {
                     if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
                             yyerror("Cant reference variable out of scope");
                     }else{
-                        if($1->type == USERFUNC) yyerror("cannot use function as array");
-                        else if($1->type == LIBFUNC) yyerror("cannot use libfunc as array");
+                        if($1->type == USERFUNC){
+                            yyerror("cannot use function as array");
+                        } else if($1->type == LIBFUNC) {
+                            yyerror("cannot use libfunc as array");
+                        }
                     }
-                }else{ //define as new var
+                }else{ 
+                    //define as new var
                     yyerror("array undefined");
                 }
-            }left_bracket expr right_bracket {printf("member->lvalue[expr] \n");}
+            } left_bracket expr right_bracket { 
+                printf("member->lvalue[expr] \n");
+                }
             | call dot id {printf("member->call().id \n");}
             | call left_bracket expr right_bracket {printf("member->[expr] \n");};
 
 call:       call left_parenthesis elist right_parenthesis {printf("call->call(elist) \n");}
             | lvalue{
                 if($1 != NULL) {
-                    if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
+                    if($1->type == USERFUNC || $1->type == LIBFUNC) { } 
+                    else{
+                        if( (int)symbol_table.get_scope($1) <= last_func.top()  && (int)symbol_table.get_scope($1)!=0){
                             yyerror("Cant reference variable out of scope");
-                    }else{
-                        if($1->type == USERFUNC) {}
-                        else if($1->type == LIBFUNC) {}
-                        else if($1->type == LOCAL||$1->type == GLOBAL) {
+                        }else if($1->type == LOCAL||$1->type == GLOBAL) {
                             yyerror("cant use variable as function");
-                            }
+                        }
                     }
                 }else{ //define as new var
                     yyerror("function not found");
                 }
-                printf("idlist_l->id1+ \n");
             } callsuffix {
                 printf("call->lvaluecallsuffix \n");
                 } 
@@ -416,22 +363,25 @@ block_l:    block_l stmt
 block:      left_curly { printf("\n\n-----enter block ------ \n"); } block_l right_curly { printf("\n-----exit block ------\n\n"); symbol_table.hide(scope--);};
 
 func_name:  id {
-                switch( symbol_table.lookUp_curscope(yylval.stringValue)  ){
-                    case 1 :{
-                        yyerror("function name already used as var");// error: var redefined as a function
-                        break;
-                    } 
-                    case 2 :{
-                        yyerror("function name already used as func");// error: var redefined as a function
-                        break;
-                    }
-                    case -1:{}
-                    case -2:{
-                        yyerror("shadowing of library functions not allowed");
-                        break;
-                    }
-                    case 0: {//undefined
-                        symbol_table.insert(yylval.stringValue, yylineno, USERFUNC);
+                SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
+                if(tmp ==  NULL) {//undefined
+                    symbol_table.insert(yylval.stringValue, yylineno, USERFUNC);
+                }else{
+                    switch( tmp->type ){
+                        case LIBFUNC:{
+                            yyerror("shadowing of library functions not allowed");
+                            break;
+                        }
+                        case USERFUNC:{
+                            yyerror("function name already used as func");// error: var redefined as a function
+                            break;
+                        }
+                        case GLOBAL :{}
+                        case FORMAL :{}
+                        case LOCAL :{
+                            yyerror("function name already used as var");// error: var redefined as a function
+                            break;
+                        } 
                     }
                 }
                 
@@ -456,25 +406,52 @@ const:      number      {printf("const->number \n");}
             | FALSE     {printf("const->false \n");};
 
 //idlist {printf("'id'");} can be empty
-idlist_l:   id {  symbol_table.insert(yylval.stringValue,yylineno, FORMAL); printf("idlist_l->id1 \n");} //lookup
-            |idlist_l comma id {
-                switch(  symbol_table.lookUp_curscope(yylval.stringValue)){ 
-                    case 0:{ 
-                        symbol_table.insert(yylval.stringValue,yylineno, FORMAL);
-                        break;  
+idlist_l:   id {  
+                SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
+                if(tmp ==  NULL) {//undefined
+                    symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
+                }else{
+                    switch( tmp->type ){
+                        case GLOBAL:{} 
+                        case FORMAL:{} //first arguement can only be global
+                        case LOCAL:{
+                            yyerror("variable redefined in same scope");
+                            break;
+                        }
+                        case LIBFUNC:{
+                            yyerror("formal arguement trying to shadow library func");
+                            break;
+                        }
+                        default:{
+                            yyerror("unknown error occured"); 
+                        }
                     }
-                    case 1:{    
-                        yyerror("variable redefined in same scope");
-                        break;
-                    }
-                    case -1:{
-                        yyerror("formal arguement trying to shadow library func");
-                        break;
-                    }
-                    default:{ yyerror("unknown error occured"); }
                 }
-                printf("idlist_l->id1+ \n");
-                };
+                printf("idlist_l->id1 \n");
+            
+            } //lookup
+            |idlist_l comma id {
+                SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
+                if(tmp ==  NULL) {//undefined
+                    symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
+                }else{
+                    switch( tmp->type ){
+                        case GLOBAL:{}
+                        case FORMAL:{}
+                        case LOCAL:{
+                            yyerror("variable redefined in same scope");
+                            break;
+                        }
+                        case LIBFUNC:{
+                            yyerror("formal arguement trying to shadow library func");
+                            break;
+                        }
+                        default:{
+                            yyerror("unknown error occured"); 
+                        }
+                    }
+                }
+            };
 
 idlist:     idlist_l {printf("idlist->idlist_l \n");} 
             | /*empty*/ {printf("idlist->emptyidlist \n");};

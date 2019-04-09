@@ -11,17 +11,19 @@
 
 using namespace std;
 typedef struct SymbolTableEntry SymbolTableEntry;
+class SymTable;
 
 unsigned int scope;
 bool return_flag;
 stack<int> last_func;
 unsigned int anonymous_count;
+ 
 
 /* συναρτήσεις βιβλιοθήκης LIBFUNC
   συναρτήσεις προγράμματος USERFUNC
   global οι μεταβλητές GLOBAL
   τα τυπικά ορίσματα συναρτήσεων */
-enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
+enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC};
 
 typedef struct Variable {
   const char *name;
@@ -234,46 +236,17 @@ class SymTable {
    *  return  1: already declared refers to previous declaration
    */
 
-  int lookUp_curscope(const char *name) {
+  SymbolTableEntry* lookUp_curscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
-      if (curr->type == LIBFUNC) {
-        if (scope != 0)
-          return -1;
-        else
-          return -2;  // reference to global func
-      }
-
-      if (scope == get_scope(curr)) {
-        // name refers to previous declaration / no need to insert
-        if (is_var(curr->type)) {
-          return 1;  // var
-        } else
-          return 2;  // func
-      }
+      if (curr->type == LIBFUNC) return curr;
+      if (scope == get_scope(curr)) return curr;
+      
     }
 
-    return 0;
-  }
-
-  SymbolTableEntry *find_node(char *name, SymbolType symtp) {
-    SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
-
-    int func_scope = -1;
-    if (symtp == LOCAL) func_scope = last_func.top();
-
-    for (; curr; curr = curr->next) {
-      if (!curr->isActive || strcmp(name, get_name(curr))) continue;
-      if (scope >= get_scope(curr) && (int)get_scope(curr) > func_scope) {
-        if (symtp == curr->type) {
-          return curr;
-        }
-        if (is_var(symtp) && is_var(curr->type)) return curr;
-      }
-    }
     return NULL;
   }
 
@@ -282,27 +255,17 @@ class SymTable {
    *  return  0: need to be defined
    *  return  1: already declared refers to previous declaration
    */
-  int lookUp_allscope(const char *name) {
+  SymbolTableEntry* lookUp_allscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
-    int declared = 0;
-
+    
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
-      if (curr->type == LIBFUNC) return -1;
-
-      if (scope >= get_scope(curr)) {
-        // name refers to previous declaration of var/ no need to insert
-        if (is_var(curr->type)) {
-          return 1;
-        }  // var
-        // name refers to previous declaration of func/ no need to insert
-        else
-          return 2;  // func
-      }
+      if (curr->type == LIBFUNC  || scope >= get_scope(curr)) return curr;
+      
     }
 
-    return declared;
+    return NULL;
   }
 
   int hide(int scope) {
