@@ -1,5 +1,5 @@
 
-all: clean parser.cpp al.cpp al 
+all: clean parser.cpp al.cpp al
 
 al.cpp: al.l
 	flex --outfile=al.cpp al.l

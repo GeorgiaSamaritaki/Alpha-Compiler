@@ -1,5 +1,5 @@
-#include <vector>
 #include <string>
+#include <vector>
 #include "symtable.hpp"
 
 #define EXPAND_SIZE 1024
@@ -52,7 +52,6 @@ int tmpcounter = 0;
 
 SymTable symbol_table = *new SymTable();
 
-
 typedef enum expr_t {
   var_e,
   tableitem_e,
@@ -72,6 +71,17 @@ typedef enum expr_t {
   nil_e,
 } expr_t;
 
+// Probably they have to be field in SymTableEntry not here
+// enum scope_space_t { program_var, function_local, formal_arg };
+// enum symbol {
+//   var_S,
+//   programfunc_s,
+//   libraryfunc_s
+// }
+// curr scope space function
+// curr offset function
+// incurrscopeoffset
+
 typedef struct expr {
   expr_t type;
   SymbolTableEntry* sym;
@@ -83,7 +93,6 @@ typedef struct expr {
 } expr;
 
 // Functions
-
 quad* expand() {
   assert(currQuad == total);
   quad* p = new quad();
@@ -107,20 +116,21 @@ void emit(iopcode iop, expr* arg1, expr* arg2, expr* result, unsigned label,
   p->line = line;
 }
 
-char* new_tmpname() { 
+char* new_tmpname() {
   char name[1000];
   sprintf(name, "$t%d", tmpcounter);
-  return strdup(name); 
-  }
+  return strdup(name);
+}
 
 void reset_tmp() { tmpcounter = 0; }
 
 SymbolTableEntry* new_tmp(unsigned int lineno) {
   char* name = new_tmpname();
-  SymbolTableEntry* sym ;//= symbol_table.find_node(name, LOCAL);  // TODO: FIX ME
-  if (NULL == sym){
-
+  SymbolTableEntry* sym = symbol_table.lookUp_allscope(name);  // TODO: FIX ME
+  if (NULL == sym) {
     return symbol_table.insert(name, lineno, LOCAL);
-  }else
+  } else
     return sym;
 }
+
+// function to create new expression/quad ??
