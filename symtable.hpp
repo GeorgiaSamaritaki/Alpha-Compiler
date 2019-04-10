@@ -16,14 +16,68 @@ class SymTable;
 unsigned int scope;
 bool return_flag;
 stack<int> last_func;
+
+enum scopeSpace_t { program_var, function_local, formal_arg };
+
 unsigned int anonymous_count;
- 
+unsigned int programVarOffset = 0;
+unsigned int functionLocalOffset = 0;
+unsigned int formalArgOffset = 0;
+unsigned int scopeSpaceCounter = 1;
+
+scopeSpace_t currScopeSpace() {
+  if (scopeSpaceCounter == 1)
+    return program_var;
+  else if (scopeSpaceCounter % 2 == 0)
+    return formal_arg;
+  else
+    return function_local;
+}
+
+unsigned currScopeOffset() {
+  switch (currScopeSpace()) {
+    case program_var:
+      return programVarOffset;
+    case function_local:
+      return functionLocalOffset;
+    case formal_arg:
+      return formalArgOffset;
+    default:
+      assert(0);
+  }
+}
+
+void inCurrScopeOffset() {
+  switch (currScopeSpace()) {
+    case program_var: {
+      ++programVarOffset;
+      break;
+    }
+    case function_local: {
+      ++functionLocalOffset;
+      break;
+    }
+    case formal_arg: {
+      ++formalArgOffset;
+      break;
+    }
+    default:
+      assert(0);
+  }
+}
+
+void enterScopeSpace() { ++scopeSpaceCounter; }
+
+void exitScopeSpace() {
+  assert(scopeSpaceCounter > 1);
+  --scopeSpaceCounter;
+}
 
 /* συναρτήσεις βιβλιοθήκης LIBFUNC
   συναρτήσεις προγράμματος USERFUNC
   global οι μεταβλητές GLOBAL
   τα τυπικά ορίσματα συναρτήσεων */
-enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC};
+enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC, TMP };
 
 typedef struct Variable {
   const char *name;
@@ -45,6 +99,10 @@ typedef struct SymbolTableEntry {
     Function *funcVal;
   } value;
   enum SymbolType type;
+
+  unsigned int offset;
+  scopeSpace_t space;
+
   SymbolTableEntry *next;
   SymbolTableEntry *scope_next;
 } SymbolTableEntry;
@@ -101,6 +159,8 @@ class SymTable {
         return "local var";
       case FORMAL:
         return "formal var";
+      case TMP:
+        return "tmp var";
     }
   }
   static bool is_var(SymbolType symtyp) {
@@ -236,7 +296,7 @@ class SymTable {
    *  return  1: already declared refers to previous declaration
    */
 
-  SymbolTableEntry* lookUp_curscope(const char *name) {
+  SymbolTableEntry *lookUp_curscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
 
     for (; curr; curr = curr->next) {
@@ -244,7 +304,6 @@ class SymTable {
       // print  libfunc error
       if (curr->type == LIBFUNC) return curr;
       if (scope == get_scope(curr)) return curr;
-      
     }
 
     return NULL;
@@ -255,14 +314,13 @@ class SymTable {
    *  return  0: need to be defined
    *  return  1: already declared refers to previous declaration
    */
-  SymbolTableEntry* lookUp_allscope(const char *name) {
+  SymbolTableEntry *lookUp_allscope(const char *name) {
     SymbolTableEntry *curr = symbol_table[SymTable_hash(name)];
-    
+
     for (; curr; curr = curr->next) {
       if (!curr->isActive || strcmp(name, get_name(curr))) continue;
       // print  libfunc error
-      if (curr->type == LIBFUNC  || scope >= get_scope(curr)) return curr;
-      
+      if (curr->type == LIBFUNC || scope >= get_scope(curr)) return curr;
     }
 
     return NULL;

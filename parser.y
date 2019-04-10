@@ -9,7 +9,7 @@
 
     extern int yylineno;
     extern char* yytext;
-    extern FILE* yyin;
+    extern FILE* yyin; 
 
 
 %}
@@ -247,19 +247,25 @@ primary:    lvalue  {
 lvalue:     id {
                 printf("lvalue->ids '%s'\n",yylval.stringValue);
                 $$ = symbol_table.lookUp_allscope(yylval.stringValue); 
-
+                // if($$ == NULL){
+                //     $$ = yhgchy;
+                // }
             } //lookup
             | local id {     
                 printf("local id %s \n",yylval.stringValue);
                 SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
                 if(tmp ==  NULL) {//undefined
-                    $$ = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                    tmp = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                    assert(tmp);
+                    tmp->space = currScopeSpace();
+                    tmp->offset = currScopeOffset();
+                    inCurrScopeOffset();
                 }else{
                     if(tmp->type == LIBFUNC)
                         yyerror("shadowing of library functions not allowed");
-                    $$ = tmp;                    
-
                 }
+                $$ = tmp;                    
+                $$.sval = lvalue_expr($$);
             }
             | double_colon id {
                 unsigned int scope_tmp = scope;

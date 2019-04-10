@@ -71,17 +71,6 @@ typedef enum expr_t {
   nil_e,
 } expr_t;
 
-// Probably they have to be field in SymTableEntry not here
-// enum scope_space_t { program_var, function_local, formal_arg };
-// enum symbol {
-//   var_S,
-//   programfunc_s,
-//   libraryfunc_s
-// }
-// curr scope space function
-// curr offset function
-// incurrscopeoffset
-
 typedef struct expr {
   expr_t type;
   SymbolTableEntry* sym;
@@ -126,11 +115,37 @@ void reset_tmp() { tmpcounter = 0; }
 
 SymbolTableEntry* new_tmp(unsigned int lineno) {
   char* name = new_tmpname();
-  SymbolTableEntry* sym = symbol_table.lookUp_allscope(name);  // TODO: FIX ME
+  SymbolTableEntry* sym = symbol_table.lookUp_curscope(name);  // TODO: FIX ME
   if (NULL == sym) {
     return symbol_table.insert(name, lineno, LOCAL);
   } else
     return sym;
 }
 
+
+expr* lvalue_expr(SymbolTableEntry* entry){
+  expr* new_expr =  new expr();
+
+  new_expr->sym = entry;
+  
+  switch(entry->type){
+    case FORMAL:
+    case LOCAL:
+    case GLOBAL:{
+      new_expr->tyoe = var_e;
+    } 
+    case LIBFUNC:{
+      new_expr->type = libraryfunc_e;
+      break;
+    }
+    case USERFUNC:{
+      new_ewpr->type = programfunc_e;
+      break;
+    }                      
+  }
+
+
+}
+
 // function to create new expression/quad ??
+
