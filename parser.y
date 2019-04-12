@@ -33,6 +33,8 @@
 %type <exprNode> expr 
 %type <exprNode> elist 
 %type <exprNode> elist_l 
+%type <exprNode> idlist 
+%type <exprNode> idlist_l 
 %type <exprNode> call 
 %type <exprNode> objectdef 
 %type <exprNode> indexedelem 
@@ -40,7 +42,10 @@
 %type <exprNode> term 
 %type <exprNode> arithexpr 
 %type <exprNode> relexpr 
-%type <exprNode> boolexpr 
+%type <exprNode> boolexpr
+
+%type <intValue> number 
+ 
 
 %type <call_l> methodcall 
 %type <call_l> normcall 
@@ -145,7 +150,7 @@
 %%
 
 
-program:    statements;
+program:    statements {printf("Finished\n");};
 
 stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \n");}
             | ifstmt     {printf("stmt->ifstmt \n\n");    }
@@ -153,14 +158,14 @@ stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \
             | forstmt    {printf("stmt->forstmt   \n\n");   }
             | returnstmt {printf("stmt->returnstmt \n\n");}
             | { scope++;} block {printf("stmt->block2");} //maybe scope++ after left curly
-            | funcdef    {printf("stmt->funcdef ");   }
+            | funcdef    {printf("stmt->funcdef \n");   }
             | BREAK      {printf("stmt->Break ");     } semicolon {printf(" ';'  \n\n");}
             | CONTINUE   {printf("stmt->Continue");  } semicolon {printf(" ';'  \n\n");}
             | semicolon  {printf("';' \n\n");       };
             
 
-statements: statements   stmt 
-            | /*empty*/ ;
+statements: statements   stmt {printf("statements ->statements stmt\n");}
+            | /*empty*/ {printf("statements->empty\n");};
 
 expr:       assignexpr    { $$ = $1; printf("expr->assignexpr \n");}
             |  boolexpr   { $$ = $1; }
@@ -573,43 +578,40 @@ term:       left_parenthesis expr  right_parenthesis {
                 printf("term->primary \n");
                 };
 
-assignexpr: lvalue {
+assignexpr: lvalue assign expr {
                 if($1 != NULL) {
-                    if( (int)symbol_table.get_scope($1->sym) <= last_func.top() && (int)symbol_table.get_scope($1->sym)!=0){
+                    if( (int)symbol_table.get_scope($1->sym) <= last_func.top() && (int)symbol_table.get_scope($1->sym)!=0)
                         yyerror("Cant reference variable out of scope");
-                    }else { 
-                        if($1->sym->type == USERFUNC) yyerror("Cannot assign to function");
-                        else if($1->sym->type == LIBFUNC) yyerror("Cannot assign to libfunc");
+                    else if($1->sym->type == USERFUNC) yyerror("Cannot assign to function");
+                    else if($1->sym->type == LIBFUNC) yyerror("Cannot assign to libfunc");
+                    else{ 
+                        // $lvalue->sym->type = $expr->sym->type;
+                        // $lvalue->type = $expr->type;
+                        if($lvalue->type == tableitem_e){
+                            emit( //that is lvalue[index] = expr;
+                                tablesetelem,
+                                $lvalue,
+                                $lvalue->index,
+                                $expr
+                            );
+                            //The value f the assignment expression should be gained
+                            $assignexpr = emit_ifTableItem($lvalue);
+                            $assignexpr->type = assignexpr_e;
+                        }else{
+                            
+                            emit(
+                                assign_op, $expr, NULL, $lvalue);
+                            $assignexpr = newExpr(assignexpr_e);
+                            $assignexpr->sym = new_tmp(yylineno);
+                            emit(
+                                assign_op, $lvalue, NULL, $assignexpr);
+                        }
+                
                     }
                 }else{ //define as new var
-                    printf("inserting in assign\n");
-                    symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
+                    printf("member undefined in : assignexpr->lvalue=expr \n");
+                    // assert(false);
                 }    
-                } assign expr {
-                    if($lvalue->type == tableitem_e){
-                        emit( //that is lvalue[index] = expr;
-                            tablesetelem,
-                            $lvalue,
-                            $lvalue->index,
-                            $expr
-                        );
-                        //The value f the assignment expression should be gained
-                        $assignexpr = emit_ifTableItem($lvalue);
-                        $assignexpr->type = assignexpr_e;
-                    }else{
-                        emit(
-                            assign_op,
-                            $expr,
-                            (expr*) 0,
-                            $lvalue
-                        );
-                        $assignexpr = newExpr(assignexpr_e);
-                        $assignexpr->sym = new_tmp(yylineno);
-                        emit(
-                            assign_op, 
-                            $lvalue,
-                            (expr*)0, $assignexpr);
-                    }
                     printf("assignexpr->lvalue=expr \n");
                     }; //lookup (before assign?)
 
@@ -680,12 +682,11 @@ lvalue:     id {
                 } //undefined
                 
                 scope = scope_tmp;  
-
                 printf("lvalue->::id \n");
                 }
             | member { $$ = NULL; printf("lvalue->member \n");}; 
 
-member:     tableitem
+member:     tableitem { }
             | call dot id {printf("member->call().id \n");}
             | call left_bracket expr right_bracket {printf("member->[expr] \n");};
 
@@ -736,30 +737,32 @@ call:       call left_parenthesis elist right_parenthesis {
                 $$ = make_call($$, $elist);
                 printf("call->call(elist) \n");
                 }
-            | lvalue{
+            | lvalue callsuffix {
                 if($1 != NULL) {
-                    if($1->sym->type == USERFUNC || $1->sym->type == LIBFUNC) { } 
-                    else{
+                    if($1->sym->type == USERFUNC || $1->sym->type == LIBFUNC) {
+                        if($callsuffix->method){
+                            expr* self = $lvalue;
+                            $lvalue = emit_ifTableItem(member_item(self,$callsuffix->name));
+                            self->next = $callsuffix->elist;
+                            $callsuffix->elist = self;   
+                        }
+                        $call = make_call($lvalue, $callsuffix->elist);
+
+                     }else{
                         if( (int)symbol_table.get_scope($1->sym) <= last_func.top()  && (int)symbol_table.get_scope($1->sym)!=0){
                             yyerror("Cant reference variable out of scope");
                         }else if($1->sym->type == LOCAL||$1->sym->type == GLOBAL) {
                             yyerror("cant use variable as function");
+                        }else{
+                            assert(false);
                         }
+                        $call = NULL;
                     }
                 }else{ //define as new var
                     yyerror("function not found");
                 }
-            } callsuffix {
-
-                if($callsuffix->method){
-                    expr* self = $lvalue;
-                    $lvalue = emit_ifTableItem(member_item(self,$callsuffix->name));
-                    self->next = $callsuffix->elist;
-                    $callsuffix->elist = self;   
-                }
-                $call = make_call($lvalue, $callsuffix->elist);
                 printf("call->lvaluecallsuffix \n");
-                } 
+            } 
             | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {
                 expr* func = newExpr(programfunc_e);
                 func->sym = $funcdef;
@@ -794,7 +797,6 @@ methodcall: double_dot id {//maybe needs code
                 }; 
 
 elist_l:    expr {
-                $expr->next = $elist_l;
                 $$ = $expr;
                 printf("elist_l->expr \n");
                 }
@@ -884,6 +886,7 @@ funcdef:  func_prefix func_args func_body{
                 functionLocalsStack.pop();
                 $funcdef = $func_prefix;
                 emit_function(funcend, lvalue_expr($func_prefix));
+                printf("GERE\n");
             };
 
 func_prefix:  function func_name  { 
@@ -892,7 +895,9 @@ func_prefix:  function func_name  {
                 
                 $func_prefix =symbol_table.lookUp_curscope($func_name); 
                 if($func_prefix ==  NULL) {//undefined
-                    symbol_table.insert($func_name, yylineno, USERFUNC);
+                    $func_prefix = symbol_table.insert($func_name, yylineno, USERFUNC);
+                    $func_prefix->value.funcVal->iaddress = nextQuadLabel();
+                    emit_function(funcstart,lvalue_expr($func_prefix));
                 }else{
                     switch( $func_prefix->type ){
                         case LIBFUNC:{
@@ -912,8 +917,6 @@ func_prefix:  function func_name  {
                     }
                 }
                 
-                $func_prefix->value.funcVal->iaddress = nextQuadLabel();
-                emit_function(funcstart,lvalue_expr($func_prefix));
                 functionLocalsStack.push(functionLocalOffset);
                 enterScopeSpace();
                 resetFormalArgsOffset();
@@ -932,8 +935,24 @@ func_body:  block {
                     exitScopeSpace();
                     };
 
-number:     integer     {printf("number->int \n");}
-            | real      {printf("number->real \n");};
+number:     integer     {
+                // std::string name = "^" + yylval.intValue;
+                // SymbolTableEntry *tmp = symbol_table.lookUp_allscope(name.c_str()); 
+                // if(tmp == NULL){
+                //     tmp = symbol_table.insert(name.c_str(), 0, LOCAL, 0);
+                //     assert(tmp);
+                //     tmp->space = currScopeSpace();
+                //     tmp->offset = currScopeOffset();
+                //     inCurrScopeOffset();
+                // }
+                // $$ = newExpr(constnum_e);
+                // $$->sym = tmp;
+                // $$->numConst = yylval.intValue;
+                printf("number->integer \n");
+                }
+            | real      {
+                printf("number->real \n");
+                };
 
 const:      number      {printf("const->number \n");}
             | STRING    {printf("const->string \n");}
@@ -945,7 +964,10 @@ const:      number      {printf("const->number \n");}
 idlist_l:   id {  
                 SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
                 if(tmp ==  NULL) {//undefined
-                    symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
+                    tmp = symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
+                    assert(tmp);
+                    // $idlist_l = newExpr(var_e);
+                    // $idlist_l->sym = tmp;
                 }else{
                     switch( tmp->type ){
                         case GLOBAL:{} 
@@ -969,7 +991,12 @@ idlist_l:   id {
             |idlist_l comma id {
                 SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
                 if(tmp ==  NULL) {//undefined
-                    symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
+                    tmp = symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
+                    assert(tmp);
+                    // expr* e = newExpr(var_e);
+                    // e->sym = tmp;
+                    // e->next = $idlist_l;
+                    // $idlist_l = e;
                 }else{
                     switch( tmp->type ){
                         case GLOBAL:{}
@@ -987,9 +1014,10 @@ idlist_l:   id {
                         }
                     }
                 }
+                printf("idlist_l->idlist_l , id \n");
             };
 
-idlist:     idlist_l {printf("idlist->idlist_l \n");} 
+idlist:     idlist_l {  printf("idlist->idlist_l \n");} 
             | /*empty*/ {printf("idlist->emptyidlist \n");};
 
 ifstmt:     IF left_parenthesis expr right_parenthesis  stmt ELSE stmt { printf("ifstmt->\"if(expr) stmt else stmt\" \n"); } 
@@ -1006,6 +1034,7 @@ returnstmt: RETURN {
             | RETURN{ 
                 if(last_func.top() == -1) yyerror("return statement without function");
             }semicolon {printf("returnstmt->return; \n");};
+
 %%
 
 int yyerror(char* yaccProvidedMessage){

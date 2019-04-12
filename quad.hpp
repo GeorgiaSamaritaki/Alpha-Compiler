@@ -3,6 +3,9 @@
 #include <stdarg.h>
 #include "symtable.hpp"
 
+#include <sys/stat.h>
+#include <errno.h>
+
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total * sizeof(quad))
 #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
@@ -103,8 +106,10 @@ void emit(iopcode iop, expr* arg1, expr* arg2, expr* result, unsigned int label 
   quad* p;
   if (currQuad == total)
     p = expand();
-  else
-    p = quads[currQuad++];
+  else{
+    p = new quad();
+    quads[currQuad++] = p;
+  }
   p->arg1 = arg1;
   p->arg2 = arg2;
   p->result = result;
@@ -211,11 +216,12 @@ expr* make_call(expr* lvalue, expr* elist){
   expr* func = emit_ifTableItem(lvalue);
   assert(!symbol_table.is_var(func->sym->type));
   expr* curr = elist;
-  while(curr){
+  while(curr!=NULL){
     emit(param, curr, NULL, NULL, 0);
     curr = curr->next;
   }
-  emit(call,func, NULL, NULL,0);
+    printf("here!!!!!\n");
+  emit(call, func, NULL, NULL,0);
   expr* result = newExpr(var_e);
   
   result->sym = new_tmp(lvalue->sym->value.funcVal->line);

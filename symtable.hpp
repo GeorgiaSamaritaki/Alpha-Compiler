@@ -268,8 +268,8 @@ class SymTable {
 
   // enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
   SymbolTableEntry *insert(const char *name, unsigned int lineno,
-                           SymbolType symtp) {
-    int myscope = scope;
+                           SymbolType symtp, int myscope = scope) {
+    
     SymbolTableEntry *newnode = new SymbolTableEntry();
     if (name == NULL) {
       printf("____Null parameter in insert_____\n");
