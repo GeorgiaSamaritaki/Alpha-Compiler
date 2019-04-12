@@ -16,8 +16,10 @@ class SymTable;
 unsigned int scope;
 bool return_flag;
 stack<int> last_func;
+stack<unsigned int> functionLocalsStack;
 
 enum scopeSpace_t { program_var, function_local, formal_arg };
+
 
 unsigned int anonymous_count;
 unsigned int programVarOffset = 0;
@@ -73,6 +75,33 @@ void exitScopeSpace() {
   --scopeSpaceCounter;
 }
 
+void resetFormalArgsOffset(){
+  formalArgOffset = 0;
+}
+
+void resetFunctionLocalOffset(){
+  functionLocalOffset = 0;
+}
+
+void restoreCurrScopeOffset(unsigned int n){
+  switch (currScopeSpace())
+  {
+  case program_var:
+    programVarOffset = n;
+    break;
+  case function_local:
+    functionLocalOffset = n;
+    break;
+  case formal_arg:
+    formalArgOffset = n;
+    break;
+  default:
+    assert(0);
+  }
+}
+
+
+
 /* συναρτήσεις βιβλιοθήκης LIBFUNC
   συναρτήσεις προγράμματος USERFUNC
   global οι μεταβλητές GLOBAL
@@ -88,6 +117,10 @@ typedef struct Variable {
 typedef struct Function {
   const char *name;
   vector<SymbolTableEntry *> args;
+
+  unsigned int iaddress;
+  unsigned int totalLocals;
+
   unsigned int scope;
   unsigned int line;
 } Function;
