@@ -11,6 +11,15 @@ al:
 	g++ -Wno-write-strings -o al parser.cpp al.cpp 
 	
 test:
+	al tests/Working/Anonymous.asc                
+	al tests/Working/Circle.asc                   
+	al tests/Working/Grammar.asc                  
+	al tests/Working/ShadowedNameOffunctions.asc  
+	al tests/Working/Tree.asc
+	al tests/Working/Block.asc                    
+	al tests/Working/GlobalAndLocal.asc           
+	al tests/Working/Random.asc                   
+	al tests/Working/Simple.asc
 	al tests/Errors/Error0.asc
 	al tests/Errors/Error1.asc
 	al tests/Errors/Error2.asc
@@ -24,15 +33,6 @@ test:
 	al tests/Errors/Error10.asc
 	al tests/Errors/Error11.asc
 	al tests/Errors/Error12.asc
-	al tests/Working/Anonymous.asc                
-	al tests/Working/Circle.asc                   
-	al tests/Working/Grammar.asc                  
-	al tests/Working/ShadowedNameOffunctions.asc  
-	al tests/Working/Tree.asc
-	al tests/Working/Block.asc                    
-	al tests/Working/GlobalAndLocal.asc           
-	al tests/Working/Random.asc                   
-	al tests/Working/Simple.asc
 
 
 clean: 	

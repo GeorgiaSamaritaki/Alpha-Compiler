@@ -289,6 +289,7 @@ line_comment        "//".*
                     }
 {real}              {
                         add_new_token(yytext, "REAL_CONST", yylineno);
+                        yylval.realValue = atof(yytext);
                         return real;
                     }
 {id}                {
@@ -381,7 +382,7 @@ line_comment        "//".*
                         BEGIN(INITIAL);
                         *string_buf_ptr = '\0';
                         add_new_token(string_buf, "string", yylineno);
-                        
+                        yylval.stringValue = strdup(string_buf_ptr);
                         return STRING;
                     }
 <SRULE>\\[0-7]{1,3} {

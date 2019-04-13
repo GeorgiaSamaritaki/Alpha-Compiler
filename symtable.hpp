@@ -17,6 +17,7 @@ unsigned int scope;
 bool return_flag;
 stack<int> last_func;
 stack<unsigned int> functionLocalsStack;
+bool error = 0;
 
 enum scopeSpace_t { program_var, function_local, formal_arg };
 
@@ -106,7 +107,7 @@ void restoreCurrScopeOffset(unsigned int n){
   συναρτήσεις προγράμματος USERFUNC
   global οι μεταβλητές GLOBAL
   τα τυπικά ορίσματα συναρτήσεων */
-enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC, TMP };
+enum SymbolType { GLOBAL, LOCAL, FORMAL, USERFUNC, LIBFUNC };
 
 typedef struct Variable {
   const char *name;
@@ -157,6 +158,7 @@ class SymTable {
       case FORMAL:
         return entry->value.varVal->name;
     }
+    return "NULL";
   }
   static unsigned int get_scope(SymbolTableEntry *entry) {
     switch (entry->type) {
@@ -192,8 +194,6 @@ class SymTable {
         return "local var";
       case FORMAL:
         return "formal var";
-      case TMP:
-        return "tmp var";
     }
   }
   static bool is_var(SymbolType symtyp) {

@@ -43,9 +43,10 @@
 %type <exprNode> arithexpr 
 %type <exprNode> relexpr 
 %type <exprNode> boolexpr
+%type <exprNode> member
 
-%type <intValue> number 
- 
+%type <exprNode> number
+%type <exprNode> const
 
 %type <call_l> methodcall 
 %type <call_l> normcall 
@@ -164,20 +165,21 @@ stmt:       expr         {printf("stmt->expr");      }  semicolon {printf("';' \
             | semicolon  {printf("';' \n\n");       };
             
 
-statements: statements   stmt {printf("statements ->statements stmt\n");}
+statements: statements   stmt { error = 0; printf("statements ->statements stmt\n");}
             | /*empty*/ {printf("statements->empty\n");};
 
 expr:       assignexpr    { $$ = $1; printf("expr->assignexpr \n");}
-            |  boolexpr   { $$ = $1; }
-            |  arithexpr  { $$ = $1;}
-            |  relexpr    { $$ = $1;}
+            | boolexpr    { $$ = $1; }
+            | arithexpr   { $$ = $1;}
+            | relexpr     { $$ = $1;}
             | term        { assert($1); $$ = $1; printf("expr->term \n");};     
 
 arithexpr:     expr plus expr     { 
+                printf("opexr->expr+expr \n");
                 if($1->type != constnum_e && $3->type !=constnum_e && 
                     $3->type != arithexpr_e && $1->type != arithexpr_e ){
                     yyerror("Invalid arithmetic expressions");
-                    $$ = NULL;
+                    $$ = nil_expr;
                 }else {
                     if($1->type == constnum_e && $3->type == constnum_e){
                         $$ = newExpr(constnum_e);
@@ -189,13 +191,13 @@ arithexpr:     expr plus expr     {
                         emit(add, $1 , $3, $$);
                     }
                 }    
-                printf("opexr->expr+expr \n");
             }  
             | expr minus expr   { 
+                printf("opexr->expr-expr \n");
                 if($1->type != constnum_e && $3->type !=constnum_e && 
                     $3->type != arithexpr_e && $1->type != arithexpr_e ){
                     yyerror("Invalid arithmetic expressions");
-                    $$ = NULL;
+                    $$ = nil_expr;
                 }else {
                     if($1->type == constnum_e && $3->type == constnum_e){
                         $$ = newExpr(constnum_e);
@@ -207,13 +209,14 @@ arithexpr:     expr plus expr     {
                         emit(sub, $1 , $3, $$);
                     }
                 }    
-                printf("opexr->expr-expr \n");
             }
             | expr mul expr      {
+                printf("opexr->expr*expr \n");
+                assert($1 && $3);
                 if($1->type != constnum_e && $3->type !=constnum_e && 
                     $3->type != arithexpr_e && $1->type != arithexpr_e ){
                     yyerror("Invalid arithmetic expressions");
-                    $$ = NULL;
+                    $$ = nil_expr;
                 }else {
                     if($1->type == constnum_e && $3->type == constnum_e){
                         $$ = newExpr(constnum_e);
@@ -225,13 +228,13 @@ arithexpr:     expr plus expr     {
                         emit(mul_op, $1 , $3, $$);
                     }
                 }
-             printf("opexr->expr*expr \n");
             }
             | expr division expr { 
+                printf("opexr->expr/expr \n");
                 if($1->type != constnum_e && $3->type !=constnum_e && 
                     $3->type != arithexpr_e && $1->type != arithexpr_e ){
                     yyerror("Invalid arithmetic expressions");
-                    $$ = NULL;
+                    $$ = nil_expr;
                 }else {
                     if($1->type == constnum_e && $3->type == constnum_e){
                         $$ = newExpr(constnum_e);
@@ -243,13 +246,13 @@ arithexpr:     expr plus expr     {
                         emit(div_op, $1 , $3, $$);
                     }
                 }
-                printf("opexr->expr/expr \n");
             }
             | expr mod expr      { 
+                printf("opexr->expr\%expr \n");
                 if($1->type != constnum_e && $3->type !=constnum_e && 
                     $3->type != arithexpr_e && $1->type != arithexpr_e ){
                     yyerror("Invalid arithmetic expressions");
-                    $$ = NULL;
+                    $$ = nil_expr;
                 }else {
                     if($1->type == constnum_e && $3->type == constnum_e){
                         $$ = newExpr(constnum_e);
@@ -261,13 +264,15 @@ arithexpr:     expr plus expr     {
                         emit(mod_op, $1 , $3, $$);
                     }
                     printf("expr->expr arithexpr expr \n");
-                }printf("opexr->expr\%expr \n");};
+                }
+                };
 
 relexpr:      expr b_greater expr      {
+                printf("opexr->expr>expr \n");
                 if($1->type != constnum_e && $3->type !=constnum_e && 
                     $3->type != arithexpr_e && $1->type != arithexpr_e ){
                     yyerror("Invalid arithmetic expressions");
-                    $$ = NULL;
+                    $$ = nil_expr;
                 }else {
                     if($1->type == constbool_e && $3->type == constbool_e){
                         $$ = newExpr(constbool_e);
@@ -286,13 +291,13 @@ relexpr:      expr b_greater expr      {
                             assign_op, newExpr_constBool(1), NULL, $$);
                     }
                 }
-                printf("opexr->expr>expr \n");
         }
         |  expr b_less expr         {
+            printf("opexr->expr<expr \n");
             if($1->type != constnum_e && $3->type !=constnum_e && 
                 $3->type != arithexpr_e && $1->type != arithexpr_e ){
                 yyerror("Invalid arithmetic expressions");
-                $$ = NULL;
+                $$ = nil_expr;
             }else {
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$ = newExpr(constbool_e);
@@ -311,13 +316,13 @@ relexpr:      expr b_greater expr      {
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
             }
-            printf("opexr->expr<expr \n");
         }         
         |  expr b_greater_eq expr   {
+            printf("opexr->expr>=expr \n");
             if($1->type != constnum_e && $3->type !=constnum_e && 
                 $3->type != arithexpr_e && $1->type != arithexpr_e ){
                 yyerror("Invalid arithmetic expressions");
-                $$ = NULL;
+                $$ = nil_expr;
             }else {
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$ = newExpr(constbool_e);
@@ -335,14 +340,14 @@ relexpr:      expr b_greater expr      {
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
-                printf("opexr->expr>=expr \n");
             }
         }
         |  expr b_less_eq expr      {
+                printf("opexr->expr<=expr \n");
             if($1->type != constnum_e && $3->type !=constnum_e && 
                 $3->type != arithexpr_e && $1->type != arithexpr_e ){
                 yyerror("Invalid arithmetic expressions");
-                $$ = NULL;
+                $$ = nil_expr;
             }else {
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$ = newExpr(constbool_e);
@@ -360,12 +365,13 @@ relexpr:      expr b_greater expr      {
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
-                printf("opexr->expr<=expr \n");}
-            }       
+            }
+        }       
         |  expr b_equals expr       {
+            printf("opexr->expr==expr \n");
             if(!is_same($1->type,$3->type) ){
                 yyerror("Invalid operands to boolean expression");
-                $$ = NULL;
+                $$ = nil_expr;
             }else {
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$ = newExpr(constbool_e);
@@ -392,12 +398,13 @@ relexpr:      expr b_greater expr      {
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
-                printf("opexr->expr==expr \n");}
+                }
             }            
         |  expr b_not_equal expr    {
+                printf("opexr->expr!=expr \n");
             if(!is_same($1->type,$3->type) ){
                 yyerror("Invalid operands to boolean expression");
-                $$ = NULL;
+                $$ = nil_expr;
             }else {
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$ = newExpr(constbool_e);
@@ -424,48 +431,50 @@ relexpr:      expr b_greater expr      {
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
-                printf("opexr->expr!=expr \n");
             }};
 
 boolexpr:      expr AND expr  {
+                printf("opexr->expr&&expr \n");
                 $$ = newExpr(boolexpr_e);
                 $$->sym = new_tmp(yylineno);
                 $$->boolConst = false;
                 emit(and_op, $1 , $3, $$);
-                printf("opexr->expr&&expr \n");
                     
                 }
             | expr OR  expr           {      
+                printf("opexr->expr || expr \n");
                 $$ = newExpr(boolexpr_e);
                 $$->sym = new_tmp(yylineno);
                 $$->boolConst = true;
                 emit(or_op, $1 , $3, $$);
-                printf("opexr->expr || expr \n");
                     
                 } ;
 
 term:       left_parenthesis expr  right_parenthesis {
-                $term = $expr;
                 printf("term->(expr) \n");
+                $term = $expr;
                 } 
             | NOT expr {
+                printf("term->NOTexpr \n");
+                assert($expr);
                 $term = newExpr(boolexpr_e);
                 $term->sym = new_tmp(yylineno);
                 emit(not_op, $expr,NULL, $term);
-                printf("term->NOTexpr \n");
                 }
             | minus expr %prec uminus {
+                assert($expr);
+                printf("term->-expr \n");
                 checkUminus($expr);
                 $term = newExpr(arithexpr_e);
                 $term->sym = new_tmp(yylineno);
                 emit(uminus_op, $expr, NULL , $term);
-                printf("term->-expr \n");
                 }
-            | increment {printf("term->++lvalue \n");} lvalue { 
+            | increment{} lvalue {
+                printf("term->++lvalue \n"); 
                 if($3 != NULL) {
                     if( (int)symbol_table.get_scope($3->sym) <= last_func.top() && (int)symbol_table.get_scope($3->sym)!=0){
                         yyerror("Cant reference variable out of scope");
-                        $$ = NULL;
+                        $$ = nil_expr;
                     }else {
                         if($3->sym->type == USERFUNC) 
                             yyerror("Cannot increment function");
@@ -503,6 +512,7 @@ term:       left_parenthesis expr  right_parenthesis {
                 } 
             } increment {
                 assert($1); //FIXME:check scopes
+                printf("term->lvalue++ \n");
                 $term = newExpr(var_e);
                 $term->sym = new_tmp(yylineno);
 
@@ -517,10 +527,10 @@ term:       left_parenthesis expr  right_parenthesis {
                     emit(
                         add, $lvalue, newExpr_constNum(1), $lvalue);
                 }
-                printf("term->lvalue++ \n");
                 
                 } 
-            | decrement {printf("term->--lvalue \n");} lvalue {
+            | decrement {} lvalue {
+                printf("term->--lvalue \n");
                 if($3 != NULL) {
                     if( (int)symbol_table.get_scope($3->sym) <= last_func.top() && (int)symbol_table.get_scope($3->sym)!=0 ){
                         yyerror("Cant reference variable out of scope");
@@ -547,6 +557,7 @@ term:       left_parenthesis expr  right_parenthesis {
                 }
                 } //lookup maybe
             | lvalue {
+                printf("term->lvalue-- \n");
                 if($1 != NULL) {
                     if( (int)symbol_table.get_scope($1->sym) <= last_func.top() && (int)symbol_table.get_scope($1->sym)!=0){
                         yyerror("Cant reference variable out of scope");
@@ -571,22 +582,21 @@ term:       left_parenthesis expr  right_parenthesis {
                         $term->sym = new_tmp(yylineno);
                         emit(assign_op, $lvalue, NULL, $term);
                     }
-                    printf("term->lvalue-- \n");
                     }  //lookup maybe (before --?)
             | primary {
-                $term = $primary;
                 printf("term->primary \n");
+                assert($1);
+                $$ = $1;
                 };
 
 assignexpr: lvalue assign expr {
+                printf("assignexpr->lvalue=expr \n");
                 if($1 != NULL) {
                     if( (int)symbol_table.get_scope($1->sym) <= last_func.top() && (int)symbol_table.get_scope($1->sym)!=0)
                         yyerror("Cant reference variable out of scope");
                     else if($1->sym->type == USERFUNC) yyerror("Cannot assign to function");
                     else if($1->sym->type == LIBFUNC) yyerror("Cannot assign to libfunc");
                     else{ 
-                        // $lvalue->sym->type = $expr->sym->type;
-                        // $lvalue->type = $expr->type;
                         if($lvalue->type == tableitem_e){
                             emit( //that is lvalue[index] = expr;
                                 tablesetelem,
@@ -598,9 +608,11 @@ assignexpr: lvalue assign expr {
                             $assignexpr = emit_ifTableItem($lvalue);
                             $assignexpr->type = assignexpr_e;
                         }else{
+                            change_type($lvalue,$expr);
+
+                            // $lvalue->sym->type = $expr->sym->type;
                             
-                            emit(
-                                assign_op, $expr, NULL, $lvalue);
+                            emit(assign_op, $expr, NULL, $lvalue);
                             $assignexpr = newExpr(assignexpr_e);
                             $assignexpr->sym = new_tmp(yylineno);
                             emit(
@@ -612,10 +624,10 @@ assignexpr: lvalue assign expr {
                     printf("member undefined in : assignexpr->lvalue=expr \n");
                     // assert(false);
                 }    
-                    printf("assignexpr->lvalue=expr \n");
                     }; //lookup (before assign?)
 
 primary:    lvalue  {
+                printf("primary->lvalue \n");
                 if($1 != NULL) {
                     if( (int)symbol_table.get_scope($1->sym) <= last_func.top()  && (int)symbol_table.get_scope($1->sym)!=0){
                             yyerror("Cant reference variable out of scope");
@@ -625,26 +637,28 @@ primary:    lvalue  {
                     else symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                 }
                 $primary = emit_ifTableItem($lvalue);
-                printf("primary->lvalue \n");
                 }
             | call  {
                 printf("primary->call \n");
+                assert($1);
+                $$ = $1;
                 }
             | objectdef{ 
                 printf("primary->objectdef \n");
                 }
             | left_parenthesis funcdef right_parenthesis {
+                printf("primary->(funcdef) \n");
                 $primary = newExpr(programfunc_e);
                 $primary->sym = $funcdef;                
-                printf("primary->(funcdef) \n");
                 }
-            | const {printf("primary->const \n");}
+            | const {$$ = $1;printf("primary->const \n");}
             ;
 
 lvalue:     id {
                 printf("lvalue->ids '%s'\n",yylval.stringValue);
                 SymbolTableEntry *tmp = symbol_table.lookUp_allscope(yylval.stringValue); 
                 if(tmp == NULL){
+                    printf("didnt find in sym\n");
                     tmp = symbol_table.insert(yylval.stringValue, yylineno, (scope?LOCAL:GLOBAL));
                     assert(tmp);
                     tmp->space = currScopeSpace();
@@ -684,9 +698,11 @@ lvalue:     id {
                 scope = scope_tmp;  
                 printf("lvalue->::id \n");
                 }
-            | member { $$ = NULL; printf("lvalue->member \n");}; 
+            | member { $$ = $1; printf("lvalue->member \n");}; 
 
-member:     tableitem { }
+member:     tableitem {
+                $$ = $1;
+            }
             | call dot id {printf("member->call().id \n");}
             | call left_bracket expr right_bracket {printf("member->[expr] \n");};
 
@@ -707,7 +723,7 @@ tableitem:  lvalue{
             } 
             dot id { 
                     printf("member->lvalue.id \n");
-                    $tableitem = member_item($lvalue, yylval.stringValue);
+                    $tableitem = member_item($lvalue, strdup(yylval.stringValue));
                 }
             | lvalue {
                 if($1 != NULL) {
@@ -734,10 +750,11 @@ tableitem:  lvalue{
             ;
 
 call:       call left_parenthesis elist right_parenthesis {
-                $$ = make_call($$, $elist);
                 printf("call->call(elist) \n");
+                $$ = make_call($$, $elist);
                 }
             | lvalue callsuffix {
+                printf("call->lvaluecallsuffix \n");
                 if($1 != NULL) {
                     if($1->sym->type == USERFUNC || $1->sym->type == LIBFUNC) {
                         if($callsuffix->method){
@@ -751,85 +768,89 @@ call:       call left_parenthesis elist right_parenthesis {
                      }else{
                         if( (int)symbol_table.get_scope($1->sym) <= last_func.top()  && (int)symbol_table.get_scope($1->sym)!=0){
                             yyerror("Cant reference variable out of scope");
-                        }else if($1->sym->type == LOCAL||$1->sym->type == GLOBAL) {
+                            $call = NULL;
+                        }else if($1->sym->type == LOCAL||$1->sym->type == GLOBAL||$1->sym->type == FORMAL) {
                             yyerror("cant use variable as function");
+                            $call = NULL;
                         }else{
                             assert(false);
                         }
-                        $call = NULL;
                     }
                 }else{ //define as new var
                     yyerror("function not found");
                 }
-                printf("call->lvaluecallsuffix \n");
             } 
             | left_parenthesis funcdef right_parenthesis left_parenthesis elist right_parenthesis {
+                printf("call->(funcdef)(elist) \n");
                 expr* func = newExpr(programfunc_e);
                 func->sym = $funcdef;
                 $call = make_call(func, $elist);
-                printf("call->(funcdef)(elist) \n");
                 };
 
 callsuffix: normcall  {    
-                $callsuffix = $normcall; 
                 printf("callsuffix->normcall \n");
+                $callsuffix = $normcall; 
             }
             | methodcall { 
-                $callsuffix = $methodcall; 
                 printf("callsuffix->methodcall \n");
+                $callsuffix = $methodcall; 
             };
 
 normcall:   left_parenthesis elist right_parenthesis {
+                printf("normcall->(elist) \n");
+                $$ = new call_l();
                 $normcall->elist = $elist;
                 $normcall->method = false;
                 $normcall->name = NULL;
 
-                printf("normcall->(elist) \n");
                 };
 
 methodcall: double_dot id {//maybe needs code
             }left_parenthesis elist right_parenthesis {
+                printf("methodcall->..id(elist) \n");
+                $$ = new call_l();
                 $methodcall->elist = $elist;
                 $methodcall->method = true;
                 $methodcall->name = yylval.stringValue;
 
-                printf("methodcall->..id(elist) \n");
                 }; 
 
 elist_l:    expr {
-                $$ = $expr;
                 printf("elist_l->expr \n");
+                $$ = $expr;
                 }
             | elist_l comma expr {
+                printf("elist_l->elist_l,expr \n");
                 $expr->next = $1;
                 $$ = $expr;
-                printf("elist_l->elist_l,expr \n");
                 };
 
 elist:      elist_l {
-                $elist  = $elist_l;
                 printf("elist->elist_l \n");
+                $elist  = $elist_l;
                 }
             |/*empty*/  {
-                $elist = NULL;
                 printf("elist->empty \n");
+                $$ = nil_expr;
                 };
 
 objectdef:  left_bracket elist right_bracket {
+                printf("objectdef->[elist]\n");
                 expr* t = newExpr(newtable_e);
                 t->sym = new_tmp(yylineno);
                 emit(tablecreate,NULL,NULL, t);
                 double i =0;
 
                 expr* x = $elist;
-                while(x){
+                while(x!=NULL){
                     emit(tablesetelem, t, newExpr_constNum(i++), x);
                     x = x->next;
                 }
                 $objectdef = t;
-                printf("objectdef->[elist]\n");
                 }
             |left_bracket indexed right_bracket {
+                assert($indexed);
+                printf("objectdef->[indexed] \n");
                 expr* t = newExpr(newtable_e);
                 t->sym = new_tmp(yylineno);
                 emit(tablecreate,NULL,NULL, t);
@@ -842,25 +863,28 @@ objectdef:  left_bracket elist right_bracket {
                 }
                 $objectdef = t;
                 
-                printf("objectdef->[indexed] \n");
                 
                 };
 
 indexedelem: left_curly expr colon expr right_curly {
+                printf("indexedelem->{expr:expr} \n");
+                assert($2 && $4);
+
                 $indexedelem = $4;
                 $indexedelem->index = $2;
                 $indexedelem -> next = NULL;
-                printf("indexedelem->{expr:expr} \n");
             }; 
             // { expr {printf("expr");} : expr {printf("expr");}}
 
 indexed:    indexedelem {
-                $$ = $indexedelem;
                 printf("indexed->indexedelem \n");
+                assert($indexedelem);
+                $$ = $indexedelem;
             } 
             | indexed comma indexedelem {
-                $1->next = $3;
                 printf("indexed->indexed,indexedelem \n");
+                $3->next = $1;
+                $$ = $3;
             };
 
 block_l:    block_l stmt
@@ -869,10 +893,11 @@ block_l:    block_l stmt
 block:      left_curly { printf("\n\n-----enter block ------ \n"); } block_l right_curly { printf("\n-----exit block ------\n\n"); symbol_table.hide(scope--);};
 
 func_name:  id {
-                $func_name = strdup(yylval.stringValue);
                 printf("func_name->func_id \n");
+                $func_name = strdup(yylval.stringValue);
                 }  //lookup
             | /*empty*/{
+                printf("func_name->anonymous \n");
                 char name[100]; 
                 sprintf(name, "%s%d","$anonymous",  anonymous_count );
                 anonymous_count++;
@@ -880,18 +905,18 @@ func_name:  id {
                 }; //probably insert with $_name(anonymous)
 
 funcdef:  func_prefix func_args func_body{
+                printf("funcdef->prefix args body\n");
                 exitScopeSpace();
                 $func_prefix->value.funcVal->totalLocals  = functionLocalOffset;
                 functionLocalOffset = functionLocalsStack.top();
                 functionLocalsStack.pop();
                 $funcdef = $func_prefix;
                 emit_function(funcend, lvalue_expr($func_prefix));
-                printf("GERE\n");
             };
 
 func_prefix:  function func_name  { 
+                printf("funcdef->( ");
                 last_func.push(scope); 
-                scope++; 
                 
                 $func_prefix =symbol_table.lookUp_curscope($func_name); 
                 if($func_prefix ==  NULL) {//undefined
@@ -920,7 +945,7 @@ func_prefix:  function func_name  {
                 functionLocalsStack.push(functionLocalOffset);
                 enterScopeSpace();
                 resetFormalArgsOffset();
-                printf("funcdef->( ");
+                scope++; 
                 }; 
 
 func_args:  left_parenthesis idlist right_parenthesis {
@@ -949,19 +974,40 @@ number:     integer     {
                 // $$->sym = tmp;
                 // $$->numConst = yylval.intValue;
                 printf("number->integer \n");
+                $$ = newExpr(constnum_e);
+                $$->numConst = (double)yylval.intValue;
                 }
             | real      {
                 printf("number->real \n");
+                $$ = newExpr(constnum_e);
+                $$->numConst = yylval.realValue;
                 };
 
-const:      number      {printf("const->number \n");}
-            | STRING    {printf("const->string \n");}
-            | NIL       {printf("const->nil \n");}
-            | TRUE      {printf("const->true \n");}
-            | FALSE     {printf("const->false \n");};
+const:      number      {$$ = $1; printf("const->number \n");}
+            | STRING    {
+                printf("const->string \n");
+                $$ = newExpr(conststring_e);
+                $$->strConst = strdup(yylval.stringValue);
+            }
+            | NIL       {
+                printf("const->nil \n");
+                $$ = nil_expr;
+                $$->boolConst = false;
+            }
+            | TRUE      {
+                printf("const->true \n");
+                $$ = newExpr(constbool_e);
+                $$->boolConst = true;
+            }
+            | FALSE     {
+                printf("const->false \n");
+                $$ = newExpr(constbool_e);
+                $$->boolConst = false;
+            };
 
 //idlist {printf("'id'");} can be empty
 idlist_l:   id {  
+                printf("idlist_l->id1 \n");
                 SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
                 if(tmp ==  NULL) {//undefined
                     tmp = symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
@@ -985,10 +1031,10 @@ idlist_l:   id {
                         }
                     }
                 }
-                printf("idlist_l->id1 \n");
             
             } //lookup
             |idlist_l comma id {
+                printf("idlist_l->idlist_l , id \n");
                 SymbolTableEntry* tmp =symbol_table.lookUp_curscope(yylval.stringValue); 
                 if(tmp ==  NULL) {//undefined
                     tmp = symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
@@ -1014,7 +1060,6 @@ idlist_l:   id {
                         }
                     }
                 }
-                printf("idlist_l->idlist_l , id \n");
             };
 
 idlist:     idlist_l {  printf("idlist->idlist_l \n");} 
@@ -1042,6 +1087,7 @@ int yyerror(char* yaccProvidedMessage){
     printf("\n_____________ERROR:line %d, before token: \"%s\" message: %s____________\n"
         ,yylineno,yytext,yaccProvidedMessage);
         printf("\033[0m");
+    error = true;
    
 }
 
@@ -1058,5 +1104,6 @@ int main(int argc, char* argv[]){
     yyparse();
     
     symbol_table.print();
+    //printQuads();
     return 0;
 }

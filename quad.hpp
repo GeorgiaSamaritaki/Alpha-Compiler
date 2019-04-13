@@ -1,14 +1,20 @@
 #include <string>
 #include <vector>
 #include <stdarg.h>
+#include <iostream>
+#include <sstream>
 #include "symtable.hpp"
 
 #include <sys/stat.h>
 #include <errno.h>
 
-#define EXPAND_SIZE 1024
-#define CURR_SIZE (total * sizeof(quad))
-#define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
+// #define EXPAND_SIZE 1024
+// #define CURR_SIZE (total * sizeof(quad))
+// #define NEW_SIZE (EXPAND_SIZE * sizeof(quad) + CURR_SIZE)
+typedef struct expr expr;
+typedef struct quad quad;
+
+void debug_quad(quad* q, int i=0);
 
 typedef enum iopcode {
   assign_op,
@@ -39,7 +45,39 @@ typedef enum iopcode {
   jump
 }iopcode;
 
-struct expr;
+string iop_tostr(iopcode iop){
+  switch(iop){
+    case assign_op: return "assign_op";
+    case add: return "add";
+    case sub: return "sub";
+    case mul_op: return "mul_op";
+    case div_op: return "div_op"; 
+    case mod_op: return "mod_op"; 
+    case uminus_op: return "uminus_op"; 
+    case and_op: return "and_op"; 
+    case or_op: return "or_op"; 
+    case not_op: return "not_op"; 
+    case if_eq: return "if_eq"; 
+    case if_noteq: return "if_noteq"; 
+    case if_lesseq: return "if_lesseq"; 
+    case if_greater_eq: return "if_greater_eq"; 
+    case if_less: return "if_less"; 
+    case if_greater: return "if_greater"; 
+    case call: return "call"; 
+    case param: return "param"; 
+    case ret: return "ret"; 
+    case getretval: return "getretval"; 
+    case funcstart: return "funcstart"; 
+    case funcend: return "funcend"; 
+    case tablecreate: return "tablecreate"; 
+    case tablegetelem: return "tablegetelem"; 
+    case tablesetelem: return "tablesetelem"; 
+    case jump: return "jump"; 
+    default: assert(0);
+  }
+}
+
+
 
 struct quad {
   iopcode iop;
@@ -49,13 +87,6 @@ struct quad {
   unsigned label;
   unsigned line;
 };
-
-vector<quad*> quads;
-unsigned total = 0;
-unsigned int currQuad = 0;
-int tmpcounter = 0;
-
-SymTable symbol_table = *new SymTable();
 
 typedef enum expr_t {
   var_e,
@@ -75,6 +106,23 @@ typedef enum expr_t {
 
   nil_e,
 } expr_t;
+string expr_t_tostr(expr_t type){
+  switch(type){
+    case var_e: return "var_e";
+    case tableitem_e : return "tableitem_e";
+    case programfunc_e : return "programfunc_e";
+    case libraryfunc_e : return "libraryfunc_e";
+    case arithexpr_e : return "arithexpr_e";
+    case boolexpr_e : return "boolexpr_e";
+    case assignexpr_e : return "assignexpr_e";
+    case newtable_e : return "newtable_e";
+    case constnum_e : return "constnum_e";
+    case constbool_e : return "constbool_e";
+    case conststring_e : return "conststring_e";
+    case nil_e : return "nil_e,";
+    default: assert(0);
+  }
+}
 
 typedef struct expr {
   expr_t type;
@@ -92,35 +140,47 @@ struct call_l{
   char* name;
 };
 
+expr* newExpr(expr_t t);
+vector<quad*> quads;
+expr* nil_expr = newExpr(nil_e);
+int tmpcounter = 0;
 
-// Functions
-quad* expand() {
-  assert(currQuad == total);
-  quad* p = new quad();
-  quads.push_back(p);
-  total += EXPAND_SIZE;
-  // currQuad++;
-  return p;
-}
+SymTable symbol_table = *new SymTable();
+
+// // Functions
+// quad* expand() {
+//   assert(currQuad == total);
+//   quad* p = new quad();
+//   quads.push_back(p);
+//   total += EXPAND_SIZE;
+//   return p;
+// }
 void emit(iopcode iop, expr* arg1, expr* arg2, expr* result, unsigned int label = 0) {
   quad* p;
-  if (currQuad == total)
-    p = expand();
-  else{
-    p = new quad();
-    quads[currQuad++] = p;
-  }
-  p->arg1 = arg1;
-  p->arg2 = arg2;
-  p->result = result;
+  // if (currQuad == total)
+  //   p = expand();
+  // else{
+  //   p = new quad();
+  //   quads.at(currQuad) = p;
+  // }
+  // currQuad++;
+  p = new quad();
+
+  p->iop   = iop;
+  p->arg1  = arg1   == NULL ? nil_expr : arg1;
+  p->arg2  = arg2   == NULL ? nil_expr : arg2;
+  p->result= result == NULL ? nil_expr : result;
   p->label = label;
+  debug_quad(p);
+  quads.push_back(p);
 }
 void emit_function(iopcode iop, expr* result){
   emit(iop,NULL,NULL,result, result->sym->value.funcVal->iaddress);
 }
 
 void patchLabel( unsigned int quadNo, unsigned int label){
-  assert(quadNo < currQuad);
+  assert(quadNo < quads.size()); 
+  //currQuad);
   quads[quadNo]->label = label;
 }
 
@@ -141,7 +201,7 @@ SymbolTableEntry* new_tmp(unsigned int lineno) {
     return sym;
 }
 
-unsigned int nextQuadLabel(){return currQuad;}
+unsigned int nextQuadLabel(){return quads.size();}//currQuad;}
 
 expr* lvalue_expr(SymbolTableEntry* entry){
   assert(entry);
@@ -214,13 +274,13 @@ expr* member_item(expr* lvalue, char* name){
 
 expr* make_call(expr* lvalue, expr* elist){
   expr* func = emit_ifTableItem(lvalue);
+  assert(func);
   assert(!symbol_table.is_var(func->sym->type));
   expr* curr = elist;
   while(curr!=NULL){
     emit(param, curr, NULL, NULL, 0);
     curr = curr->next;
   }
-    printf("here!!!!!\n");
   emit(call, func, NULL, NULL,0);
   expr* result = newExpr(var_e);
   
@@ -300,13 +360,10 @@ bool compute(iopcode op, bool a, bool b){
 }
 
 
-void printQuads(){
-  cout << "Yeeeeeeeeee";
-}
-
 bool is_same(expr_t a, expr_t b){
+
   if(a == var_e || b == var_e) 
-    return false;
+    return true;
   if(a == b) 
     return true;
   if( (a == arithexpr_e || a == constnum_e) && 
@@ -317,6 +374,8 @@ bool is_same(expr_t a, expr_t b){
     return true;
   if( (a == newtable_e || b == nil_e) && 
     (b == newtable_e || a == nil_e))
+    return true;
+  if( a == nil_e  || b == nil_e)
     return true;
   
   return false;
@@ -347,4 +406,120 @@ bool get_bool(expr* e){
   }
 }
 
+string get_string(expr *e){
+  if(e == NULL) return "NULL";
+  switch(e->type){
+    case constbool_e: 
+      return e->boolConst?"true":"false"; 
+    case constnum_e:{
+      std::ostringstream ss;
+      ss << e->numConst;
+      return ss.str(); 
+    }  
+    case conststring_e: return e->strConst;
+    case nil_e: return "NULL";
+    case tableitem_e:
+    case newtable_e:
+    case var_e:
+    case programfunc_e:
+    case libraryfunc_e:
+    case arithexpr_e: 
+    case boolexpr_e: 
+    case assignexpr_e: 
+      return symbol_table.get_name(e->sym);
 
+  }
+
+}
+void debug_quad(quad* q, int i){
+    printf("Quad %d",i);
+    printf(" %s",iop_tostr(q->iop).c_str());
+    printf(" %s",get_string(q->result).c_str());
+    printf(" %s",get_string(q->arg1).c_str());
+    printf(" %s",get_string(q->arg2).c_str());
+    printf(" %d\n",(q->label));
+}
+
+void printQuads(){
+  string s = string(79, '-');
+  cout <<"\n\n" <<string(36, '-') << " Quads "<< string(36, '-') 
+        <<"\nquad#" << setw(14)<< "opcode" 
+        << setw(15)<< "result"<< setw(15) << "arg1" 
+        << setw(15) << "arg2"  << setw(15) <<"label"<<endl<< s <<endl;
+  for(int i = 0; i< quads.size(); i++) {
+    quad *q = quads.at(i);
+  // debug_quad(q,i);
+    cout<< setw(4) <<  i+1
+        << setw(14)<< iop_tostr(q->iop) 
+        << setw(15)<< get_string(q->result)
+        << setw(15) << get_string(q->arg1)
+        << setw(15) << get_string(q->arg2)  
+        << setw(15) << (q->label) <<endl;
+  }
+}
+
+void change_type(expr *lvalue, expr* expr){
+  // printf("~~~~~~~~Changed %s %s type %s\n",symbol_table.get_name(lvalue->sym), 
+  //     expr_t_tostr(lvalue->type).c_str(), expr_t_tostr(expr->type).c_str());
+  lvalue->type = expr->type;
+
+  if(expr->type = constnum_e){
+    lvalue->numConst = expr->numConst;
+    if(lvalue->sym->type == USERFUNC){
+       Variable *v = new Variable();
+       Function *f = lvalue->sym->value.funcVal; 
+       v->scope =f->scope;
+       v->line = f->line;
+       f->totalLocals--;
+       if(f->totalLocals == 0){
+          //delete args and delete function struct         
+       }
+       lvalue->sym->value.varVal = v;
+    }
+  }else if(expr->type = constbool_e){
+    lvalue->boolConst = expr->boolConst;
+    if(lvalue->sym->type == USERFUNC){
+       Variable *v = new Variable();
+       Function *f = lvalue->sym->value.funcVal; 
+       v->scope =f->scope;
+       v->line = f->line;
+       v->name = f->name;
+       f->totalLocals--;
+       if(f->totalLocals == 0){
+          //delete args and delete function struct         
+       }
+       lvalue->sym->value.varVal = v;
+    }
+   }else if(expr->type = conststring_e){
+    lvalue->strConst = expr->strConst;
+    if(lvalue->sym->type == USERFUNC){
+       Variable *v = new Variable();
+       Function *f = lvalue->sym->value.funcVal; 
+       v->scope =f->scope;
+       v->line = f->line;
+       f->totalLocals--;
+       if(f->totalLocals == 0){
+          //delete args and delete function struct         
+       }
+       lvalue->sym->value.varVal = v;
+    }
+  }else{
+    assert(expr->sym);
+    lvalue->sym = expr->sym; 
+  }
+  //probably delete expr node
+}
+
+// struct quad {)
+//   iopcode iop;
+//   expr* result;
+//   expr* arg1;
+//   expr* arg2;
+//   unsigned label;
+//   unsigned line;
+// };
+
+
+
+// struct quad {)
+//
