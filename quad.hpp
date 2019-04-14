@@ -178,10 +178,23 @@ struct call_l {
   char* name;
 };
 
+struct stmt_l {
+  vector<unsigned int> breaklist;
+  vector<unsigned int> contlist;
+};
+
+struct for_prefix {
+  int test;
+  int enter;
+};
+
 expr* newExpr(expr_t t);
 vector<quad*> quads;
 expr* nil_expr = newExpr(nil_e);
 int tmpcounter = 0;
+typedef vector<unsigned int> * vector_r;
+int loopcnt = 0;
+stack<int> loopcntStack;
 
 SymTable symbol_table = *new SymTable();
 
@@ -193,7 +206,7 @@ SymTable symbol_table = *new SymTable();
 //   total += EXPAND_SIZE;
 //   return p;
 // }
-void emit(iopcode iop, expr* arg1, expr* arg2, expr* result,
+void emit(iopcode iop, expr* arg1 = NULL, expr* arg2 = NULL, expr* result = NULL,
           unsigned int label = 0) {
   quad* p;
   // if (currQuad == total)
@@ -223,9 +236,14 @@ void patchLabel(unsigned int quadNo, unsigned int label) {
   quads[quadNo]->label = label;
 }
 
+void patchLabel(vector<unsigned int> quads, unsigned int label) {
+  for (int i = 0; i < quads.size(); i++) 
+    patchLabel(quads[i],label);
+}
+
 char* new_tmpname() {
   char name[1000];
-  sprintf(name, "$t%d", tmpcounter);
+  sprintf(name, "$t%d", tmpcounter++);
   return strdup(name);
 }
 
@@ -318,7 +336,7 @@ expr* member_item(expr* lvalue, char* name) {
 expr* make_call(expr* lvalue, expr* elist) {
   expr* func = emit_ifTableItem(lvalue);
   assert(func);
-  assert(!symbol_table.is_var(func->sym->type));
+  //assert(!symbol_table.is_var(func->sym->type));
   expr* curr = elist;
   while (curr != NULL) {
     emit(param, curr, NULL, NULL, 0);
@@ -413,6 +431,25 @@ bool is_same(expr_t a, expr_t b) {
   return false;
 }
 
+bool isvalid_arithmeticCheck(expr_t a, expr_t b) {
+  printf("isvalid_arithmeticCheck: %s : %s\n", expr_t_tostr(a).c_str(),
+         expr_t_tostr(b).c_str());
+  if (a == programfunc_e || a == libraryfunc_e || b == programfunc_e ||
+      b == libraryfunc_e) {
+    return false;
+  }
+  if (a == nil_e || a == boolexpr_e || a == constbool_e || a == newtable_e ||
+      a == conststring_e) {
+    return false;
+  }
+  if (b == nil_e || b == boolexpr_e || b == constbool_e || b == newtable_e ||
+      b == conststring_e) {
+    return false;
+  }
+
+  return true;
+}
+
 bool get_bool(expr* e) {
   switch (e->type) {
     case newtable_e:
@@ -438,7 +475,7 @@ bool get_bool(expr* e) {
 }
 
 string get_string(expr* e) {
-  if (e == NULL) return "NULL";
+  if (e == NULL) return " ";
   switch (e->type) {
     case constbool_e:
       return e->boolConst ? "true" : "false";
@@ -450,7 +487,7 @@ string get_string(expr* e) {
     case conststring_e:
       return e->strConst;
     case nil_e:
-      return "NULL";
+      return " ";
     case tableitem_e:
     case newtable_e:
     case var_e:
@@ -462,37 +499,11 @@ string get_string(expr* e) {
       return symbol_table.get_name(e->sym);
   }
 }
-void debug_quad(quad* q, int i) {
-  printf("Quad %d", i);
-  printf(" %s", iop_tostr(q->iop).c_str());
-  printf(" %s", get_string(q->result).c_str());
-  printf(" %s", get_string(q->arg1).c_str());
-  printf(" %s", get_string(q->arg2).c_str());
-  printf(" %d\n", (q->label));
-}
-
-void printQuads() {
-  string s = string(79, '-');
-  cout << "\n\n"
-       << string(36, '-') << " Quads " << string(36, '-') << "\nquad#"
-       << setw(14) << "opcode" << setw(15) << "result" << setw(15) << "arg1"
-       << setw(15) << "arg2" << setw(15) << "label" << endl
-       << s << endl;
-  for (int i = 0; i < quads.size(); i++) {
-    quad* q = quads.at(i);
-    // debug_quad(q,i);
-    cout << setw(4) << i + 1 << setw(14) << iop_tostr(q->iop) << setw(15)
-         << get_string(q->result) << setw(15) << get_string(q->arg1) << setw(15)
-         << get_string(q->arg2) << setw(15) << (q->label) << endl;
-  }
-}
 
 void change_type(expr* lvalue, expr* expr) {
-  // printf("~~~~~~~~Changed %s %s type
-  // %s\n",symbol_table.get_name(lvalue->sym),
-  //     expr_t_tostr(lvalue->type).c_str(), expr_t_tostr(expr->type).c_str());
-  lvalue->type = expr->type;
-
+  printf("~~~~~~~~Changed %s %s type %s\n", symbol_table.get_name(lvalue->sym),
+         expr_t_tostr(lvalue->type).c_str(), expr_t_tostr(expr->type).c_str());
+  assert(lvalue->type != libraryfunc_e);
   if (expr->type == constnum_e) {
     lvalue->numConst = expr->numConst;
     if (lvalue->sym->type == USERFUNC) {
@@ -534,12 +545,60 @@ void change_type(expr* lvalue, expr* expr) {
       lvalue->sym->value.varVal = v;
     }
   } else if (expr->type == nil_e) {
-    printf("expr is nil\n");
+    return;
   } else {
     assert(expr->sym);
     lvalue->sym = expr->sym;
   }
+  lvalue->type = expr->type;
   // probably delete expr node
+}
+
+void debug_quad(quad* q, int i) {
+  printf("Quad %d", i);
+  printf(" %s", iop_tostr(q->iop).c_str());
+  printf(" %s", get_string(q->result).c_str());
+  printf(" %s", get_string(q->arg1).c_str());
+  printf(" %s", get_string(q->arg2).c_str());
+  printf(" %d\n", (q->label));
+}
+
+void printQuads() {
+  string s = string(79, '-');
+  cout << "\n\n"
+       << string(36, '-') << " Quads " << string(36, '-') << "\nquad#"
+       << setw(14) << "opcode" << setw(15) << "result" << setw(15) << "arg1"
+       << setw(15) << "arg2" << setw(15) << "label" << endl
+       << s << endl;
+  for (int i = 0; i < quads.size(); i++) {
+    quad* q = quads.at(i);
+    // debug_quad(q,i);
+    cout << setw(4) << i + 1 << setw(14) << iop_tostr(q->iop) << setw(15)
+         << get_string(q->result) << setw(15) << get_string(q->arg1) << setw(15)
+         << get_string(q->arg2) << setw(15) << ((q->label)?(q->label+1):0) << endl;
+  }
+}
+
+vector<unsigned int> newList(unsigned int a){
+  vector<unsigned int>  b;
+  b.push_back(a);
+  return b;
+}
+
+vector<unsigned int> merge(vector<unsigned int> a, vector<unsigned int> b){
+  printf("here\n");
+  vector<unsigned int> c;
+  
+  c.reserve( a.size() + b.size() ); // preallocate memory
+  c.insert( c.end(), a.begin(), a.end() );
+  c.insert( c.end(), b.begin(), b.end() );
+  return c;
+}
+stmt_l* merge(stmt_l *a, stmt_l *b){
+  stmt_l* c = new stmt_l();
+  c->breaklist = merge((a!=NULL?(a->breaklist):(c->breaklist)),(b!=NULL?(b->breaklist):(c->breaklist)));
+  c->contlist = merge((a!=NULL?(a->contlist):(c->contlist)),  (b!=NULL?(b->contlist):(c->contlist)));
+  return c;
 }
 
 // struct quad {)
