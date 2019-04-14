@@ -1,12 +1,12 @@
-#include <string>
-#include <vector>
 #include <stdarg.h>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <vector>
 #include "symtable.hpp"
 
-#include <sys/stat.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 // #define EXPAND_SIZE 1024
 // #define CURR_SIZE (total * sizeof(quad))
@@ -14,7 +14,7 @@
 typedef struct expr expr;
 typedef struct quad quad;
 
-void debug_quad(quad* q, int i=0);
+void debug_quad(quad* q, int i = 0);
 
 typedef enum iopcode {
   assign_op,
@@ -43,41 +43,66 @@ typedef enum iopcode {
   tablegetelem,
   tablesetelem,
   jump
-}iopcode;
+} iopcode;
 
-string iop_tostr(iopcode iop){
-  switch(iop){
-    case assign_op: return "assign_op";
-    case add: return "add";
-    case sub: return "sub";
-    case mul_op: return "mul_op";
-    case div_op: return "div_op"; 
-    case mod_op: return "mod_op"; 
-    case uminus_op: return "uminus_op"; 
-    case and_op: return "and_op"; 
-    case or_op: return "or_op"; 
-    case not_op: return "not_op"; 
-    case if_eq: return "if_eq"; 
-    case if_noteq: return "if_noteq"; 
-    case if_lesseq: return "if_lesseq"; 
-    case if_greater_eq: return "if_greater_eq"; 
-    case if_less: return "if_less"; 
-    case if_greater: return "if_greater"; 
-    case call: return "call"; 
-    case param: return "param"; 
-    case ret: return "ret"; 
-    case getretval: return "getretval"; 
-    case funcstart: return "funcstart"; 
-    case funcend: return "funcend"; 
-    case tablecreate: return "tablecreate"; 
-    case tablegetelem: return "tablegetelem"; 
-    case tablesetelem: return "tablesetelem"; 
-    case jump: return "jump"; 
-    default: assert(0);
+string iop_tostr(iopcode iop) {
+  switch (iop) {
+    case assign_op:
+      return "assign_op";
+    case add:
+      return "add";
+    case sub:
+      return "sub";
+    case mul_op:
+      return "mul_op";
+    case div_op:
+      return "div_op";
+    case mod_op:
+      return "mod_op";
+    case uminus_op:
+      return "uminus_op";
+    case and_op:
+      return "and_op";
+    case or_op:
+      return "or_op";
+    case not_op:
+      return "not_op";
+    case if_eq:
+      return "if_eq";
+    case if_noteq:
+      return "if_noteq";
+    case if_lesseq:
+      return "if_lesseq";
+    case if_greater_eq:
+      return "if_greater_eq";
+    case if_less:
+      return "if_less";
+    case if_greater:
+      return "if_greater";
+    case call:
+      return "call";
+    case param:
+      return "param";
+    case ret:
+      return "ret";
+    case getretval:
+      return "getretval";
+    case funcstart:
+      return "funcstart";
+    case funcend:
+      return "funcend";
+    case tablecreate:
+      return "tablecreate";
+    case tablegetelem:
+      return "tablegetelem";
+    case tablesetelem:
+      return "tablesetelem";
+    case jump:
+      return "jump";
+    default:
+      assert(0);
   }
 }
-
-
 
 struct quad {
   iopcode iop;
@@ -106,21 +131,34 @@ typedef enum expr_t {
 
   nil_e,
 } expr_t;
-string expr_t_tostr(expr_t type){
-  switch(type){
-    case var_e: return "var_e";
-    case tableitem_e : return "tableitem_e";
-    case programfunc_e : return "programfunc_e";
-    case libraryfunc_e : return "libraryfunc_e";
-    case arithexpr_e : return "arithexpr_e";
-    case boolexpr_e : return "boolexpr_e";
-    case assignexpr_e : return "assignexpr_e";
-    case newtable_e : return "newtable_e";
-    case constnum_e : return "constnum_e";
-    case constbool_e : return "constbool_e";
-    case conststring_e : return "conststring_e";
-    case nil_e : return "nil_e,";
-    default: assert(0);
+string expr_t_tostr(expr_t type) {
+  switch (type) {
+    case var_e:
+      return "var_e";
+    case tableitem_e:
+      return "tableitem_e";
+    case programfunc_e:
+      return "programfunc_e";
+    case libraryfunc_e:
+      return "libraryfunc_e";
+    case arithexpr_e:
+      return "arithexpr_e";
+    case boolexpr_e:
+      return "boolexpr_e";
+    case assignexpr_e:
+      return "assignexpr_e";
+    case newtable_e:
+      return "newtable_e";
+    case constnum_e:
+      return "constnum_e";
+    case constbool_e:
+      return "constbool_e";
+    case conststring_e:
+      return "conststring_e";
+    case nil_e:
+      return "nil_e,";
+    default:
+      assert(0);
   }
 }
 
@@ -134,7 +172,7 @@ typedef struct expr {
   struct expr* next;
 } expr;
 
-struct call_l{
+struct call_l {
   expr* elist;
   bool method;
   char* name;
@@ -155,7 +193,8 @@ SymTable symbol_table = *new SymTable();
 //   total += EXPAND_SIZE;
 //   return p;
 // }
-void emit(iopcode iop, expr* arg1, expr* arg2, expr* result, unsigned int label = 0) {
+void emit(iopcode iop, expr* arg1, expr* arg2, expr* result,
+          unsigned int label = 0) {
   quad* p;
   // if (currQuad == total)
   //   p = expand();
@@ -166,21 +205,21 @@ void emit(iopcode iop, expr* arg1, expr* arg2, expr* result, unsigned int label 
   // currQuad++;
   p = new quad();
 
-  p->iop   = iop;
-  p->arg1  = arg1   == NULL ? nil_expr : arg1;
-  p->arg2  = arg2   == NULL ? nil_expr : arg2;
-  p->result= result == NULL ? nil_expr : result;
+  p->iop = iop;
+  p->arg1 = arg1 == NULL ? nil_expr : arg1;
+  p->arg2 = arg2 == NULL ? nil_expr : arg2;
+  p->result = result == NULL ? nil_expr : result;
   p->label = label;
   debug_quad(p);
   quads.push_back(p);
 }
-void emit_function(iopcode iop, expr* result){
-  emit(iop,NULL,NULL,result, result->sym->value.funcVal->iaddress);
+void emit_function(iopcode iop, expr* result) {
+  emit(iop, NULL, NULL, result, result->sym->value.funcVal->iaddress);
 }
 
-void patchLabel( unsigned int quadNo, unsigned int label){
-  assert(quadNo < quads.size()); 
-  //currQuad);
+void patchLabel(unsigned int quadNo, unsigned int label) {
+  assert(quadNo < quads.size());
+  // currQuad);
   quads[quadNo]->label = label;
 }
 
@@ -201,61 +240,65 @@ SymbolTableEntry* new_tmp(unsigned int lineno) {
     return sym;
 }
 
-unsigned int nextQuadLabel(){return quads.size();}//currQuad;}
+unsigned int nextQuadLabel() { return quads.size(); }  // currQuad;}
 
-expr* lvalue_expr(SymbolTableEntry* entry){
+expr* lvalue_expr(SymbolTableEntry* entry) {
   assert(entry);
-  expr* new_expr =  new expr();
+  expr* new_expr = new expr();
 
   new_expr->sym = entry;
-  new_expr->next = (expr*) 0;
-  
-  switch(entry->type){
-    case FORMAL:{}
-    case LOCAL:{}
-    case GLOBAL:{
+  new_expr->next = (expr*)0;
+
+  switch (entry->type) {
+    case FORMAL: {
+    }
+    case LOCAL: {
+    }
+    case GLOBAL: {
       new_expr->type = var_e;
       break;
-    } 
-    case LIBFUNC:{
+    }
+    case LIBFUNC: {
       new_expr->type = libraryfunc_e;
       break;
     }
-    case USERFUNC:{
+    case USERFUNC: {
       new_expr->type = programfunc_e;
       break;
     }
-    default: assert(0);                     
+    default:
+      assert(0);
   }
 
   return new_expr;
 }
 
-expr* newExpr(expr_t t){
+expr* newExpr(expr_t t) {
   expr* new_expr = new expr();
   new_expr->type = t;
   return new_expr;
 }
 
-expr* newExpr_constString(char* s){
+expr* newExpr_constString(char* s) {
   expr* e = newExpr(conststring_e);
   e->strConst = strdup(s);
   return e;
 }
-expr* newExpr_constNum(double i){
+expr* newExpr_constNum(double i) {
   expr* e = newExpr(constnum_e);
   e->numConst = i;
   return e;
 }
-expr* newExpr_constBool(bool b){
+expr* newExpr_constBool(bool b) {
   expr* e = newExpr(constbool_e);
   e->boolConst = b;
   return e;
 }
 
-expr* emit_ifTableItem(expr* e){ //FIXME:
-  if(e->type != tableitem_e) return e;
-  else{
+expr* emit_ifTableItem(expr* e) {  // FIXME:
+  if (e->type != tableitem_e)
+    return e;
+  else {
     expr* result = newExpr(var_e);
     result->sym = new_tmp(symbol_table.get_lineno(e->sym));
     emit(tablegetelem, e, e->index, result, 0);
@@ -264,7 +307,7 @@ expr* emit_ifTableItem(expr* e){ //FIXME:
 }
 // function to create new expression/quad ??
 
-expr* member_item(expr* lvalue, char* name){
+expr* member_item(expr* lvalue, char* name) {
   lvalue = emit_ifTableItem(lvalue);
   expr* item = newExpr(tableitem_e);
   item->sym = lvalue->sym;
@@ -272,133 +315,121 @@ expr* member_item(expr* lvalue, char* name){
   return item;
 }
 
-expr* make_call(expr* lvalue, expr* elist){
+expr* make_call(expr* lvalue, expr* elist) {
   expr* func = emit_ifTableItem(lvalue);
   assert(func);
   assert(!symbol_table.is_var(func->sym->type));
   expr* curr = elist;
-  while(curr!=NULL){
+  while (curr != NULL) {
     emit(param, curr, NULL, NULL, 0);
     curr = curr->next;
   }
-  emit(call, func, NULL, NULL,0);
+  emit(call, func, NULL, NULL, 0);
   expr* result = newExpr(var_e);
-  
+
   result->sym = new_tmp(lvalue->sym->value.funcVal->line);
-  emit(getretval,NULL,NULL,result);
+  emit(getretval, NULL, NULL, result);
   return result;
 }
 
-void comperror(char* format, ...){
+void comperror(char* format, ...) {
   va_list args;
   va_start(args, format);
   printf(format, args);
   va_end(args);
 }
 
-void checkUminus(expr * e){
-  if(e->type == constbool_e   ||
-    e->type == conststring_e  ||
-    e->type == nil_e          ||
-    e->type == newtable_e     ||
-    e->type == programfunc_e  ||
-    e->type == libraryfunc_e  ||
-    e->type == boolexpr_e)
+void checkUminus(expr* e) {
+  if (e->type == constbool_e || e->type == conststring_e || e->type == nil_e ||
+      e->type == newtable_e || e->type == programfunc_e ||
+      e->type == libraryfunc_e || e->type == boolexpr_e)
     comperror("Illegal expr to unary -");
 }
 
-
-double compute(iopcode op, double a, double b){
-  switch (op){
+double compute(iopcode op, double a, double b) {
+  switch (op) {
     case add:
-        return a+b;
-    case sub :
-      return a-b;
-    case mul_op :
-      return a*b;
+      return a + b;
+    case sub:
+      return a - b;
+    case mul_op:
+      return a * b;
     case div_op:
-      return b ? a/b : 0;
+      return b ? a / b : 0;
     case mod_op:
-      return ((int) a) % ((int) b);
+      return ((int)a) % ((int)b);
     default:
       assert(false);
   }
 }
 
-bool compute_rel(iopcode op, double a, double b){
-  switch (op){
+bool compute_rel(iopcode op, double a, double b) {
+  switch (op) {
     case if_greater:
-      return a>b;
-    case if_less :
-      return a<b;
-    case if_greater_eq :
-      return a>=b;
-    case if_lesseq :
-      return a<=b;
-    case if_eq :
-      return a==b;
-    case if_noteq :
-      return a!=b;
-    default :
-      assert(false);    
+      return a > b;
+    case if_less:
+      return a < b;
+    case if_greater_eq:
+      return a >= b;
+    case if_lesseq:
+      return a <= b;
+    case if_eq:
+      return a == b;
+    case if_noteq:
+      return a != b;
+    default:
+      assert(false);
   }
 }
 
-bool compute(iopcode op, bool a, bool b){
-  switch (op){
-    case and_op :
-      return a&&b;
-    case or_op : 
-      return a||b;
-    case if_eq: 
-      return a==b;
+bool compute(iopcode op, bool a, bool b) {
+  switch (op) {
+    case and_op:
+      return a && b;
+    case or_op:
+      return a || b;
+    case if_eq:
+      return a == b;
     case if_noteq:
-      return a!=b;
-    default :
+      return a != b;
+    default:
       assert(false);
-  }    
+  }
 }
 
+bool is_same(expr_t a, expr_t b) {
+  if (a == var_e || b == var_e) return true;
+  if (a == b) return true;
+  if ((a == arithexpr_e || a == constnum_e) &&
+      (b == arithexpr_e || b == constnum_e))
+    return true;
+  if ((a == constbool_e || a == boolexpr_e) &&
+      (b == constbool_e || b == boolexpr_e))
+    return true;
+  if ((a == newtable_e || b == nil_e) && (b == newtable_e || a == nil_e))
+    return true;
+  if (a == nil_e || b == nil_e) return true;
 
-bool is_same(expr_t a, expr_t b){
-
-  if(a == var_e || b == var_e) 
-    return true;
-  if(a == b) 
-    return true;
-  if( (a == arithexpr_e || a == constnum_e) && 
-    (b == arithexpr_e || b == constnum_e))
-    return true;
-  if( (a == constbool_e || a == boolexpr_e) && 
-    (b == constbool_e || b == boolexpr_e))
-    return true;
-  if( (a == newtable_e || b == nil_e) && 
-    (b == newtable_e || a == nil_e))
-    return true;
-  if( a == nil_e  || b == nil_e)
-    return true;
-  
   return false;
 }
 
-
-bool get_bool(expr* e){
-  switch(e->type){
-    case newtable_e: 
-    case programfunc_e: 
+bool get_bool(expr* e) {
+  switch (e->type) {
+    case newtable_e:
+    case programfunc_e:
     case libraryfunc_e:
       return true;
-    case nil_e:   
+    case nil_e:
       return false;
-    case conststring_e: 
+    case conststring_e:
       return e->strConst != "";
-    case constnum_e: 
-    case arithexpr_e:    
+    case constnum_e:
+    case arithexpr_e:
       return e->numConst != 0;
-    case boolexpr_e: 
-    case constbool_e: 
-      return e->boolConst; 
-    
+    case boolexpr_e:
+    case constbool_e:
+      return e->boolConst;
+
     case tableitem_e:
       assert(false);
     default:
@@ -406,108 +437,109 @@ bool get_bool(expr* e){
   }
 }
 
-string get_string(expr *e){
-  if(e == NULL) return "NULL";
-  switch(e->type){
-    case constbool_e: 
-      return e->boolConst?"true":"false"; 
-    case constnum_e:{
+string get_string(expr* e) {
+  if (e == NULL) return "NULL";
+  switch (e->type) {
+    case constbool_e:
+      return e->boolConst ? "true" : "false";
+    case constnum_e: {
       std::ostringstream ss;
       ss << e->numConst;
-      return ss.str(); 
-    }  
-    case conststring_e: return e->strConst;
-    case nil_e: return "NULL";
+      return ss.str();
+    }
+    case conststring_e:
+      return e->strConst;
+    case nil_e:
+      return "NULL";
     case tableitem_e:
     case newtable_e:
     case var_e:
     case programfunc_e:
     case libraryfunc_e:
-    case arithexpr_e: 
-    case boolexpr_e: 
-    case assignexpr_e: 
+    case arithexpr_e:
+    case boolexpr_e:
+    case assignexpr_e:
       return symbol_table.get_name(e->sym);
-
   }
-
 }
-void debug_quad(quad* q, int i){
-    printf("Quad %d",i);
-    printf(" %s",iop_tostr(q->iop).c_str());
-    printf(" %s",get_string(q->result).c_str());
-    printf(" %s",get_string(q->arg1).c_str());
-    printf(" %s",get_string(q->arg2).c_str());
-    printf(" %d\n",(q->label));
+void debug_quad(quad* q, int i) {
+  printf("Quad %d", i);
+  printf(" %s", iop_tostr(q->iop).c_str());
+  printf(" %s", get_string(q->result).c_str());
+  printf(" %s", get_string(q->arg1).c_str());
+  printf(" %s", get_string(q->arg2).c_str());
+  printf(" %d\n", (q->label));
 }
 
-void printQuads(){
+void printQuads() {
   string s = string(79, '-');
-  cout <<"\n\n" <<string(36, '-') << " Quads "<< string(36, '-') 
-        <<"\nquad#" << setw(14)<< "opcode" 
-        << setw(15)<< "result"<< setw(15) << "arg1" 
-        << setw(15) << "arg2"  << setw(15) <<"label"<<endl<< s <<endl;
-  for(int i = 0; i< quads.size(); i++) {
-    quad *q = quads.at(i);
-  // debug_quad(q,i);
-    cout<< setw(4) <<  i+1
-        << setw(14)<< iop_tostr(q->iop) 
-        << setw(15)<< get_string(q->result)
-        << setw(15) << get_string(q->arg1)
-        << setw(15) << get_string(q->arg2)  
-        << setw(15) << (q->label) <<endl;
+  cout << "\n\n"
+       << string(36, '-') << " Quads " << string(36, '-') << "\nquad#"
+       << setw(14) << "opcode" << setw(15) << "result" << setw(15) << "arg1"
+       << setw(15) << "arg2" << setw(15) << "label" << endl
+       << s << endl;
+  for (int i = 0; i < quads.size(); i++) {
+    quad* q = quads.at(i);
+    // debug_quad(q,i);
+    cout << setw(4) << i + 1 << setw(14) << iop_tostr(q->iop) << setw(15)
+         << get_string(q->result) << setw(15) << get_string(q->arg1) << setw(15)
+         << get_string(q->arg2) << setw(15) << (q->label) << endl;
   }
 }
 
-void change_type(expr *lvalue, expr* expr){
-  // printf("~~~~~~~~Changed %s %s type %s\n",symbol_table.get_name(lvalue->sym), 
+void change_type(expr* lvalue, expr* expr) {
+  // printf("~~~~~~~~Changed %s %s type
+  // %s\n",symbol_table.get_name(lvalue->sym),
   //     expr_t_tostr(lvalue->type).c_str(), expr_t_tostr(expr->type).c_str());
   lvalue->type = expr->type;
 
-  if(expr->type = constnum_e){
+  if (expr->type == constnum_e) {
     lvalue->numConst = expr->numConst;
-    if(lvalue->sym->type == USERFUNC){
-       Variable *v = new Variable();
-       Function *f = lvalue->sym->value.funcVal; 
-       v->scope =f->scope;
-       v->line = f->line;
-       f->totalLocals--;
-       if(f->totalLocals == 0){
-          //delete args and delete function struct         
-       }
-       lvalue->sym->value.varVal = v;
+    if (lvalue->sym->type == USERFUNC) {
+      Variable* v = new Variable();
+      Function* f = lvalue->sym->value.funcVal;
+      v->scope = f->scope;
+      v->line = f->line;
+      f->totalLocals--;
+      if (f->totalLocals == 0) {
+        // delete args and delete function struct
+      }
+      lvalue->sym->value.varVal = v;
     }
-  }else if(expr->type = constbool_e){
+  } else if (expr->type == constbool_e) {
     lvalue->boolConst = expr->boolConst;
-    if(lvalue->sym->type == USERFUNC){
-       Variable *v = new Variable();
-       Function *f = lvalue->sym->value.funcVal; 
-       v->scope =f->scope;
-       v->line = f->line;
-       v->name = f->name;
-       f->totalLocals--;
-       if(f->totalLocals == 0){
-          //delete args and delete function struct         
-       }
-       lvalue->sym->value.varVal = v;
+    if (lvalue->sym->type == USERFUNC) {
+      Variable* v = new Variable();
+      Function* f = lvalue->sym->value.funcVal;
+      v->scope = f->scope;
+      v->line = f->line;
+      v->name = f->name;
+      f->totalLocals--;
+      if (f->totalLocals == 0) {
+        // delete args and delete function struct
+      }
+      lvalue->sym->value.varVal = v;
     }
-   }else if(expr->type = conststring_e){
+  } else if (expr->type == conststring_e) {
     lvalue->strConst = expr->strConst;
-    if(lvalue->sym->type == USERFUNC){
-       Variable *v = new Variable();
-       Function *f = lvalue->sym->value.funcVal; 
-       v->scope =f->scope;
-       v->line = f->line;
-       f->totalLocals--;
-       if(f->totalLocals == 0){
-          //delete args and delete function struct         
-       }
-       lvalue->sym->value.varVal = v;
+    if (lvalue->sym->type == USERFUNC) {
+      Variable* v = new Variable();
+      Function* f = lvalue->sym->value.funcVal;
+      v->scope = f->scope;
+      v->line = f->line;
+      f->totalLocals--;
+      if (f->totalLocals == 0) {
+        // delete args and delete function struct
+      }
+      lvalue->sym->value.varVal = v;
     }
-  }else{
+  } else if (expr->type == nil_e) {
+    printf("expr is nil\n");
+  } else {
     assert(expr->sym);
-    lvalue->sym = expr->sym; 
+    lvalue->sym = expr->sym;
   }
-  //probably delete expr node
+  // probably delete expr node
 }
 
 // struct quad {)
@@ -518,8 +550,6 @@ void change_type(expr *lvalue, expr* expr){
 //   unsigned label;
 //   unsigned line;
 // };
-
-
 
 // struct quad {)
 //
