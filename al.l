@@ -382,7 +382,7 @@ line_comment        "//".*
                         BEGIN(INITIAL);
                         *string_buf_ptr = '\0';
                         add_new_token(string_buf, "string", yylineno);
-                        yylval.stringValue = strdup(string_buf_ptr);
+                        yylval.stringValue = strdup(string_buf);
                         return STRING;
                     }
 <SRULE>\\[0-7]{1,3} {

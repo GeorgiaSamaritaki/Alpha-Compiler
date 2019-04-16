@@ -55,6 +55,7 @@
 %type <call_l> callsuffix 
 
 %type <stringValue> func_name
+%type <stringValue> method_id
 %type <intValue> func_body
 %type <symbol> func_prefix
 %type <symbol> funcdef
@@ -200,13 +201,24 @@ statements: statements   stmt {
 
                 $$ = merge($1,$2);
                 }
-            | stmt { $$ =$1; printf("statements->empty\n");};
+            | stmt { $$ =$1; reset_tmp(); printf("statements->empty\n");};
 
-expr:       assignexpr    { $$ = $1; printf("expr->assignexpr \n");}
-            | boolexpr    { $$ = $1; }
-            | arithexpr   { $$ = $1;}
-            | relexpr     { $$ = $1;}
-            | term        { assert($1); $$ = $1; printf("expr->term \n");};     
+expr:       assignexpr    { 
+                assert($1); 
+                $$ = $1; printf("expr->assignexpr \n");}
+            | boolexpr    { 
+                assert($1); 
+                $$ = $1; printf("expr->boolexpr \n");}
+            | arithexpr   { 
+                assert($1); 
+                $$ = $1; printf("expr->arithexpr \n");}
+            | relexpr     { 
+                assert($1); 
+                $$ = $1; printf("expr->relexpr \n");}
+            | term        { 
+                assert($1); 
+                $$ = $1; printf("expr->term \n");
+                };     
 
 arithexpr:     expr plus expr     { 
                 printf("opexr->expr+expr \n");
@@ -296,26 +308,28 @@ arithexpr:     expr plus expr     {
                 }
                 };
 
-relexpr:      expr b_greater expr      {
+relexpr:      expr b_greater expr   {
                 printf("opexr->expr>expr \n");
-                if($1->type != constnum_e && $3->type !=constnum_e && 
-                    $3->type != arithexpr_e && $1->type != arithexpr_e ){
+                $$ = newExpr(constbool_e);
+                $$->truelist = newList(nextQuadLabel());
+                $$->falselist = newList(nextQuadLabel()+2);
+                printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+                if(!isvalid_arithmeticCheck($1->type,$3->type)){
                     yyerror("Invalid arithmetic expressions");
                     $$ = nil_expr;
                 }else {
-                    if($1->type == constbool_e && $3->type == constbool_e){
-                        $$ = newExpr(constbool_e);
+                    if($1->type == constnum_e && $3->type == constnum_e){
                         $$->sym = new_tmp(yylineno);
                         $$->boolConst = compute_rel(if_greater, $1->numConst , $3->numConst);
                     }else{
-                        $$ = newExpr(boolexpr_e);
+                        $$->type = boolexpr_e;
                         $$->sym = new_tmp(yylineno);
                         emit(
-                            if_greater, $1 , $3, $$, nextQuadLabel()+3);
+                            if_greater, $1 , $3, $$);
                         emit(
                             assign_op, newExpr_constBool(0), NULL, $$);
                         emit(
-                            jump, NULL, NULL, $$, nextQuadLabel()+2);
+                            jump, NULL, NULL, $$);
                         emit(
                             assign_op, newExpr_constBool(1), NULL, $$);
                     }
@@ -323,24 +337,26 @@ relexpr:      expr b_greater expr      {
         }
         |  expr b_less expr         {
             printf("opexr->expr<expr \n");
-            if($1->type != constnum_e && $3->type !=constnum_e && 
-                $3->type != arithexpr_e && $1->type != arithexpr_e ){
+            $$ = newExpr(constbool_e);
+            $$->truelist = newList(nextQuadLabel());
+            $$->falselist = newList(nextQuadLabel()+2);
+            printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+            if(!isvalid_arithmeticCheck($1->type,$3->type) ){
                 yyerror("Invalid arithmetic expressions");
                 $$ = nil_expr;
             }else {
-                if($1->type == constbool_e && $3->type == constbool_e){
-                    $$ = newExpr(constbool_e);
+                if($1->type == constnum_e && $3->type == constnum_e){
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute_rel(if_less, $1->numConst , $3->numConst);
                 }else{
-                    $$ = newExpr(boolexpr_e);
+                    $$->type = boolexpr_e;;
                     $$->sym = new_tmp(yylineno);
                     emit(
-                        if_less, $1 , $3, $$, nextQuadLabel()+3);
+                        if_less, $1 , $3, $$);
                     emit(
                         assign_op, newExpr_constBool(0), NULL, $$);
                     emit(
-                        jump, NULL, NULL, $$, nextQuadLabel()+2);
+                        jump, NULL, NULL, $$);
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
@@ -348,49 +364,53 @@ relexpr:      expr b_greater expr      {
         }         
         |  expr b_greater_eq expr   {
             printf("opexr->expr>=expr \n");
-            if($1->type != constnum_e && $3->type !=constnum_e && 
-                $3->type != arithexpr_e && $1->type != arithexpr_e ){
+            $$ = newExpr(constbool_e);
+            $$->truelist = newList(nextQuadLabel());
+            $$->falselist = newList(nextQuadLabel()+2);
+            printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+            if(!isvalid_arithmeticCheck($1->type,$3->type)){
                 yyerror("Invalid arithmetic expressions");
                 $$ = nil_expr;
             }else {
-                if($1->type == constbool_e && $3->type == constbool_e){
-                    $$ = newExpr(constbool_e);
+                if($1->type == constnum_e && $3->type == constnum_e){
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute_rel(if_greater_eq, $1->numConst , $3->numConst);
                 }else{
-                    $$ = newExpr(boolexpr_e);
+                    $$->type = boolexpr_e;
                     $$->sym = new_tmp(yylineno);
                     emit(
-                        if_greater_eq, $1 , $3, $$, nextQuadLabel()+3);
+                        if_greater_eq, $1 , $3, $$);
                     emit(
                         assign_op, newExpr_constBool(0), NULL, $$);
                     emit(
-                        jump, NULL, NULL, $$, nextQuadLabel()+2);
+                        jump, NULL, NULL, $$);
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
             }
         }
         |  expr b_less_eq expr      {
-                printf("opexr->expr<=expr \n");
-            if($1->type != constnum_e && $3->type !=constnum_e && 
-                $3->type != arithexpr_e && $1->type != arithexpr_e ){
+            printf("opexr->expr<=expr \n");
+            $$ = newExpr(constbool_e);
+            $$->truelist = newList(nextQuadLabel());
+            $$->falselist = newList(nextQuadLabel()+2);
+            printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+            if(!isvalid_arithmeticCheck($1->type,$3->type) ){
                 yyerror("Invalid arithmetic expressions");
                 $$ = nil_expr;
             }else {
-                if($1->type == constbool_e && $3->type == constbool_e){
-                    $$ = newExpr(constbool_e);
+                if($1->type == constnum_e && $3->type == constnum_e){
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute_rel(if_lesseq, $1->numConst , $3->numConst);
                 }else{
-                    $$ = newExpr(boolexpr_e);
+                    $$->type = boolexpr_e;
                     $$->sym = new_tmp(yylineno);
                     emit(
-                        if_lesseq, $1 , $3, $$, nextQuadLabel()+3);
+                        if_lesseq, $1 , $3, $$);
                     emit(
                         assign_op, newExpr_constBool(0), NULL, $$);
                     emit(
-                        jump, NULL, NULL, $$, nextQuadLabel()+2);
+                        jump, NULL, NULL, $$);
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
@@ -402,82 +422,156 @@ relexpr:      expr b_greater expr      {
                 yyerror("Invalid operands to boolean expression");
                 $$ = nil_expr;
             }else {
+                $$ = newExpr(constbool_e);
+                $$->truelist = newList(nextQuadLabel());
+                $$->falselist = newList(nextQuadLabel()+2);
+                printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
                 if($1->type == constbool_e && $3->type == constbool_e){
-                    $$ = newExpr(constbool_e);
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute(if_eq, (bool)$1->boolConst ,(bool) $3->boolConst);
                 }else if($1->type == constnum_e && $3->type == constnum_e){
-                    $$ = newExpr(constbool_e);
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute_rel(if_eq, $1->numConst , $3->numConst);
-                }else if(($1->type == newtable_e || $3->type == nil_e) && 
-                                ($3->type == newtable_e || $1->type == nil_e)){
-                    $$ = newExpr(constbool_e);
+                }else if(($1->type == newtable_e && $3->type == nil_e) || 
+                                ($3->type == newtable_e && $1->type == nil_e)){
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = false;
                 } else{
-                    $$ = newExpr(boolexpr_e);
+                    $$->type = boolexpr_e;
                     $$->sym = new_tmp(yylineno);
                     emit(
-                        if_eq, $1 , $3, $$, nextQuadLabel()+3);
+                        if_eq, $1 , $3, $$);
                     emit(
                         assign_op, newExpr_constBool(0), NULL, $$);
                     emit(
-                        jump, NULL, NULL, $$, nextQuadLabel()+2);
+                        jump, NULL, NULL, $$);
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
-                }
-            }            
+            }
+        }            
         |  expr b_not_equal expr    {
-                printf("opexr->expr!=expr \n");
             if(!is_same($1->type,$3->type) ){
                 yyerror("Invalid operands to boolean expression");
                 $$ = nil_expr;
             }else {
+                printf("opexr->expr!=expr \n");
+                $$ = newExpr(constbool_e);
+                $$->truelist = newList(nextQuadLabel());
+                $$->falselist = newList(nextQuadLabel()+2);
+                printf(" t %d f%d\n", $$->truelist[0], $$->falselist[0]);
                 if($1->type == constbool_e && $3->type == constbool_e){
-                    $$ = newExpr(constbool_e);
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute(if_noteq, (bool)$1->boolConst ,(bool)$3->boolConst);
                 }else if($1->type == constnum_e && $3->type == constnum_e){
-                    $$ = newExpr(constbool_e);
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = compute_rel(if_noteq, $1->numConst , $3->numConst);
-                }else if(($1->type == newtable_e || $3->type == nil_e) && 
-                                ($3->type == newtable_e || $1->type == nil_e)){
-                    $$ = newExpr(constbool_e);
+                }else if(($1->type == newtable_e && $3->type == nil_e) || 
+                                ($3->type == newtable_e && $1->type == nil_e)){
                     $$->sym = new_tmp(yylineno);
                     $$->boolConst = true;
                 } else{
-                    $$ = newExpr(boolexpr_e);
+                    $$->type = boolexpr_e;
                     $$->sym = new_tmp(yylineno);
                     emit(
-                        if_noteq, $1 , $3, $$, nextQuadLabel()+3);
+                        if_noteq, $1 , $3, $$);
                     emit(
                         assign_op, newExpr_constBool(0), NULL, $$);
                     emit(
-                        jump, NULL, NULL, $$, nextQuadLabel()+2);
+                        jump, NULL, NULL, $$);
                     emit(
                         assign_op, newExpr_constBool(1), NULL, $$);
                 }
             }};
 
-boolexpr:      expr AND expr  {
-                printf("opexr->expr&&expr \n");
-                $$ = newExpr(boolexpr_e);
-                $$->sym = new_tmp(yylineno);
-                $$->boolConst = false;
-                emit(and_op, $1 , $3, $$);
-                    
+boolexpr:  expr OR {
+                if($1->truelist.empty() && $1->falselist.empty()){
+                    $1->truelist = newList(nextQuadLabel());
+                    $1->falselist = newList(nextQuadLabel()+2);
+                    emit(
+                        if_eq, $1 ,newExpr_constBool(1), $1, nextQuadLabel()+3);
+                    emit(
+                        assign_op, newExpr_constBool(0), NULL, $1);
+                    emit(
+                        jump, NULL, NULL, $1, nextQuadLabel()+2);
+                    emit(
+                        assign_op, newExpr_constBool(1), NULL, $1);
                 }
-            | expr OR  expr           {      
+
+            } M expr {      
                 printf("opexr->expr || expr \n");
+                
+                patchLabel($1->falselist, $M+1); // -1 for and quad
+                if($5->truelist.empty() && $5->falselist.empty()){
+                    $5->truelist = newList(nextQuadLabel());
+                    $5->falselist = newList(nextQuadLabel()+2);
+                    emit(
+                        if_eq, $5 ,newExpr_constBool(1), $5);
+                    emit(
+                        assign_op, newExpr_constBool(0), NULL, $5);
+                    emit(
+                        jump, NULL, NULL, $5);
+                    emit(
+                        assign_op, newExpr_constBool(1), NULL, $5);
+                }
+
                 $$ = newExpr(boolexpr_e);
                 $$->sym = new_tmp(yylineno);
-                $$->boolConst = true;
-                emit(or_op, $1 , $3, $$);
+                // $$->boolConst = true;
+                assert($1 && $5);
+                emit(or_op, $1 , $5, $$);
+                // printf("f %d\n", $1->falselist[0]);
+                printf("patching false with %d: ------------------",$M);
+                $$->truelist = merge($1->truelist, $5->truelist);
+                $$->falselist = $5->falselist;
+                patchLabel($$->truelist, nextQuadLabel()-1);
                     
-                } ;
+                } 
+            | expr AND {
+                
+                if($1->truelist.empty() && $1->falselist.empty()){
+                    $1->truelist = newList(nextQuadLabel());
+                    $1->falselist = newList(nextQuadLabel()+2);
+                    emit(
+                        if_eq, $1 ,newExpr_constBool(1), $1);
+                    emit(
+                        assign_op, newExpr_constBool(0), NULL, $1);
+                    emit(
+                        jump, NULL, NULL, $1);
+                    emit(
+                        assign_op, newExpr_constBool(1), NULL, $1);
+                }
+                
+                }M expr {
+                printf("opexr->expr&&expr \n");
+
+                patchLabel($1->truelist, $M);
+                if($5->truelist.empty() && $5->falselist.empty()){
+                    $5->truelist = newList(nextQuadLabel());
+                    $5->falselist = newList(nextQuadLabel()+2);
+                    emit(
+                        if_eq, $5 ,newExpr_constBool(1), $5, nextQuadLabel()+3);
+                    emit(
+                        assign_op, newExpr_constBool(0), NULL, $$);
+                    emit(
+                        jump, NULL, NULL, $5, nextQuadLabel()+2);
+                    emit(
+                        assign_op, newExpr_constBool(1), NULL, $5);
+                }
+
+                $$ = newExpr(boolexpr_e);
+                $$->sym = new_tmp(yylineno);
+                // $$->boolConst = false;
+                assert($1&&$5);
+                emit(and_op, $1 , $5, $$);
+
+                printf("patching true with %d: ----------------",$M);
+                $$->truelist = $5->truelist;
+                $$->falselist = merge($1->falselist, $5->falselist);
+                patchLabel($$->falselist, nextQuadLabel());
+
+                };
+
 
 term:       left_parenthesis expr  right_parenthesis {
                 printf("term->(expr) \n");
@@ -488,7 +582,10 @@ term:       left_parenthesis expr  right_parenthesis {
                 assert($expr);
                 $term = newExpr(boolexpr_e);
                 $term->sym = new_tmp(yylineno);
-                emit(not_op, $expr,NULL, $term);
+
+                $term->truelist = $expr->falselist;
+                $term->falselist = $expr->truelist;
+                emit(not_op, $expr, NULL, $term);
                 }
             | minus expr %prec uminus {
                 assert($expr);
@@ -514,7 +611,7 @@ term:       left_parenthesis expr  right_parenthesis {
                                 $term = emit_ifTableItem($lvalue);
                                 emit(
                                     add, $term, newExpr_constNum(1), $term);
-                                emit( tablesetelem, $lvalue, $lvalue->index, $term);
+                                emit( tablesetelem, $lvalue->index, $lvalue, $term);
                             } else {
                                 emit(
                                     add, $lvalue, newExpr_constNum(1), $lvalue);
@@ -550,7 +647,7 @@ term:       left_parenthesis expr  right_parenthesis {
                     emit(assign_op, value, NULL, $term);
                     emit(
                         add, value, newExpr_constNum(1), value);
-                    emit( tablesetelem, $lvalue, $lvalue->index, value);
+                    emit( tablesetelem, $lvalue->index, value, $lvalue);
                 }else {
                     emit(assign_op, $lvalue, NULL, $term);
                     emit(
@@ -571,7 +668,7 @@ term:       left_parenthesis expr  right_parenthesis {
                                 $term = emit_ifTableItem($lvalue);   
                                 emit(
                                     sub, $term, newExpr_constNum(1), $term);
-                                emit( tablesetelem, $lvalue, $lvalue->index, $term);
+                                emit( tablesetelem, $lvalue->index, $lvalue, $term);
                             } else {
                                 emit(
                                     sub, $lvalue, newExpr_constNum(1), $lvalue);
@@ -603,7 +700,7 @@ term:       left_parenthesis expr  right_parenthesis {
                         $term = emit_ifTableItem($lvalue);   
                         emit(
                             sub, $term, newExpr_constNum(1), $term);
-                        emit( tablesetelem, $lvalue, $lvalue->index, $term);
+                        emit( tablesetelem, $lvalue->index, $lvalue, $term);
                     } else {
                         emit(
                             sub, $lvalue, newExpr_constNum(1), $lvalue);
@@ -629,20 +726,27 @@ assignexpr: lvalue assign expr {
                         if($lvalue->type == tableitem_e){
                             emit( //that is lvalue[index] = expr;
                                 tablesetelem,
-                                $lvalue,
                                 $lvalue->index,
-                                $expr
+                                $expr,
+                                $lvalue
                             );
                             //The value f the assignment expression should be gained
                             $assignexpr = emit_ifTableItem($lvalue);
                             $assignexpr->type = assignexpr_e;
                         }else{
-                            change_type($lvalue,$expr);
+                            //change_type($lvalue,$expr);
 
                             // $lvalue->sym->type = $expr->sym->type;
-                            
                             emit(assign_op, $expr, NULL, $lvalue);
-                            $assignexpr = newExpr(assignexpr_e);
+                            printf("lvalue %s\n",symbol_table.get_name($lvalue->sym));
+                            // if($lvalue->type == constnum_e)
+                            //     $assignexpr = newExpr(constnum_e);
+                            // if($lvalue->type == constbool_e)
+                            //     $assignexpr = newExpr(constbool_e);
+                            // if($lvalue->type == conststring_e)
+                            //     $assignexpr = newExpr(conststring_e);
+                            // else
+                                $assignexpr = newExpr(assignexpr_e);
                             $assignexpr->sym = new_tmp(yylineno);
                             emit(
                                 assign_op, $lvalue, NULL, $assignexpr);
@@ -839,15 +943,16 @@ normcall:   left_parenthesis elist right_parenthesis {
                 $normcall->name = NULL;
 
                 };
+method_id:  id{ 
+                $method_id = strdup(yylval.stringValue);
+            };
 
-methodcall: double_dot id {//maybe needs code
-            }left_parenthesis elist right_parenthesis {
-                printf("methodcall->..id(elist) \n");
+methodcall: double_dot method_id left_parenthesis elist right_parenthesis {
                 $$ = new call_l();
+                printf("methodcall->..id(elist) \n");
                 $methodcall->elist = $elist;
+                $methodcall->name = strdup($method_id);
                 $methodcall->method = true;
-                $methodcall->name = yylval.stringValue;
-
                 }; 
 
 elist_l:    expr {
@@ -877,8 +982,9 @@ objectdef:  left_bracket elist right_bracket {
                 double i =0;
 
                 expr* x = $elist;
-                while(x!=NULL){
-                    emit(tablesetelem, t, newExpr_constNum(i++), x);
+                reverse_list(&x);
+                while(x!=NULL && x->type != nil_e){
+                    emit(tablesetelem, newExpr_constNum(i++), x, t);
                     x = x->next;
                 }
                 $objectdef = t;
@@ -892,8 +998,9 @@ objectdef:  left_bracket elist right_bracket {
                 double i =0;
 
                 expr* x = $indexed;
-                while(x){
-                    emit(tablesetelem, t, x->index, x);
+                reverse_list(&x);
+                while(x!=NULL &&x->type != nil_e){
+                    emit(tablesetelem, x->index, x, t);
                     x = x->next;
                 }
                 $objectdef = t;
@@ -904,10 +1011,8 @@ objectdef:  left_bracket elist right_bracket {
 indexedelem: left_curly expr colon expr right_curly {
                 printf("indexedelem->{expr:expr} \n");
                 assert($2 && $4);
-
                 $indexedelem = $4;
                 $indexedelem->index = $2;
-                $indexedelem -> next = NULL;
             }; 
             // { expr {printf("expr");} : expr {printf("expr");}}
 
@@ -1108,6 +1213,7 @@ ifprefix:   IF left_parenthesis expr right_parenthesis {
                 emit(if_eq, $expr, newExpr_constBool(true), NULL, nextQuadLabel()+2);
                 $ifprefix = (int)nextQuadLabel();
                 emit(jump);
+                //maybe patch expression
             };
 
 elseprefix: ELSE {
@@ -1144,18 +1250,18 @@ whilestmt:  whilestart whilecond loopstmt {
                 }
             };
 N:  {
-        $N = nextQuadLabel();
+        $N = (int)nextQuadLabel();
         emit(jump);
     };
 
 M:  {
-        $M = nextQuadLabel();
+        $M = (int)nextQuadLabel();
     };
 
 forprefix:  FOR left_parenthesis elist semicolon M expr semicolon{
                 $forprefix = new for_prefix();
                 $forprefix->test = $M;
-                $forprefix->enter = nextQuadLabel();
+                $forprefix->enter = (int)nextQuadLabel();
                 emit(if_eq, $expr, newExpr_constBool(true));
             };
 
@@ -1164,8 +1270,8 @@ forstmt:    forprefix N elist right_parenthesis N loopstmt N  {
                 assert($forprefix);
                 patchLabel($forprefix->enter, $5 + 1);
                 patchLabel($2, nextQuadLabel());
-                patchLabel($5, $forprefix->test);
-                patchLabel($7, $2 + 1);
+                patchLabel($5, (unsigned int)$forprefix->test);
+                patchLabel($7, (unsigned int)($2 + 1));
                 if($loopstmt != NULL ){
                     patchLabel($loopstmt->breaklist, nextQuadLabel());
                     patchLabel($loopstmt->contlist, $2 + 1);
@@ -1226,7 +1332,7 @@ int main(int argc, char* argv[]){
     yyin = fp;
     yyparse();
     
-    symbol_table.print();
-    //printQuads();
+    //symbol_table.print();
+    printQuads();
     return 0;
 }

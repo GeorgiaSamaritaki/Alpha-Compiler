@@ -42,4 +42,5 @@ clean:
 	-rm al.cpp
 	-rm al
 	-rm parser.output
+	-rm quads.txt
 	clear
