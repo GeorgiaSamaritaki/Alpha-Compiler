@@ -312,7 +312,7 @@ relexpr:      expr b_greater expr   {
                 printf("opexr->expr>expr \n");
                 $$ = newExpr(constbool_e);
                 $$->truelist = newList(nextQuadLabel());
-                $$->falselist = newList(nextQuadLabel()+2);
+                $$->falselist = newList(nextQuadLabel()+1);
                 printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
                 if(!isvalid_arithmeticCheck($1->type,$3->type)){
                     yyerror("Invalid arithmetic expressions");
@@ -323,23 +323,16 @@ relexpr:      expr b_greater expr   {
                         $$->boolConst = compute_rel(if_greater, $1->numConst , $3->numConst);
                     }else{
                         $$->type = boolexpr_e;
-                        $$->sym = new_tmp(yylineno);
-                        emit(
-                            if_greater, $1 , $3, $$);
-                        emit(
-                            assign_op, newExpr_constBool(0), NULL, $$);
-                        emit(
-                            jump, NULL, NULL, $$);
-                        emit(
-                            assign_op, newExpr_constBool(1), NULL, $$);
                     }
+                    emit(if_greater, $1 , $3);
+                    emit(jump);
                 }
         }
         |  expr b_less expr         {
             printf("opexr->expr<expr \n");
             $$ = newExpr(constbool_e);
             $$->truelist = newList(nextQuadLabel());
-            $$->falselist = newList(nextQuadLabel()+2);
+            $$->falselist = newList(nextQuadLabel()+1);
             printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
             if(!isvalid_arithmeticCheck($1->type,$3->type) ){
                 yyerror("Invalid arithmetic expressions");
@@ -350,23 +343,16 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = compute_rel(if_less, $1->numConst , $3->numConst);
                 }else{
                     $$->type = boolexpr_e;;
-                    $$->sym = new_tmp(yylineno);
-                    emit(
-                        if_less, $1 , $3, $$);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $$);
-                    emit(
-                        jump, NULL, NULL, $$);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $$);
                 }
+                emit(if_less, $1 , $3);
+                emit(jump);
             }
         }         
         |  expr b_greater_eq expr   {
             printf("opexr->expr>=expr \n");
             $$ = newExpr(constbool_e);
             $$->truelist = newList(nextQuadLabel());
-            $$->falselist = newList(nextQuadLabel()+2);
+            $$->falselist = newList(nextQuadLabel()+1);
             printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
             if(!isvalid_arithmeticCheck($1->type,$3->type)){
                 yyerror("Invalid arithmetic expressions");
@@ -377,23 +363,16 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = compute_rel(if_greater_eq, $1->numConst , $3->numConst);
                 }else{
                     $$->type = boolexpr_e;
-                    $$->sym = new_tmp(yylineno);
-                    emit(
-                        if_greater_eq, $1 , $3, $$);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $$);
-                    emit(
-                        jump, NULL, NULL, $$);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $$);
                 }
+                emit(if_greater_eq, $1 , $3);
+                emit(jump);
             }
         }
         |  expr b_less_eq expr      {
             printf("opexr->expr<=expr \n");
             $$ = newExpr(constbool_e);
             $$->truelist = newList(nextQuadLabel());
-            $$->falselist = newList(nextQuadLabel()+2);
+            $$->falselist = newList(nextQuadLabel()+1);
             printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
             if(!isvalid_arithmeticCheck($1->type,$3->type) ){
                 yyerror("Invalid arithmetic expressions");
@@ -404,16 +383,9 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = compute_rel(if_lesseq, $1->numConst , $3->numConst);
                 }else{
                     $$->type = boolexpr_e;
-                    $$->sym = new_tmp(yylineno);
-                    emit(
-                        if_lesseq, $1 , $3, $$);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $$);
-                    emit(
-                        jump, NULL, NULL, $$);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $$);
                 }
+                emit(if_lesseq, $1 , $3);
+                emit(jump);
             }
         }       
         |  expr b_equals expr       {
@@ -424,7 +396,7 @@ relexpr:      expr b_greater expr   {
             }else {
                 $$ = newExpr(constbool_e);
                 $$->truelist = newList(nextQuadLabel());
-                $$->falselist = newList(nextQuadLabel()+2);
+                $$->falselist = newList(nextQuadLabel()+1);
                 printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$->sym = new_tmp(yylineno);
@@ -438,16 +410,9 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = false;
                 } else{
                     $$->type = boolexpr_e;
-                    $$->sym = new_tmp(yylineno);
-                    emit(
-                        if_eq, $1 , $3, $$);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $$);
-                    emit(
-                        jump, NULL, NULL, $$);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $$);
                 }
+                emit(if_eq, $1 , $3);
+                emit(jump);
             }
         }            
         |  expr b_not_equal expr    {
@@ -458,7 +423,7 @@ relexpr:      expr b_greater expr   {
                 printf("opexr->expr!=expr \n");
                 $$ = newExpr(constbool_e);
                 $$->truelist = newList(nextQuadLabel());
-                $$->falselist = newList(nextQuadLabel()+2);
+                $$->falselist = newList(nextQuadLabel()+1);
                 printf(" t %d f%d\n", $$->truelist[0], $$->falselist[0]);
                 if($1->type == constbool_e && $3->type == constbool_e){
                     $$->sym = new_tmp(yylineno);
@@ -472,54 +437,41 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = true;
                 } else{
                     $$->type = boolexpr_e;
-                    $$->sym = new_tmp(yylineno);
-                    emit(
-                        if_noteq, $1 , $3, $$);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $$);
-                    emit(
-                        jump, NULL, NULL, $$);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $$);
                 }
+                emit(if_noteq, $1 , $3);
+                 emit(jump);
             }};
 
 boolexpr:  expr OR {
                 if($1->truelist.empty() && $1->falselist.empty()){
                     $1->truelist = newList(nextQuadLabel());
-                    $1->falselist = newList(nextQuadLabel()+2);
+                    $1->falselist = newList(nextQuadLabel()+1);
                     emit(
-                        if_eq, $1 ,newExpr_constBool(1), $1, nextQuadLabel()+3);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $1);
-                    emit(
-                        jump, NULL, NULL, $1, nextQuadLabel()+2);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $1);
+                        if_eq, $1 ,newExpr_constBool(1));
+                    emit(jump);
                 }
 
             } M expr {      
                 printf("opexr->expr || expr \n");
                 
-                patchLabel($1->falselist, $M+1); // -1 for and quad
+                patchLabel($1->falselist, $M); // -1 for and quad
                 if($5->truelist.empty() && $5->falselist.empty()){
                     $5->truelist = newList(nextQuadLabel());
-                    $5->falselist = newList(nextQuadLabel()+2);
+                    $5->falselist = newList(nextQuadLabel()+1);
                     emit(
-                        if_eq, $5 ,newExpr_constBool(1), $5);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $5);
-                    emit(
-                        jump, NULL, NULL, $5);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $5);
+                        if_eq, $5 ,newExpr_constBool(1));
+                    emit(jump);
                 }
 
                 $$ = newExpr(boolexpr_e);
                 $$->sym = new_tmp(yylineno);
                 // $$->boolConst = true;
                 assert($1 && $5);
-                emit(or_op, $1 , $5, $$);
+                emit( assign_op, newExpr_constBool(0), NULL, $$);
+                
+                emit( jump, NULL, NULL, NULL, nextQuadLabel()+2);
+                
+                emit(assign_op, newExpr_constBool(1), NULL, $$);
                 // printf("f %d\n", $1->falselist[0]);
                 printf("patching false with %d: ------------------",$M);
                 $$->truelist = merge($1->truelist, $5->truelist);
@@ -531,15 +483,9 @@ boolexpr:  expr OR {
                 
                 if($1->truelist.empty() && $1->falselist.empty()){
                     $1->truelist = newList(nextQuadLabel());
-                    $1->falselist = newList(nextQuadLabel()+2);
-                    emit(
-                        if_eq, $1 ,newExpr_constBool(1), $1);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $1);
-                    emit(
-                        jump, NULL, NULL, $1);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $1);
+                    $1->falselist = newList(nextQuadLabel()+1);
+                    emit(if_eq, $1 ,newExpr_constBool(1));
+                    emit(jump);
                 }
                 
                 }M expr {
@@ -548,27 +494,27 @@ boolexpr:  expr OR {
                 patchLabel($1->truelist, $M);
                 if($5->truelist.empty() && $5->falselist.empty()){
                     $5->truelist = newList(nextQuadLabel());
-                    $5->falselist = newList(nextQuadLabel()+2);
+                    $5->falselist = newList(nextQuadLabel()+1);
                     emit(
-                        if_eq, $5 ,newExpr_constBool(1), $5, nextQuadLabel()+3);
-                    emit(
-                        assign_op, newExpr_constBool(0), NULL, $$);
-                    emit(
-                        jump, NULL, NULL, $5, nextQuadLabel()+2);
-                    emit(
-                        assign_op, newExpr_constBool(1), NULL, $5);
+                        if_eq, $5 ,newExpr_constBool(1));
+                        emit(jump);
                 }
 
                 $$ = newExpr(boolexpr_e);
                 $$->sym = new_tmp(yylineno);
                 // $$->boolConst = false;
                 assert($1&&$5);
-                emit(and_op, $1 , $5, $$);
+                emit(
+                        assign_op, newExpr_constBool(0), NULL, $$);
+                emit(
+                        jump, NULL, NULL, NULL,nextQuadLabel()+2);
+                emit(
+                        assign_op, newExpr_constBool(1), NULL, $$);
 
                 printf("patching true with %d: ----------------",$M);
                 $$->truelist = $5->truelist;
                 $$->falselist = merge($1->falselist, $5->falselist);
-                patchLabel($$->falselist, nextQuadLabel());
+                patchLabel($$->falselist, nextQuadLabel()-3);
 
                 };
 
