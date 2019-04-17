@@ -321,126 +321,114 @@ relexpr:      expr b_greater expr   {
                     if($1->type == constnum_e && $3->type == constnum_e){
                         $$->sym = new_tmp(yylineno);
                         $$->boolConst = compute_rel(if_greater, $1->numConst , $3->numConst);
-                    }else{
-                        $$->type = boolexpr_e;
                     }
                     emit(if_greater, $1 , $3);
                     emit(jump);
                 }
-        }
-        |  expr b_less expr         {
-            printf("opexr->expr<expr \n");
-            $$ = newExpr(constbool_e);
-            $$->truelist = newList(nextQuadLabel());
-            $$->falselist = newList(nextQuadLabel()+1);
-            printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
-            if(!isvalid_arithmeticCheck($1->type,$3->type) ){
-                yyerror("Invalid arithmetic expressions");
-                $$ = nil_expr;
-            }else {
-                if($1->type == constnum_e && $3->type == constnum_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute_rel(if_less, $1->numConst , $3->numConst);
-                }else{
-                    $$->type = boolexpr_e;;
-                }
-                emit(if_less, $1 , $3);
-                emit(jump);
             }
-        }         
-        |  expr b_greater_eq expr   {
-            printf("opexr->expr>=expr \n");
-            $$ = newExpr(constbool_e);
-            $$->truelist = newList(nextQuadLabel());
-            $$->falselist = newList(nextQuadLabel()+1);
-            printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
-            if(!isvalid_arithmeticCheck($1->type,$3->type)){
-                yyerror("Invalid arithmetic expressions");
-                $$ = nil_expr;
-            }else {
-                if($1->type == constnum_e && $3->type == constnum_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute_rel(if_greater_eq, $1->numConst , $3->numConst);
-                }else{
-                    $$->type = boolexpr_e;
-                }
-                emit(if_greater_eq, $1 , $3);
-                emit(jump);
-            }
-        }
-        |  expr b_less_eq expr      {
-            printf("opexr->expr<=expr \n");
-            $$ = newExpr(constbool_e);
-            $$->truelist = newList(nextQuadLabel());
-            $$->falselist = newList(nextQuadLabel()+1);
-            printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
-            if(!isvalid_arithmeticCheck($1->type,$3->type) ){
-                yyerror("Invalid arithmetic expressions");
-                $$ = nil_expr;
-            }else {
-                if($1->type == constnum_e && $3->type == constnum_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute_rel(if_lesseq, $1->numConst , $3->numConst);
-                }else{
-                    $$->type = boolexpr_e;
-                }
-                emit(if_lesseq, $1 , $3);
-                emit(jump);
-            }
-        }       
-        |  expr b_equals expr       {
-            printf("opexr->expr==expr \n");
-            if(!is_same($1->type,$3->type) ){
-                yyerror("Invalid operands to boolean expression");
-                $$ = nil_expr;
-            }else {
+            |  expr b_less expr     {
+                printf("opexr->expr<expr \n");
                 $$ = newExpr(constbool_e);
                 $$->truelist = newList(nextQuadLabel());
                 $$->falselist = newList(nextQuadLabel()+1);
                 printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
-                if($1->type == constbool_e && $3->type == constbool_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute(if_eq, (bool)$1->boolConst ,(bool) $3->boolConst);
-                }else if($1->type == constnum_e && $3->type == constnum_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute_rel(if_eq, $1->numConst , $3->numConst);
-                }else if(($1->type == newtable_e && $3->type == nil_e) || 
-                                ($3->type == newtable_e && $1->type == nil_e)){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = false;
-                } else{
-                    $$->type = boolexpr_e;
+                if(!isvalid_arithmeticCheck($1->type,$3->type) ){
+                    yyerror("Invalid arithmetic expressions");
+                    $$ = nil_expr;
+                }else {
+                    if($1->type == constnum_e && $3->type == constnum_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute_rel(if_less, $1->numConst , $3->numConst);
+                    }
+                    emit(if_less, $1 , $3);
+                    emit(jump);
                 }
-                emit(if_eq, $1 , $3);
-                emit(jump);
-            }
-        }            
-        |  expr b_not_equal expr    {
-            if(!is_same($1->type,$3->type) ){
-                yyerror("Invalid operands to boolean expression");
-                $$ = nil_expr;
-            }else {
-                printf("opexr->expr!=expr \n");
+            }         
+            |  expr b_greater_eq expr   {
+                printf("opexr->expr>=expr \n");
                 $$ = newExpr(constbool_e);
                 $$->truelist = newList(nextQuadLabel());
                 $$->falselist = newList(nextQuadLabel()+1);
-                printf(" t %d f%d\n", $$->truelist[0], $$->falselist[0]);
-                if($1->type == constbool_e && $3->type == constbool_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute(if_noteq, (bool)$1->boolConst ,(bool)$3->boolConst);
-                }else if($1->type == constnum_e && $3->type == constnum_e){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = compute_rel(if_noteq, $1->numConst , $3->numConst);
-                }else if(($1->type == newtable_e && $3->type == nil_e) || 
-                                ($3->type == newtable_e && $1->type == nil_e)){
-                    $$->sym = new_tmp(yylineno);
-                    $$->boolConst = true;
-                } else{
-                    $$->type = boolexpr_e;
+                printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+                if(!isvalid_arithmeticCheck($1->type,$3->type)){
+                    yyerror("Invalid arithmetic expressions");
+                    $$ = nil_expr;
+                }else {
+                    if($1->type == constnum_e && $3->type == constnum_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute_rel(if_greater_eq, $1->numConst , $3->numConst);
+                    }
+                    emit(if_greater_eq, $1 , $3);
+                    emit(jump);
                 }
-                emit(if_noteq, $1 , $3);
-                 emit(jump);
-            }};
+            }
+            |  expr b_less_eq expr      {
+                printf("opexr->expr<=expr \n");
+                $$ = newExpr(constbool_e);
+                $$->truelist = newList(nextQuadLabel());
+                $$->falselist = newList(nextQuadLabel()+1);
+                printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+                if(!isvalid_arithmeticCheck($1->type,$3->type) ){
+                    yyerror("Invalid arithmetic expressions");
+                    $$ = nil_expr;
+                }else {
+                    if($1->type == constnum_e && $3->type == constnum_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute_rel(if_lesseq, $1->numConst , $3->numConst);
+                    }
+                    emit(if_lesseq, $1 , $3);
+                    emit(jump);
+                }
+            }       
+            |  expr b_equals expr       {
+                printf("opexr->expr==expr \n");
+                if(!is_same($1->type,$3->type) ){
+                    yyerror("Invalid operands to boolean expression");
+                    $$ = nil_expr;
+                }else {
+                    $$ = newExpr(constbool_e);
+                    $$->truelist = newList(nextQuadLabel());
+                    $$->falselist = newList(nextQuadLabel()+1);
+                    printf("t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+                    if($1->type == constbool_e && $3->type == constbool_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute(if_eq, (bool)$1->boolConst ,(bool) $3->boolConst);
+                    }else if($1->type == constnum_e && $3->type == constnum_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute_rel(if_eq, $1->numConst , $3->numConst);
+                    }else if(($1->type == newtable_e && $3->type == nil_e) || 
+                                    ($3->type == newtable_e && $1->type == nil_e)){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = false;
+                    }
+                    emit(if_eq, $1, $3);
+                    emit(jump);
+                }
+            }            
+            |  expr b_not_equal expr    {
+                if(!is_same($1->type,$3->type) ){
+                    yyerror("Invalid operands to boolean expression");
+                    $$ = nil_expr;
+                }else {
+                    printf("opexr->expr!=expr \n");
+                    $$ = newExpr(constbool_e);
+                    $$->truelist = newList(nextQuadLabel());
+                    $$->falselist = newList(nextQuadLabel()+1);
+                    printf(" t %d f%d\n", $$->truelist[0], $$->falselist[0]);
+                    if($1->type == constbool_e && $3->type == constbool_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute(if_noteq, (bool)$1->boolConst ,(bool)$3->boolConst);
+                    }else if($1->type == constnum_e && $3->type == constnum_e){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = compute_rel(if_noteq, $1->numConst , $3->numConst);
+                    }else if(($1->type == newtable_e && $3->type == nil_e) || 
+                                    ($3->type == newtable_e && $1->type == nil_e)){
+                        $$->sym = new_tmp(yylineno);
+                        $$->boolConst = true;
+                    }
+                    emit(if_noteq, $1 , $3);
+                    emit(jump);
+                }};
 
 boolexpr:  expr OR {
                 if($1->truelist.empty() && $1->falselist.empty()){
@@ -681,7 +669,6 @@ assignexpr: lvalue assign expr {
                             $assignexpr->type = assignexpr_e;
                         }else{
                             //change_type($lvalue,$expr);
-
                             // $lvalue->sym->type = $expr->sym->type;
                             emit(assign_op, $expr, NULL, $lvalue);
                             printf("lvalue %s\n",symbol_table.get_name($lvalue->sym));
@@ -701,9 +688,10 @@ assignexpr: lvalue assign expr {
                     }
                 }else{ //define as new var
                     printf("member undefined in : assignexpr->lvalue=expr \n");
+                    $assignexpr = nil_expr;
                     // assert(false);
                 }    
-                    }; //lookup (before assign?)
+            }; //lookup (before assign?)
 
 primary:    lvalue  {
                 printf("primary->lvalue \n");
@@ -782,8 +770,19 @@ lvalue:     id {
 member:     tableitem {
                 $$ = $1;
             }
-            | call dot id {printf("member->call().id \n");}
-            | call left_bracket expr right_bracket {printf("member->[expr] \n");};
+            | call dot id {
+                printf("member->call().id \n");
+              
+                assert($$);
+              
+                $$ = member_item($$, strdup(yylval.stringValue));
+            }
+            | call left_bracket expr right_bracket {
+                printf("member->[expr] \n");
+
+                char* name = (char*)symbol_table.get_name($expr->sym);
+                $$ = member_item($$, name);
+            };
 
 tableitem:  lvalue{
                 if($1 != NULL) {
@@ -1017,17 +1016,17 @@ func_prefix:  function func_name  {
                     switch( $func_prefix->type ){
                         case LIBFUNC:{
                             yyerror("shadowing of library functions not allowed");
-                            BREAK;
+                            break;
                         }
                         case USERFUNC:{
                             yyerror("function name already used as func");// error: var redefined as a function
-                            BREAK;
+                            break;
                         }
                         case GLOBAL :{}
                         case FORMAL :{}
                         case LOCAL :{
                             yyerror("function name already used as var");// error: var redefined as a function
-                            BREAK;
+                            break;
                         } 
                     }
                 }
@@ -1110,11 +1109,11 @@ idlist_l:   id {
                         case FORMAL:{} //first arguement can only be global
                         case LOCAL:{
                             yyerror("variable redefined in same scope");
-                            BREAK;
+                            break;
                         }
                         case LIBFUNC:{
                             yyerror("formal arguement trying to shadow library func");
-                            BREAK;
+                            break;
                         }
                         default:{
                             yyerror("unknown error occured"); 
@@ -1139,11 +1138,11 @@ idlist_l:   id {
                         case FORMAL:{}
                         case LOCAL:{
                             yyerror("variable redefined in same scope");
-                            BREAK;
+                            break;
                         }
                         case LIBFUNC:{
                             yyerror("formal arguement trying to shadow library func");
-                            BREAK;
+                            break;
                         }
                         default:{
                             yyerror("unknown error occured"); 
