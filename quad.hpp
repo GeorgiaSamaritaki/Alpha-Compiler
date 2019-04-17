@@ -356,7 +356,7 @@ expr* make_call(expr* lvalue, expr* elist) {
   }
   emit(call, func, NULL, NULL);
   expr* result = newExpr(var_e);
-
+  assert(lvalue->sym);  
   result->sym = new_tmp(lvalue->sym->value.funcVal->line);
   emit(getretval, NULL, NULL, result);
   return result;
