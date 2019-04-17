@@ -132,6 +132,7 @@ typedef enum expr_t {
 
   nil_e,
 } expr_t;
+
 string expr_t_tostr(expr_t type) {
   switch (type) {
     case var_e:
@@ -253,7 +254,7 @@ void patchLabel(vector<unsigned int> quads_c, int label) {
 char* new_tmpname() {
   char name[1000];
   sprintf(name, "$t%d", tmpcounter);
-  printf("tmp: $t%d\n", tmpcounter);
+  // printf("tmp: $t%d\n", tmpcounter);
   tmpcounter++;
   return strdup(name);
 }
@@ -512,8 +513,8 @@ string get_string(expr* e, int index = 0) {
 }
 
 void change_type(expr* lvalue, expr* expr) {
-  printf("~~~~~~~~Changed %s %s type %s\n", symbol_table.get_name(lvalue->sym),
-         expr_t_tostr(lvalue->type).c_str(), expr_t_tostr(expr->type).c_str());
+  // printf("~~~~~~~~Changed %s %s type %s\n", symbol_table.get_name(lvalue->sym),
+  //        expr_t_tostr(lvalue->type).c_str(), expr_t_tostr(expr->type).c_str());
   assert(lvalue->type != libraryfunc_e);
   if (expr->type == constnum_e) {
     lvalue->numConst = expr->numConst;
@@ -637,15 +638,15 @@ vector<unsigned int> newList(unsigned int a) {
 
 vector<unsigned int> merge(vector<unsigned int> a, vector<unsigned int> b) {
   vector<unsigned int> c;
-  printf("ton pairno\n");
-  printf("A:");
-  for (int i = 0; i < a.size(); i++) {
-    printf("%d ", a[i]);
-  }
-  printf("\nB:");
-  for (int i = 0; i < b.size(); i++) {
-    printf("%d ", b[i]);
-  }
+  // printf("ton pairno\n");
+  // printf("A:");
+  // for (int i = 0; i < a.size(); i++) {
+  //   printf("%d ", a[i]);
+  // }
+  // printf("\nB:");
+  // for (int i = 0; i < b.size(); i++) {
+  //   printf("%d ", b[i]);
+  // }
   c.reserve(a.size() + b.size());  // preallocate memory
   c.insert(c.end(), a.begin(), a.end());
   c.insert(c.end(), b.begin(), b.end());
