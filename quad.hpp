@@ -350,7 +350,7 @@ expr* make_call(expr* lvalue, expr* elist) {
   assert(func);
   // assert(!symbol_table.is_var(func->sym->type));
   expr* curr = elist;
-  while (curr != NULL) {
+  while (curr != NULL && curr != nil_expr) {
     emit(param, curr, NULL, NULL);
     curr = curr->next;
   }

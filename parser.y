@@ -6,11 +6,9 @@
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
 
-
     extern int yylineno;
     extern char* yytext;
     extern FILE* yyin; 
-
 
 %}
 
@@ -56,7 +54,7 @@
 
 %type <stringValue> func_name
 %type <stringValue> method_id
-%type <intValue> func_body
+// %type <intValue> func_body
 %type <symbol> func_prefix
 %type <symbol> funcdef
 
@@ -70,11 +68,16 @@
 %type <stmt_l> statements;
 %type <stmt_l> BREAK;
 %type <stmt_l> CONTINUE;
+%type <stmt_l> returnstmt 
+%type <stmt_l> block_l 
+%type <stmt_l> block 
+%type <stmt_l> func_body 
 
 %type <intValue> N
 %type <intValue> M
 
 %type <for_prefix> forprefix
+
 
 %start program
 %token new_line    
@@ -189,11 +192,11 @@ stmt:       expr semicolon {
                 printf("stmt->forstmt   \n\n");
                 }
             | returnstmt {
-                $stmt = new stmt_l();  
+                $stmt = $returnstmt;  
                 printf("stmt->returnstmt \n\n");
                 }
             | { scope++;} block {
-                $stmt = new stmt_l();  
+                $stmt = $block;  
                 printf("stmt->block2\n");
                 } //maybe scope++ after left curly
             | funcdef    {
@@ -460,7 +463,7 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = true;
                 } 
                 emit(if_noteq, $1 , $3);
-                 emit(jump);
+                emit(jump);
             }};
 
 boolexpr:  expr OR {
@@ -679,16 +682,17 @@ term:       left_parenthesis expr  right_parenthesis {
                             $term = nil_expr;
                         }else{    
                             if ($lvalue->type == tableitem_e) {
-                                $term = emit_ifTableItem($lvalue);   
+                                $term = emit_ifTableItem($lvalue);
+                                emit(assign_op, $term, NULL, $term);
                                 emit(
                                     sub, $term, newExpr_constNum(1), $term);
                                 emit( tablesetelem, $lvalue->index, $lvalue, $term);
                             } else {
-                                emit(
-                                    sub, $lvalue, newExpr_constNum(1), $lvalue);
+                                emit(assign_op, $lvalue, NULL, $term);
                                 $term = newExpr(arithexpr_e);
                                 $term->sym = new_tmp(yylineno);
-                                emit(assign_op, $lvalue, NULL, $term);
+                                emit(
+                                    sub, $lvalue, newExpr_constNum(1), $lvalue);
                             }
                         }
                     }
@@ -912,10 +916,6 @@ call:       call left_parenthesis elist right_parenthesis {
                              (int)symbol_table.get_scope($1->sym)!=0){
                                 yyerror("Cant reference variable out of scope");
                                 $call = NULL;
-                            }else if($1->sym->type == LOCAL||$1->sym->type == GLOBAL||$1->sym->type == FORMAL) {
-                                printf("\n%s",symbol_table.get_name($1->sym));
-                                yyerror("cant use variable as function");
-                                $call = NULL;
                             }
                             $call = make_call($lvalue, $callsuffix->elist);
                         }else if($1->sym->type != USERFUNC && $1->sym->type != LIBFUNC  && $1->type !=tableitem_e) {
@@ -1047,13 +1047,18 @@ indexed:    indexedelem {
                 $$ = $3;
             };
 
-block_l:    block_l stmt
-            |/*empty*/;
+block_l:    block_l stmt {
+                $$ = merge($1, $2);
+            }
+            |/*empty*/{
+                $block_l = new stmt_l();
+            };
 
 block:      left_curly { 
                 printf("\n\n-----enter block ------ \n"); } 
             block_l right_curly { 
                     printf("\n-----exit block ------\n\n"); 
+                    $$ = $block_l;
                 symbol_table.hide(scope--);};
 
 func_name:  id {
@@ -1069,7 +1074,7 @@ func_name:  id {
                 $func_name = strdup(ss.str().c_str());
                 }; //probably insert with $_name(anonymous)
 
-funcdef:  func_prefix func_args func_body {
+funcdef:  N func_prefix func_args func_body {
                 printf("funcdef->prefix args body\n");
                 exitScopeSpace();
                 $func_prefix->value.funcVal->totalLocals  = functionLocalOffset;
@@ -1077,6 +1082,10 @@ funcdef:  func_prefix func_args func_body {
                 functionLocalsStack.pop();
                 $funcdef = $func_prefix;
                 emit_function(funcend, lvalue_expr($func_prefix));
+                patchLabel($N, nextQuadLabel());
+                if($func_body != NULL ){
+                    patchLabel($func_body->breaklist, nextQuadLabel() - 1);
+                }
             };
 
 func_prefix:  function func_name  { 
@@ -1121,8 +1130,8 @@ func_args:  left_parenthesis idlist right_parenthesis {
 
 func_body:  func_block_start block func_block_end { 
                     last_func.pop(); 
-
                     exitScopeSpace();
+                    $$ = $block;
                     };
 
 number:     integer     {
@@ -1231,6 +1240,10 @@ idlist:     idlist_l {  printf("idlist->idlist_l \n");}
             | /*empty*/ {printf("idlist->emptyidlist \n");};
 
 ifprefix:   IF left_parenthesis expr right_parenthesis {
+                if(!$expr->truelist.empty() && !$expr->falselist.empty()){
+                    patchLabel($expr->truelist,nextQuadLabel()+2);
+                    patchLabel($expr->falselist,nextQuadLabel()+1);
+                }
                 emit(if_eq, $expr, newExpr_constBool(true), NULL, nextQuadLabel()+2);
                 $ifprefix = (int)nextQuadLabel();
                 emit(jump);
@@ -1256,7 +1269,11 @@ whilestart: WHILE {
             };
 
 whilecond:  left_parenthesis expr right_parenthesis {
-                emit(if_eq, $expr, newExpr_constBool(true), NULL, nextQuadLabel());
+                if(!$expr->truelist.empty() && !$expr->falselist.empty()){
+                    patchLabel($expr->truelist,nextQuadLabel()+2);
+                    patchLabel($expr->falselist,nextQuadLabel()+1);
+                }
+                emit(if_eq, $expr, newExpr_constBool(true), NULL, nextQuadLabel()+2);
                 $whilecond = (int)nextQuadLabel();
                 emit(jump);
             };
@@ -1280,6 +1297,10 @@ M:  {
     };
 
 forprefix:  FOR left_parenthesis elist semicolon M expr semicolon{
+                if(!$expr->truelist.empty() && !$expr->falselist.empty()){
+                    patchLabel($expr->truelist,nextQuadLabel()+2);
+                    patchLabel($expr->falselist,nextQuadLabel()+1);
+                }
                 $forprefix = new for_prefix();
                 $forprefix->test = $M;
                 $forprefix->enter = (int)nextQuadLabel();
@@ -1289,6 +1310,7 @@ forprefix:  FOR left_parenthesis elist semicolon M expr semicolon{
 forstmt:    forprefix N elist right_parenthesis N loopstmt N  { 
                 printf("forstmt->\"for(elist; expr; elist)\" \n");
                 assert($forprefix);
+                printf("\n%d %d\n", $forprefix->enter, $5);
                 patchLabel($forprefix->enter, $5 + 1);
                 patchLabel($2, nextQuadLabel());
                 patchLabel($5, (unsigned int)$forprefix->test);
@@ -1322,13 +1344,20 @@ returnstmt: RETURN {
             } expr semicolon {
                 printf("returnstmt=>\"return expr;\" \n");
                 return_flag = false; 
-                emit(ret, NULL, NULL, $expr);                
+                emit(ret, NULL, NULL, $expr);  
+                $returnstmt = new stmt_l();
+                $returnstmt->breaklist = newList(nextQuadLabel()); 
+                emit(jump);
             }
-            | RETURN{ 
+            | RETURN { 
                 printf("returnstmt->return; \n");
                 if(last_func.top() == -1) yyerror("Use of \"Return\"outside of function");
                 emit(ret);
-            }semicolon;
+            } semicolon {
+                $returnstmt = new stmt_l();
+                $returnstmt->breaklist = newList(nextQuadLabel()); 
+                emit(jump);
+            };
 
 %%
 
