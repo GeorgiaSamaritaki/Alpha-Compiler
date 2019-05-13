@@ -1,4 +1,3 @@
-#include <vector>
 #include "quad.hpp"
 
 enum vmopcode {
@@ -62,22 +61,68 @@ typedef struct userfunc {
   char* id;
 } userfunc;
 
-double* numConsts;
-unsigned totalNumConsts;
-char** stringConsts;
-unsigned totalStringConsts;
-char** namedLibFuncs;
-unsigned totalNamedLibFuncs;
+vector<double> numConsts;
+// unsigned totalNumConsts;
+vector<char*> stringConsts;
+// unsigned totalStringConsts;
+vector<char*> namedLibFuncs;
+// unsigned totalNamedLibFuncs;
 vector<userfunc*> userFuncz;
-unsigned totalUserFuncz;
+// unsigned totalUserFuncz;
 
-unsigned currentProcessedQuad();
+unsigned currentProcessedQuad(){ 
+  /*FIXME*/
+  return 0;
+}
+
 vector<instruction*> instructionz;
 
-unsigned consts_newstring(char* s);
-unsigned consts_newnumber(double n);
-unsigned libfuncs_newused(char* s);
-unsigned userfuncs_newfunc(SymbolTableEntry* s);
+unsigned consts_newNumber(double n){
+  /*Dont check just insert*/
+  numConsts.push_back(n);
+  assert(!numConsts.empty());
+  return numConsts.size() - 1;
+}
+
+unsigned consts_newString(char* s){
+  /*Dont check just insert*/  
+  char* dup = strdup(s);
+  stringConsts.push_back(dup);
+  assert(!stringConsts.empty());
+  return stringConsts.size() - 1;
+}
+
+unsigned libfuncs_newUsed(char* s){
+  /*Check if we use its already*/
+  for(int i=0; i<namedLibFuncs.size(); i++){
+    if( !strcmp(namedLibFuncs[i], s) ){
+      /*Found it -> return the index*/
+      return i;
+    }
+  }
+
+  /*New lib func is used*/
+  char* dup = strdup(s);
+  namedLibFuncs.push_back(dup);
+  return namedLibFuncs.size() - 1;
+}
+
+unsigned userfuncs_newFunc(SymbolTableEntry* s){
+  for(int i=0; i<userFuncz.size(); i++){
+    /*Check if we already use this function*/
+    if( !strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name)){
+      /*Found it -> return the index*/
+      return i;
+    }
+  }
+
+  /*New user func*/
+  userfunc* f = new userfunc();
+  f->id = strdup((char*)s->value.funcVal->name);
+  f->localSize = s->value.funcVal->totalLocals;
+  f->address = s->taddress;
+  return userFuncz.size();
+}
 
 void emit_instr(instruction t) {
   instruction* new_t = new instruction();
@@ -121,12 +166,12 @@ void make_operand(expr* e, vmarg* arg) {
       break;
     }
     case conststring_e: {
-      arg->val = consts_newstring(e->strConst);
+      arg->val = consts_newString(e->strConst);
       arg->type = string_a;
       break;
     }
     case constnum_e: {
-      arg->val = consts_newnumber(e->numConst);
+      arg->val = consts_newNumber(e->numConst);
       arg->type = number_a;
       break;
     }
@@ -139,12 +184,12 @@ void make_operand(expr* e, vmarg* arg) {
       arg->type = userfunc_a;
       // arg->val = e->sym->taddress;
       /* or alternatively*/
-      arg->val = userfuncs_newfunc(e->sym);
+      arg->val = userfuncs_newFunc(e->sym);
       break;
     }
     case libraryfunc_e: {
       arg->type = libfunc_a;
-      arg->val = libfuncs_newused((char *)e->sym->value.funcVal->name);
+      arg->val = libfuncs_newUsed((char *)e->sym->value.funcVal->name);
       break;
     }
     case assignexpr_e: {
@@ -156,7 +201,7 @@ void make_operand(expr* e, vmarg* arg) {
 }
 
 void make_numberoperand(vmarg* arg, double val) {
-  arg->val = consts_newnumber(val);
+  arg->val = consts_newNumber(val);
   arg->type = number_a;
 }
 
@@ -183,15 +228,15 @@ void add_incomplete_jump(unsigned int instrNo, unsigned iaddress){
   incomplete_jump tmp;
   tmp.instrNo = instrNo;
   tmp.iaddress = iaddress;
-  incomplete_jumps.pushback(tmp);
+  incomplete_jumps.push_back(tmp);
 }
 
 void patch_incomplete_jumps() {
-  for (jump : incomplete_jumps) {
-    if (x.iaddress = intermediate_code_size)
-      instructions[x.instrNo].result = target_code_size;
+  for (int i=0; incomplete_jumps.size(); i++) {
+    if (incomplete_jumps[i].iaddress == quads.size() )
+      instructionz[incomplete_jumps[i].instrNo]->result.val = nextInstructionLabel();
     else
-      instructions[x.instrNo].result = quads[x.iaddress].taddress;
+      instructionz[incomplete_jumps[i].instrNo]->result.val = quads[incomplete_jumps[i].iaddress]->taddress;
   }
 }
 

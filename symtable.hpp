@@ -137,6 +137,9 @@ typedef struct SymbolTableEntry {
   unsigned int offset;
   scopeSpace_t space;
 
+  /*For phase 4 -> No clue tho */
+  unsigned taddress;
+  
   SymbolTableEntry *next;
   SymbolTableEntry *scope_next;
 } SymbolTableEntry;
