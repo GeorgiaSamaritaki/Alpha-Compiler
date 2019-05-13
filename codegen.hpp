@@ -25,6 +25,7 @@ enum vmopcode {
   newtable_v,
   tablegetelem_v,
   tablesetelem_v,
+  jump_v,
   nop_v
 };
 
@@ -78,7 +79,7 @@ unsigned consts_newnumber(double n);
 unsigned libfuncs_newused(char* s);
 unsigned userfuncs_newfunc(SymbolTableEntry* s);
 
-void emit_instr(instuction t) {
+void emit_instr(instruction t) {
   instruction* new_t = new instruction();
   new_t->opcode = t.opcode;
   new_t->result = t.result;
@@ -136,14 +137,14 @@ void make_operand(expr* e, vmarg* arg) {
     /*Functions*/
     case programfunc_e: {
       arg->type = userfunc_a;
-      arg->val = e->sym->taddress;
+      // arg->val = e->sym->taddress;
       /* or alternatively*/
       arg->val = userfuncs_newfunc(e->sym);
       break;
     }
     case libraryfunc_e: {
       arg->type = libfunc_a;
-      arg->val = libfuncs_newused(e->sym->name);
+      arg->val = libfuncs_newused((char *)e->sym->value.funcVal->name);
       break;
     }
     case assignexpr_e: {
@@ -182,37 +183,37 @@ vector<unsigned> incomplete_jumps;
 void add_incomplete_jump(unsigned int instrNo, unsigned iaddress);
 
 void patch_incomplete_jumps() {
-  for (jump : incomplete_jumps) {
-    if (x.iaddress = intermediate_code_size)
-      instructions[x.instrNo].result = target_code_size;
-    else
-      instructions[x.instrNo].result = quads[x.iaddress].taddress;
-  }
+  // for (jump : incomplete_jumps) {
+  //   if (x.iaddress = intermediate_code_size)
+  //     instructions[x.instrNo].result = target_code_size;
+  //   else
+  //     instructions[x.instrNo].result = quads[x.iaddress].taddress;
+  // }
 }
 
-void generate(op, quad) {
+void generate(vmopcode op, quad* quad) {
   instruction t;
   t.opcode = op;
-  make_operand(quad.arg1, &t.arg1);
-  make_operand(quad.arg2, &t.arg2);
-  make_operand(quad.result, &t.result);
-  quad.taddress = nextinstructionlabel();
+  make_operand(quad->arg1, &t.arg1);
+  make_operand(quad->arg2, &t.arg2);
+  make_operand(quad->result, &t.result);
+  quad->taddress = nextInstructionLabel();
   emit_instr(t);
 }
 
-void generate_relational(vmopcode op, quad quad) {
+void generate_relational(vmopcode op, quad* quad) {
   instruction t;
   t.opcode = op;
-  make_operand(quad.arg1, &t.arg1);
-  make_operand(quad.arg2, &t.arg2);
+  make_operand(quad->arg1, &t.arg1);
+  make_operand(quad->arg2, &t.arg2);
 
   t.result.type = label_a;
-  if (quad.label < currentProcessedQuad()) {
-    t.result.val = quads[quad.label].taddress;
+  if (quad->label < currentProcessedQuad()) {
+    t.result.val = quads[quad->label]->taddress;
   } else {
-    add_incomplete_jump(nextInstructionLabel(), quad.label);
+    add_incomplete_jump(nextInstructionLabel(), quad->label);
   }
-  quad.taddress = nextInstructionLabel();
+  quad->taddress = nextInstructionLabel();
   emit_instr(t);
 }
 
@@ -221,8 +222,9 @@ void generate_SUB(quad* quad) { generate(sub_v, quad); }
 void generate_MUL(quad* quad) { generate(mul_v, quad); }
 void generate_DIV(quad* quad) { generate(div_v, quad); }
 void generate_MOD(quad* quad) { generate(mod_v, quad); }
+void generate_UMINUS(quad* quad) { }
 void generate_NEWTABLE(quad* quad) { generate(newtable_v, quad); }
-void generate_TABLEGETELM(quad* quad) { generate(tablegetelem_v, quad); }
+void generate_TABLEGETELEM(quad* quad) { generate(tablegetelem_v, quad); }
 void generate_TABLESETELEM(quad* quad) { generate(tablesetelem_v, quad); }
 void generate_ASSIGN(quad* quad) { generate(assign_v, quad); }
 void generate_NOP() {
@@ -241,24 +243,24 @@ void generate_NOT(quad* quad){};
 void generate_OR(quad* quad){};
 void generate_AND(quad* quad){};
 void generate_PARAM(quad* quad) {
-  quad.taddress = nextInstructionLabel();
+  quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = pusharg_v;
-  make_operand(quad.arg1, &t.arg1);
+  make_operand(quad->arg1, &t.arg1);
   emit_instr(t);
 };
 void generate_CALL(quad* quad) {
-  quad.taddress = nextinstructionlabel();
+  quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = call_v;
-  make_operand(quad.arg1, &t.arg1);
+  make_operand(quad->arg1, &t.arg1);
   emit_instr(t);
 };
 void generate_GETRETVAL(quad* quad) {
-  quad.taddress = nextinstructionlabel();
+  quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = assign_v;
-  make_operand(quad.result, &t.result);
+  make_operand(quad->result, &t.result);
   make_retvaloperand(&t.arg1);
   emit_instr(t);
 };
@@ -268,19 +270,22 @@ void generate_FUNCSTART(quad* quad){
 void generate_RETURN(quad* quad){};
 void generate_FUNCEND(quad* quad){};
 
-generator_func_t generators[] = {
-    generate_ADD,         generate_SUB,          generate_MUL,
-    generate_DIV,         generate_MOD,          generate_NEWTABLE,
-    generate_TABLEGETELM, generate_TABLESETELEM, generate_ASSIGN,
-    generate_NOP,         generate_JUMP,         generate_IF_EQ,
-    generate_IF_NOTEQ,    generate_IF_GREATER,   generate_IF_GREATEREQ,
-    generate_IF_LESS,     generate_IF_LESSEQ,    generate_NOT,
-    generate_OR,          generate_AND,          generate_PARAM,
-    generate_CALL,        generate_GETRETVAL,    generate_FUNCSTART,
-    generate_RETURN,      generate_FUNCEND};
+typedef void (*generator_func_t) (quad*);
 
-void generate(void) {
-  for (unsigned int i = 0; i < total; ++i) {
-    (*generators[quads[i].op])(quads + i);
+generator_func_t generators[] = {
+  generate_ASSIGN,        generate_ADD,           generate_SUB,         
+  generate_MUL,           generate_DIV,           generate_MOD,          
+  generate_UMINUS,        generate_AND,           generate_OR,        
+  generate_NOT,           generate_IF_EQ,         generate_IF_NOTEQ,    
+  generate_IF_LESSEQ,     generate_IF_GREATEREQ,  generate_IF_LESS,
+  generate_IF_GREATER,    generate_CALL,          generate_PARAM,
+  generate_RETURN,        generate_GETRETVAL,     generate_FUNCSTART,
+  generate_FUNCEND,       generate_NEWTABLE,      generate_TABLEGETELEM,
+  generate_TABLESETELEM,  generate_JUMP,          generate_NOP
+};
+
+void generateAll(void) {
+  for (unsigned int i = 0; i < quads.size(); ++i) {
+    (*generators[quads[i]->iop])(quads[i]);
   }
 }

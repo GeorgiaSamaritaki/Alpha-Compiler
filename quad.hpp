@@ -43,7 +43,8 @@ typedef enum iopcode {
   tablecreate,
   tablegetelem,
   tablesetelem,
-  jump
+  jump,
+  nop
 } iopcode;
 
 string iop_tostr(iopcode iop) {
