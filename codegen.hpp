@@ -167,28 +167,32 @@ void make_booloperand(vmarg* arg, unsigned val) {
 
 void make_retvaloperand(vmarg* arg) { arg->type = retval_a; }
 
-struct incomplete_jump {
+typedef struct incomplete_jump {
   unsigned instrNo;
   unsigned iaddress;
-  incomplete_jump* next;
-};
+}incomplete_jump;
 
-incomplete_jump* ij_head = (incomplete_jump*)0;
 unsigned ij_total = 0;
 unsigned totalInstructions = 0;
 
 unsigned nextInstructionLabel() { return instructionz.size(); }
 
-vector<unsigned> incomplete_jumps;
-void add_incomplete_jump(unsigned int instrNo, unsigned iaddress);
+vector<incomplete_jump> incomplete_jumps;
+
+void add_incomplete_jump(unsigned int instrNo, unsigned iaddress){
+  incomplete_jump tmp;
+  tmp.instrNo = instrNo;
+  tmp.iaddress = iaddress;
+  incomplete_jumps.pushback(tmp);
+}
 
 void patch_incomplete_jumps() {
-  // for (jump : incomplete_jumps) {
-  //   if (x.iaddress = intermediate_code_size)
-  //     instructions[x.instrNo].result = target_code_size;
-  //   else
-  //     instructions[x.instrNo].result = quads[x.iaddress].taddress;
-  // }
+  for (jump : incomplete_jumps) {
+    if (x.iaddress = intermediate_code_size)
+      instructions[x.instrNo].result = target_code_size;
+    else
+      instructions[x.instrNo].result = quads[x.iaddress].taddress;
+  }
 }
 
 void generate(vmopcode op, quad* quad) {
@@ -227,7 +231,7 @@ void generate_NEWTABLE(quad* quad) { generate(newtable_v, quad); }
 void generate_TABLEGETELEM(quad* quad) { generate(tablegetelem_v, quad); }
 void generate_TABLESETELEM(quad* quad) { generate(tablesetelem_v, quad); }
 void generate_ASSIGN(quad* quad) { generate(assign_v, quad); }
-void generate_NOP() {
+void generate_NOP(quad* quad = NULL) {
   instruction t;
   t.opcode = nop_v;
   emit_instr(t);
