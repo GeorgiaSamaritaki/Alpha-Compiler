@@ -49,9 +49,9 @@ typedef struct vmarg {
 
 typedef struct instruction {
   vmopcode opcode;
-  vmarg result;
-  vmarg arg1;
-  vmarg arg2;
+  vmarg* result;
+  vmarg* arg1;
+  vmarg* arg2;
   unsigned srcLine;
 } instruction;
 
@@ -61,6 +61,11 @@ typedef struct userfunc {
   char* id;
 } userfunc;
 
+typedef struct stackNode {
+  SymbolTableEntry* func;
+  vector<unsigned> returnList;
+} stackNode;
+
 vector<double> numConsts;
 // unsigned totalNumConsts;
 vector<char*> stringConsts;
@@ -69,6 +74,8 @@ vector<char*> namedLibFuncs;
 // unsigned totalNamedLibFuncs;
 vector<userfunc*> userFuncz;
 // unsigned totalUserFuncz;
+
+stack<stackNode*> funcStack;
 
 unsigned currentProcessedQuad(){ 
   /*FIXME*/
@@ -121,6 +128,7 @@ unsigned userfuncs_newFunc(SymbolTableEntry* s){
   f->id = strdup((char*)s->value.funcVal->name);
   f->localSize = s->value.funcVal->totalLocals;
   f->address = s->taddress;
+
   return userFuncz.size();
 }
 
@@ -193,6 +201,7 @@ void make_operand(expr* e, vmarg* arg) {
       break;
     }
     case assignexpr_e: {
+      //FIXME
       assert(0);
     }
     default:
@@ -234,18 +243,21 @@ void add_incomplete_jump(unsigned int instrNo, unsigned iaddress){
 void patch_incomplete_jumps() {
   for (int i=0; incomplete_jumps.size(); i++) {
     if (incomplete_jumps[i].iaddress == quads.size() )
-      instructionz[incomplete_jumps[i].instrNo]->result.val = nextInstructionLabel();
+      instructionz[incomplete_jumps[i].instrNo]->result->val = nextInstructionLabel();
     else
-      instructionz[incomplete_jumps[i].instrNo]->result.val = quads[incomplete_jumps[i].iaddress]->taddress;
+      instructionz[incomplete_jumps[i].instrNo]->result->val = quads[incomplete_jumps[i].iaddress]->taddress;
   }
 }
 
 void generate(vmopcode op, quad* quad) {
   instruction t;
   t.opcode = op;
-  make_operand(quad->arg1, &t.arg1);
-  make_operand(quad->arg2, &t.arg2);
-  make_operand(quad->result, &t.result);
+  t.arg1 = new vmarg();
+  t.arg2 = new vmarg();
+  t.result = new vmarg();
+  make_operand(quad->arg1, t.arg1);
+  make_operand(quad->arg2, t.arg2);
+  make_operand(quad->result, t.result);
   quad->taddress = nextInstructionLabel();
   emit_instr(t);
 }
@@ -253,12 +265,15 @@ void generate(vmopcode op, quad* quad) {
 void generate_relational(vmopcode op, quad* quad) {
   instruction t;
   t.opcode = op;
-  make_operand(quad->arg1, &t.arg1);
-  make_operand(quad->arg2, &t.arg2);
+  t.arg1 = new vmarg();
+  t.arg2 = new vmarg();
+  t.result = new vmarg();
+  make_operand(quad->arg1, t.arg1);
+  make_operand(quad->arg2, t.arg2);
 
-  t.result.type = label_a;
+  t.result->type = label_a;
   if (quad->label < currentProcessedQuad()) {
-    t.result.val = quads[quad->label]->taddress;
+    t.result->val = quads[quad->label]->taddress;
   } else {
     add_incomplete_jump(nextInstructionLabel(), quad->label);
   }
@@ -291,33 +306,100 @@ void generate_IF_LESSEQ(quad* quad) { generate_relational(jle_v, quad); }
 void generate_NOT(quad* quad){};
 void generate_OR(quad* quad){};
 void generate_AND(quad* quad){};
+
 void generate_PARAM(quad* quad) {
   quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = pusharg_v;
-  make_operand(quad->arg1, &t.arg1);
+  t.arg1 = new vmarg();
+  make_operand(quad->arg1, t.arg1);
+  t.arg2 = NULL;
+  t.result = NULL;
   emit_instr(t);
 };
 void generate_CALL(quad* quad) {
   quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = call_v;
-  make_operand(quad->arg1, &t.arg1);
+  t.arg1 = new vmarg();  
+  make_operand(quad->arg1, t.arg1);
+  t.arg2 = NULL;
+  t.result = NULL;
   emit_instr(t);
 };
 void generate_GETRETVAL(quad* quad) {
   quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = assign_v;
-  make_operand(quad->result, &t.result);
-  make_retvaloperand(&t.arg1);
+  t.arg1 = new vmarg();  
+  t.arg2 = new vmarg();  
+  t.result = new vmarg();  
+  make_operand(quad->result, t.result);
+  make_retvaloperand(t.arg1);
   emit_instr(t);
 };
 void generate_FUNCSTART(quad* quad){
+  /*We need 2 emits*/
+  /*First emit jump instruction*/
+  instruction jump;
+  jump.opcode = jump_v;
+  jump.arg1 = NULL;
+  jump.arg2 = NULL;
+  jump.result = new vmarg();
+  jump.result->type = label_a;
+  emit_instr(jump);
+  quad->taddress = nextInstructionLabel();
+  quad->result->sym->taddress = nextInstructionLabel();
+
+  /*Then emit funcnter*/
+  instruction f_enter;
+  f_enter.opcode = funcenter_v;
+  f_enter.arg1 = NULL;
+  f_enter.arg2 = NULL;
+  f_enter.result = new vmarg();
+  make_operand(quad->result, f_enter.result);
+  f_enter.result->val = userfuncs_newFunc(quad->result->sym);
+  emit_instr(f_enter);
+
+  //STACK -> push
+  stackNode* node = new stackNode();
+  node->func = quad->result->sym;
+  funcStack.push(node);
 
 };
-void generate_RETURN(quad* quad){};
-void generate_FUNCEND(quad* quad){};
+void generate_RETURN(quad* quad){
+  /*Also 2 emits*/
+  /*First emit assign*/
+  quad->taddress = nextInstructionLabel();
+
+  instruction ass;
+  ass.opcode = assign_v;
+  make_operand(quad->arg1, ass.arg1);
+  ass.arg2 = NULL;
+  ass.result = new vmarg();
+  make_retvaloperand(ass.result);
+  emit_instr(ass);
+
+  //STACK -> FIX - top
+
+  /*Then emit jump*/
+  instruction jump;
+  jump.opcode = jump_v;
+  jump.arg1 = NULL;
+  jump.arg2 = NULL;
+  jump.result = new vmarg();
+  jump.result->type = label_a;
+  emit_instr(jump);
+};
+void generate_FUNCEND(quad* quad){
+  //STACK -> pop
+  
+  quad->taddress = nextInstructionLabel();
+  instruction t;
+  t.opcode = funcexit_v;
+  make_operand(quad->result, t.result);
+  emit_instr(t);
+};
 
 typedef void (*generator_func_t) (quad*);
 
