@@ -233,7 +233,7 @@ void emit(iopcode iop, expr* arg1 = NULL, expr* arg2 = NULL,
   p->arg2 = arg2 == NULL ? nil_expr : arg2;
   p->result = result == NULL ? nil_expr : result;
   p->label = label;
-  debug_quad(p);
+  // debug_quad(p);
   quads.push_back(p);
 }
 void emit_function(iopcode iop, expr* result) { emit(iop, NULL, NULL, result); }
@@ -684,14 +684,3 @@ void reverse_list(expr** head) {
   reverseUtil(*head, NULL, head);
 }
 
-// struct quad {)
-//   iopcode iop;
-//   expr* result;
-//   expr* arg1;
-//   expr* arg2;
-//   unsigned label;
-//   unsigned line;
-// };
-
-// struct quad {)
-//

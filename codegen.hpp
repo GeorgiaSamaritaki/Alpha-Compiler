@@ -19,6 +19,8 @@ enum vmopcode {
   jgt_v,
   call_v,
   pusharg_v,
+  ret_v,
+  getretval_v,
   funcenter_v,
   funcexit_v,
   newtable_v,
@@ -65,6 +67,10 @@ typedef struct stackNode {
   SymbolTableEntry* func;
   vector<unsigned> returnList;
 } stackNode;
+
+string toString(vmopcode op);
+string toString(vmarg_t t);
+void printInstruction(instruction* i);
 
 vector<double> numConsts;
 // unsigned totalNumConsts;
@@ -133,13 +139,12 @@ unsigned userfuncs_newFunc(SymbolTableEntry* s){
 }
 
 void emit_instr(instruction t) {
-  instruction* new_t = new instruction();
+  instruction *new_t = new instruction();
   new_t->opcode = t.opcode;
   new_t->result = t.result;
   new_t->arg1 = t.arg1;
   new_t->arg2 = t.arg2;
   new_t->srcLine = t.srcLine;
-
   instructionz.push_back(new_t);
 }
 
@@ -149,6 +154,7 @@ void make_operand(expr* e, vmarg* arg) {
     case tableitem_e:
     case arithexpr_e:
     case boolexpr_e:
+    case assignexpr_e: 
     case newtable_e: {
       assert(e->sym);
       arg->val = e->sym->offset;
@@ -182,13 +188,14 @@ void make_operand(expr* e, vmarg* arg) {
       arg->val = consts_newNumber(e->numConst);
       arg->type = number_a;
       break;
-    }
+    } 
     case nil_e:
       arg->type = nil_a;
       break;
 
     /*Functions*/
     case programfunc_e: {
+      printf("edo\n");
       arg->type = userfunc_a;
       // arg->val = e->sym->taddress;
       /* or alternatively*/
@@ -196,13 +203,10 @@ void make_operand(expr* e, vmarg* arg) {
       break;
     }
     case libraryfunc_e: {
+      printf("edo alla lib\n");
       arg->type = libfunc_a;
       arg->val = libfuncs_newUsed((char *)e->sym->value.funcVal->name);
       break;
-    }
-    case assignexpr_e: {
-      //FIXME
-      assert(0);
     }
     default:
       assert(0);
@@ -250,6 +254,8 @@ void patch_incomplete_jumps() {
 }
 
 void generate(vmopcode op, quad* quad) {
+  cout << "generate op: " << toString(op) << " ";
+  debug_quad(quad); 
   instruction t;
   t.opcode = op;
   t.arg1 = new vmarg();
@@ -263,6 +269,8 @@ void generate(vmopcode op, quad* quad) {
 }
 
 void generate_relational(vmopcode op, quad* quad) {
+  cout << "generate_relational op: " << toString(op) << " ";
+  debug_quad(quad); 
   instruction t;
   t.opcode = op;
   t.arg1 = new vmarg();
@@ -286,7 +294,12 @@ void generate_SUB(quad* quad) { generate(sub_v, quad); }
 void generate_MUL(quad* quad) { generate(mul_v, quad); }
 void generate_DIV(quad* quad) { generate(div_v, quad); }
 void generate_MOD(quad* quad) { generate(mod_v, quad); }
-void generate_UMINUS(quad* quad) { }
+void generate_UMINUS(quad* quad){
+  quad->iop = mul_op;
+  quad->arg2 = newExpr(constnum_e);
+  quad->arg2->numConst = -1;
+  generate(mul_v, quad);
+}
 void generate_NEWTABLE(quad* quad) { generate(newtable_v, quad); }
 void generate_TABLEGETELEM(quad* quad) { generate(tablegetelem_v, quad); }
 void generate_TABLESETELEM(quad* quad) { generate(tablesetelem_v, quad); }
@@ -303,9 +316,15 @@ void generate_IF_GREATER(quad* quad) { generate_relational(jgt_v, quad); }
 void generate_IF_GREATEREQ(quad* quad) { generate_relational(jge_v, quad); }
 void generate_IF_LESS(quad* quad) { generate_relational(jlt_v, quad); }
 void generate_IF_LESSEQ(quad* quad) { generate_relational(jle_v, quad); }
-void generate_NOT(quad* quad){};
-void generate_OR(quad* quad){};
-void generate_AND(quad* quad){};
+void generate_NOT(quad* quad){
+
+};
+void generate_OR(quad* quad){
+
+};
+void generate_AND(quad* quad){
+
+};
 
 void generate_PARAM(quad* quad) {
   quad->taddress = nextInstructionLabel();
@@ -325,7 +344,7 @@ void generate_CALL(quad* quad) {
   make_operand(quad->arg1, t.arg1);
   t.arg2 = NULL;
   t.result = NULL;
-  emit_instr(t);
+  emit_instr(t); 
 };
 void generate_GETRETVAL(quad* quad) {
   quad->taddress = nextInstructionLabel();
@@ -347,8 +366,10 @@ void generate_FUNCSTART(quad* quad){
   jump.arg2 = NULL;
   jump.result = new vmarg();
   jump.result->type = label_a;
+  
   emit_instr(jump);
   quad->taddress = nextInstructionLabel();
+  assert(quad->result->sym);
   quad->result->sym->taddress = nextInstructionLabel();
 
   /*Then emit funcnter*/
@@ -374,6 +395,7 @@ void generate_RETURN(quad* quad){
 
   instruction ass;
   ass.opcode = assign_v;
+  ass.arg1 = new vmarg();
   make_operand(quad->arg1, ass.arg1);
   ass.arg2 = NULL;
   ass.result = new vmarg();
@@ -381,6 +403,9 @@ void generate_RETURN(quad* quad){
   emit_instr(ass);
 
   //STACK -> FIX - top
+  stackNode* f = funcStack.top();
+  printf("eeeeeeeeeeeeeeee\n");
+  f->returnList.push_back(nextInstructionLabel());
 
   /*Then emit jump*/
   instruction jump;
@@ -391,12 +416,20 @@ void generate_RETURN(quad* quad){
   jump.result->type = label_a;
   emit_instr(jump);
 };
+
 void generate_FUNCEND(quad* quad){
   //STACK -> pop
-  
+  stackNode* f = funcStack.top();
+  funcStack.pop();
+  patchLabel(f->returnList, nextInstructionLabel());
+
   quad->taddress = nextInstructionLabel();
   instruction t;
   t.opcode = funcexit_v;
+  t.result = new vmarg();
+  t.arg1 = NULL;
+  t.arg2 = NULL;
+  cout << "here \n";
   make_operand(quad->result, t.result);
   emit_instr(t);
 };
@@ -417,6 +450,123 @@ generator_func_t generators[] = {
 
 void generateAll(void) {
   for (unsigned int i = 0; i < quads.size(); ++i) {
+    cout<<"generateAll:" ;
+    debug_quad(quads[i], i );
     (*generators[quads[i]->iop])(quads[i]);
   }
+}
+
+
+// typedef struct instruction {
+//   vmopcode opcode;
+//   vmarg* result;
+//   vmarg* arg1;
+//   vmarg* arg2;
+//   unsigned srcLine;
+// } instruction;
+
+
+// enum vmopcode {
+
+string toString(vmopcode op){
+  switch(op){
+    case assign_v:      return "assign";      
+    case add_v:         return "add";  
+    case sub_v:         return "sub";  
+    case mul_v:         return "mul";  
+    case div_v:         return "div";  
+    case mod_v:         return "mod";  
+    case uminus_v:      return "uminus";      
+    case and_v:         return "and";  
+    case or_v:          return "or";  
+    case not_v:         return "not";  
+    case jeq_v:         return "jeq";  
+    case jne_v:         return "jne";  
+    case jle_v:         return "jle";  
+    case jge_v:         return "jge";  
+    case jlt_v:         return "jlt";  
+    case jgt_v:         return "jgt";  
+    case call_v:        return "call";    
+    case pusharg_v:     return "pusharg";      
+    case funcenter_v:   return "funcenter";        
+    case funcexit_v:    return "funcexit";        
+    case newtable_v:    return "newtable";        
+    case tablegetelem_v:return "tablegetelem";            
+    case tablesetelem_v:return "tablesetelem";            
+    case jump_v:        return "jump";    
+    case nop_v:         return "nop";  
+    default: assert(false);
+  }
+}
+
+// enum vmarg_t {
+
+
+string toString(vmarg_t t){
+  switch(t){
+    case label_a: return "label";
+    case global_a: return "global";
+    case formal_a: return "formal";
+    case local_a: return "local";
+    case number_a: return "number";
+    case string_a: return "string";
+    case bool_a: return "bool";
+    case nil_a: return "nil";
+    case userfunc_a: return "userfunc";
+    case libfunc_a: return "libfunc";
+    case retval_a: return "retval";
+    default: assert(false);
+  }
+}
+
+// typedef struct vmarg {
+//   vmarg_t type;
+//   unsigned val;
+// } vmarg;
+
+
+void printInstructions() {
+  
+  cout<< setw(5) << " Instructionz " << setw(5) << "\n"
+         << setw(12) << "vmopcode" << setw(13) << "result_type"
+         << setw(11) << "result_val" << setw(10) << "arg1_type"
+         << setw(9) << "arg1_val" << setw(10) << "arg2_type"
+         << setw(9) << "arg2_val" << setw(12) << "srcLine" << endl;
+
+  for (int j = 0; j < instructionz.size(); j++) {
+    instruction* i = instructionz[j];
+    assert(i);
+    cout << setw(12) << toString(i->opcode); 
+    if(i->result!=NULL){ cout<< setw(13) << toString(i->result->type) << setw(11) << i->result->val;
+    }else cout<<string(13+11, ' ');
+     printf("here\n");
+    if(i->arg1!=NULL) cout << setw(10) << toString(i->arg1->type)
+         << setw(9)  << i->arg1->val;
+    else cout<<string(9+10, ' ');       
+   printf("here1\n");
+
+    if(i->arg2!=NULL)  cout << setw(10) << toString(i->arg2->type) << setw(9)  << i->arg2->val ;       
+    else cout<<string(9+10, ' ');
+    
+    cout << setw(12)  << i->srcLine << endl;
+  
+  }
+
+}
+
+void printInstruction(instruction *i){  
+  assert(i);
+  cout << setw(12) << toString(i->opcode); 
+  if(i->result!=NULL) cout<< setw(13) << toString(i->result->type) << setw(11) << i->result->val;
+  else cout<<string(13+11, ' ');
+ 
+  if(i->arg1!=NULL) cout << setw(10) << toString(i->arg1->type)
+        << setw(9)  << i->arg1->val;
+  else cout<<string(9+10, ' ');       
+  
+
+  if(i->arg2!=NULL)  cout << setw(10) << toString(i->arg2->type) << setw(9)  << i->arg2->val;        
+  else cout<<string(9+10, ' ');
+  
+  cout << setw(12)  << i->srcLine << endl;
 }
