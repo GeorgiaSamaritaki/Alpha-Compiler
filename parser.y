@@ -174,7 +174,7 @@
 %%
 
 
-program:    statements {printf("Finished\n");
+program:    statements {//printf("Finished\n");
 };
 
 stmt:       expr semicolon {
@@ -1375,7 +1375,6 @@ int yyerror(char* yaccProvidedMessage){
         ,yylineno,yytext,yaccProvidedMessage);
         printf("\033[0m");
     error = true;
-    printf("yy error %d \n", error);
    
 }
 
@@ -1393,12 +1392,10 @@ int main(int argc, char* argv[]){
     
     //symbol_table.print();
     printQuads();
-    printf(" error %d \n", error);
-    if(error == 0){
-        printf("Phase 3 out\n");
+    if(!error){
         generateAll();
         printInstructions();
-        printf("Phase  out\n");
+        printf("\nWe fucking did it\nYAAAAAAAAAAAAAAAAAS\n");
     }
     return 0;
 }

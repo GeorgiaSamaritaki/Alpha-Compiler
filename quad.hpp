@@ -174,7 +174,7 @@ typedef struct expr {
   char* strConst;
   unsigned char boolConst;
   struct expr* next;
-  vector<unsigned int> truelist;
+  vector<unsigned int> truelist; 
   vector<unsigned int> falselist;
 } expr;
 

@@ -404,7 +404,6 @@ void generate_RETURN(quad* quad){
 
   //STACK -> FIX - top
   stackNode* f = funcStack.top();
-  printf("eeeeeeeeeeeeeeee\n");
   f->returnList.push_back(nextInstructionLabel());
 
   /*Then emit jump*/
@@ -527,7 +526,11 @@ string toString(vmarg_t t){
 
 void printInstructions() {
   
-  cout<< setw(5) << " Instructionz " << setw(5) << "\n"
+  ofstream myfile;
+  string s = "tcode.txt";
+  myfile.open(s.c_str());
+
+  myfile<< setw(5) << " Instructionz " << setw(5) << "\n"
          << setw(12) << "vmopcode" << setw(13) << "result_type"
          << setw(11) << "result_val" << setw(10) << "arg1_type"
          << setw(9) << "arg1_val" << setw(10) << "arg2_type"
@@ -536,22 +539,21 @@ void printInstructions() {
   for (int j = 0; j < instructionz.size(); j++) {
     instruction* i = instructionz[j];
     assert(i);
-    cout << setw(12) << toString(i->opcode); 
-    if(i->result!=NULL){ cout<< setw(13) << toString(i->result->type) << setw(11) << i->result->val;
-    }else cout<<string(13+11, ' ');
-     printf("here\n");
-    if(i->arg1!=NULL) cout << setw(10) << toString(i->arg1->type)
+    myfile << setw(12) << toString(i->opcode); 
+    if(i->result!=NULL){ myfile<< setw(13) << toString(i->result->type) << setw(11) << i->result->val;
+    }else myfile<<string(13+11, ' ');
+    if(i->arg1!=NULL) myfile << setw(10) << toString(i->arg1->type)
          << setw(9)  << i->arg1->val;
-    else cout<<string(9+10, ' ');       
-   printf("here1\n");
+    else myfile<<string(9+10, ' ');       
 
-    if(i->arg2!=NULL)  cout << setw(10) << toString(i->arg2->type) << setw(9)  << i->arg2->val ;       
-    else cout<<string(9+10, ' ');
+    if(i->arg2!=NULL)  myfile << setw(10) << toString(i->arg2->type) << setw(9)  << i->arg2->val ;       
+    else myfile<<string(9+10, ' ');
     
-    cout << setw(12)  << i->srcLine << endl;
+    myfile << setw(12)  << i->srcLine << endl;
   
   }
 
+  myfile.close();
 }
 
 void printInstruction(instruction *i){  
