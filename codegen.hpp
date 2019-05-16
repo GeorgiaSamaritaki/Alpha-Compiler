@@ -294,6 +294,7 @@ void generate_relational(vmopcode op, quad* quad) {
   emit_instr(t);
 }
 
+void generate_ASSIGN(quad* quad) { generate(assign_v, quad); }
 void generate_ADD(quad* quad) { generate(add_v, quad); }
 void generate_SUB(quad* quad) { generate(sub_v, quad); }
 void generate_MUL(quad* quad) { generate(mul_v, quad); }
@@ -308,7 +309,6 @@ void generate_UMINUS(quad* quad){
 void generate_NEWTABLE(quad* quad) { generate(newtable_v, quad); }
 void generate_TABLEGETELEM(quad* quad) { generate(tablegetelem_v, quad); }
 void generate_TABLESETELEM(quad* quad) { generate(tablesetelem_v, quad); }
-void generate_ASSIGN(quad* quad) { generate(assign_v, quad); }
 void generate_NOP(quad* quad = NULL) {
   instruction t;
   t.opcode = nop_v;

@@ -261,7 +261,7 @@ char* new_tmpname() {
   return strdup(name);
 }
 
-void reset_tmp() { tmpcounter = 0; }ξθ
+void reset_tmp() { tmpcounter = 0; }
 
 SymbolTableEntry* new_tmp(unsigned int lineno) {
   char* name = new_tmpname();

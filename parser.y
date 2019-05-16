@@ -2,7 +2,8 @@
     #include <stdio.h>
     #include <stdlib.h>
     // #include "quad.hpp"
-    #include "codegen.hpp"
+    // #include "codegen.hpp"
+    #include "avm.hpp"
 
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
