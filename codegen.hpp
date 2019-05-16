@@ -1,5 +1,6 @@
 #include "quad.hpp"
 
+/*Structs*/
 enum vmopcode {
   assign_v,
   add_v,
@@ -195,7 +196,6 @@ void make_operand(expr* e, vmarg* arg) {
 
     /*Functions*/
     case programfunc_e: {
-      printf("edo\n");
       arg->type = userfunc_a;
       // arg->val = e->sym->taddress;
       /* or alternatively*/
@@ -203,7 +203,6 @@ void make_operand(expr* e, vmarg* arg) {
       break;
     }
     case libraryfunc_e: {
-      printf("edo alla lib\n");
       arg->type = libfunc_a;
       arg->val = libfuncs_newUsed((char *)e->sym->value.funcVal->name);
       break;
@@ -254,7 +253,7 @@ void patch_incomplete_jumps() {
 }
 
 void generate(vmopcode op, quad* quad) {
-  cout << "generate op: " << toString(op) << " ";
+  // cout << "generate op: " << toString(op) << " ";
   debug_quad(quad); 
   instruction t;
   t.opcode = op;
@@ -265,11 +264,12 @@ void generate(vmopcode op, quad* quad) {
   make_operand(quad->arg2, t.arg2);
   make_operand(quad->result, t.result);
   quad->taddress = nextInstructionLabel();
+  t.srcLine = symbol_table.get_lineno(quad->result->sym);
   emit_instr(t);
 }
 
 void generate_relational(vmopcode op, quad* quad) {
-  cout << "generate_relational op: " << toString(op) << " ";
+  // cout << "generate_relational op: " << toString(op) << " ";
   debug_quad(quad); 
   instruction t;
   t.opcode = op;
@@ -286,6 +286,11 @@ void generate_relational(vmopcode op, quad* quad) {
     add_incomplete_jump(nextInstructionLabel(), quad->label);
   }
   quad->taddress = nextInstructionLabel();
+  if( quad->arg1->sym) {
+    t.srcLine = symbol_table.get_lineno(quad->arg1->sym);
+  } else {
+    t.srcLine = 0;
+  }
   emit_instr(t);
 }
 
@@ -334,6 +339,11 @@ void generate_PARAM(quad* quad) {
   make_operand(quad->arg1, t.arg1);
   t.arg2 = NULL;
   t.result = NULL;
+  if( quad->arg1->sym) {
+    t.srcLine = symbol_table.get_lineno(quad->arg1->sym);
+  } else {
+    t.srcLine = 0;
+  }
   emit_instr(t);
 };
 void generate_CALL(quad* quad) {
@@ -344,6 +354,7 @@ void generate_CALL(quad* quad) {
   make_operand(quad->arg1, t.arg1);
   t.arg2 = NULL;
   t.result = NULL;
+  t.srcLine = symbol_table.get_lineno(quad->arg1->sym);
   emit_instr(t); 
 };
 void generate_GETRETVAL(quad* quad) {
@@ -355,6 +366,8 @@ void generate_GETRETVAL(quad* quad) {
   t.result = new vmarg();  
   make_operand(quad->result, t.result);
   make_retvaloperand(t.arg1);
+  t.srcLine = symbol_table.get_lineno(quad->result->sym);
+
   emit_instr(t);
 };
 void generate_FUNCSTART(quad* quad){
@@ -366,6 +379,7 @@ void generate_FUNCSTART(quad* quad){
   jump.arg2 = NULL;
   jump.result = new vmarg();
   jump.result->type = label_a;
+  jump.srcLine = symbol_table.get_lineno(quad->result->sym);
   
   emit_instr(jump);
   quad->taddress = nextInstructionLabel();
@@ -380,6 +394,7 @@ void generate_FUNCSTART(quad* quad){
   f_enter.result = new vmarg();
   make_operand(quad->result, f_enter.result);
   f_enter.result->val = userfuncs_newFunc(quad->result->sym);
+  f_enter.srcLine = symbol_table.get_lineno(quad->result->sym);
   emit_instr(f_enter);
 
   //STACK -> push
@@ -400,6 +415,12 @@ void generate_RETURN(quad* quad){
   ass.arg2 = NULL;
   ass.result = new vmarg();
   make_retvaloperand(ass.result);
+  if( quad->arg1->sym || quad->arg2->sym || quad->result->sym) {
+    ass.srcLine = symbol_table.get_lineno(quad->result->sym);
+  } else {
+    ass.srcLine = 0;
+  }
+
   emit_instr(ass);
 
   //STACK -> FIX - top
@@ -413,6 +434,12 @@ void generate_RETURN(quad* quad){
   jump.arg2 = NULL;
   jump.result = new vmarg();
   jump.result->type = label_a;
+  if( quad->arg1->sym || quad->arg2->sym || quad->result->sym) {
+    jump.srcLine = symbol_table.get_lineno(quad->result->sym);    
+  } else {
+    jump.srcLine = 0;
+  }
+
   emit_instr(jump);
 };
 
@@ -428,8 +455,9 @@ void generate_FUNCEND(quad* quad){
   t.result = new vmarg();
   t.arg1 = NULL;
   t.arg2 = NULL;
-  cout << "here \n";
   make_operand(quad->result, t.result);
+  t.srcLine = symbol_table.get_lineno(quad->result->sym);
+
   emit_instr(t);
 };
 
@@ -454,18 +482,6 @@ void generateAll(void) {
     (*generators[quads[i]->iop])(quads[i]);
   }
 }
-
-
-// typedef struct instruction {
-//   vmopcode opcode;
-//   vmarg* result;
-//   vmarg* arg1;
-//   vmarg* arg2;
-//   unsigned srcLine;
-// } instruction;
-
-
-// enum vmopcode {
 
 string toString(vmopcode op){
   switch(op){
@@ -498,9 +514,6 @@ string toString(vmopcode op){
   }
 }
 
-// enum vmarg_t {
-
-
 string toString(vmarg_t t){
   switch(t){
     case label_a: return "label";
@@ -518,23 +531,18 @@ string toString(vmarg_t t){
   }
 }
 
-// typedef struct vmarg {
-//   vmarg_t type;
-//   unsigned val;
-// } vmarg;
-
-
 void printInstructions() {
   
   ofstream myfile;
   string s = "tcode.txt";
   myfile.open(s.c_str());
 
-  myfile<< setw(5) << " Instructionz " << setw(5) << "\n"
+  myfile<< setw(5) << "Instructions " << setw(5) << "\n"
          << setw(12) << "vmopcode" << setw(13) << "result_type"
          << setw(11) << "result_val" << setw(10) << "arg1_type"
          << setw(9) << "arg1_val" << setw(10) << "arg2_type"
-         << setw(9) << "arg2_val" << setw(12) << "srcLine" << endl;
+         << setw(9) << "arg2_val" << setw(12) << "srcLine" << endl 
+         << string(86,'-') << endl;
 
   for (int j = 0; j < instructionz.size(); j++) {
     instruction* i = instructionz[j];
@@ -550,7 +558,7 @@ void printInstructions() {
     else myfile<<string(9+10, ' ');
     
     myfile << setw(12)  << i->srcLine << endl;
-  
+
   }
 
   myfile.close();
