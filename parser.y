@@ -1395,8 +1395,10 @@ int main(int argc, char* argv[]){
     printQuads();
     if(!error){
         generateAll();
-        printInstructions();
+        printInstructions();  
         printf("\nWe fucking did it\nYAAAAAAAAAAAAAAAAAS\n");
+        
+        create_binary();
     }
     return 0;
 }

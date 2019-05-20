@@ -74,10 +74,17 @@ unsigned codeSize = 0;
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
 typedef char* (*tostring_func_t)(avm_memcell*);
+typedef double (*arithmetic_func_t)(double x, double y);
+typedef unsigned char(*tobool_func_t)(avm_memcell*);
+typedef bool (*eq_check_t)(avm_memcell* a, avm_memcell* b);
+
 
 /*Funcs*/
 void avm_tableDestroy(avm_table* t);
 void avm_memcellClear(avm_memcell* m);
+void avm_callsaveenvironment();
+void avm_calllibfunc(char* id);
+char* avm_toString(avm_memcell* m);
 
 static void avm_initstack(void) {
   for (unsigned i = 0; i < AVM_STACKSIZE; ++i) {
@@ -217,11 +224,20 @@ void avm_memcellClear(avm_memcell* m) {
   }
 }
 
-void avm_warning(char* format, ...) {}
-void avm_error(char* format, ...) {}
-void avm_callsaveenvironment();
-void avm_calllibfunc(char* id);
-char* avm_toString(avm_memcell* m);
+void avm_warning(char* format, ...) {
+  printf("WARNING: ");
+  va_list args;
+  va_start(args, format);
+  printf(format, args);
+  va_end(args);
+}
+void avm_error(char* format, ...) {
+  printf("WARNING: ");
+  va_list args;
+  va_start(args, format);
+  printf(format, args);
+  va_end(args);
+}
 
 void avm_assign(avm_memcell* lv, avm_memcell* rv) {
   if (lv == rv) return;
@@ -297,7 +313,9 @@ void avm_callsaveenvironment(){
     avm_push_envvalue(top+totalActuals+2);
     avm_push_envvalue(topsp);
 }
-extern userfunc* avm_getfuncinfo(unsigned address);
+userfunc* avm_getfuncinfo(unsigned address){
+  assert(0);
+}
 
 void execute_funcenter(instruction* instr){
     avm_memcell* func = avm_translate_operand(instr->result,&ax);
@@ -326,7 +344,9 @@ void execute_funcexit(instruction* unused){
 }
 
 typedef void(*library_func_t)();
-library_func_t avm_getlibraryfunc(char* id);
+library_func_t avm_getlibraryfunc(char* id){
+  assert(0);
+}
 
 void avm_calllibfunc(char* id){
     library_func_t f = avm_getlibraryfunc(id);
@@ -360,7 +380,9 @@ void libfunc_print(){
     }
 }
 
-void avm_registerlibfunc(char* id, library_func_t addr);
+void avm_registerlibfunc(char* id, library_func_t addr){
+  assert(0);
+}
 
 void execute_pusharg(instruction* instr){
     avm_memcell* arg = avm_translate_operand(instr->arg1, &ax);
@@ -432,7 +454,6 @@ char* avm_toString(avm_memcell* m){
     assert(m->type >= 0 && m->type == undef_m);
     return (*tostringFuncs[m->type])(m);
 }
-typedef double (*arithmetic_func_t)(double x, double y);
 
 double add_impl (double x, double y){ return x+y;}
 double sub_impl (double x, double y){ return x-y;}
@@ -479,15 +500,14 @@ void execute_arithmetic(instruction* instr){
 
 */
 
-typedef unsigned char(*tobool_func_t)(avm_memcell*);
 unsigned char number_tobool  (avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char string_tobool  (avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char bool_tobool    (avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char table_tobool   (avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char userfunc_tobool(avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char libfunc_tobool (avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char nill_tobool    (avm_memcell* m){ return m->data.numVal != 0;}
-unsigned char undef_tobool   (avm_memcell* m){ return m->data.numVal != 0;}
+unsigned char string_tobool  (avm_memcell* m){ return m->data.strVal[0] != 0;}
+unsigned char bool_tobool    (avm_memcell* m){ return m->data.boolVal;}
+unsigned char table_tobool   (avm_memcell* m){ return 1; }
+unsigned char userfunc_tobool(avm_memcell* m){ return 1; }
+unsigned char libfunc_tobool (avm_memcell* m){ return 1; }
+unsigned char nill_tobool    (avm_memcell* m){ return 0; }
+unsigned char undef_tobool   (avm_memcell* m){ assert(0); return 0;}
 
 tobool_func_t toboolFuncs[] = {
     number_tobool,
@@ -516,6 +536,28 @@ char* typeStrings[] = {
     "undef"
 };
 
+bool number_check(avm_memcell* a, avm_memcell* b){
+  return numConsts[a->data.numVal] == numConsts[b->data.numVal];
+}
+
+bool string_check(avm_memcell* a, avm_memcell* b){
+  if( strcmp(a->data.strVal,b->data.strVal) == 0 )
+    return true;
+  else 
+    return false; 
+}
+
+bool table_check(avm_memcell* a, avm_memcell* b){
+  return 0;
+}
+
+eq_check_t checks[] = {
+  number_check,
+  string_check,
+  table_check
+};
+
+
 void execute_jeq(instruction* instr){
     assert(instr->result->type == label_a);
     avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
@@ -533,11 +575,13 @@ void execute_jeq(instruction* instr){
         avm_error("%s == %s is illegal", typeStrings[rv1->type], typeStrings[rv2->type]);
     else {
         /* Equality check with dipatching */
+
     }    
     if(!executionFinished && result)
         pc = instr->result->val;
 
 }
+
 void libfunc_typeof(void){
     unsigned n = avm_totalactuals();
 
@@ -564,8 +608,12 @@ void execute_newtable(instruction* instr){
     lv->data.tableVal   = avm_tablenew();
     avm_tableincrefcounter (lv->data.tableVal);
 }
-avm_memcell* avm_tablegetelem( avm_table* table, avm_memcell* index);
-void avm_tablesetelem( avm_table* table, avm_memcell* index, avm_memcell* content);
+avm_memcell* avm_tablegetelem( avm_table* table, avm_memcell* index){
+  assert(0);
+}
+void avm_tablesetelem( avm_table* table, avm_memcell* index, avm_memcell* content){
+  assert(0);
+}
 
 void execute_tablegetelem(instruction* instr){
     avm_memcell* lv = avm_translate_operand(instr-> result,(avm_memcell*) 0);  
