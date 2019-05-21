@@ -102,14 +102,22 @@ unsigned currentProcessedQuad() {
 vector<instruction*> instructionz;
 
 unsigned consts_newNumber(double n) {
-  /*Dont check just insert*/
+   /*Check if we use its already*/
+  for(int i = 0; i < numConsts.size(); i++)
+    if( numConsts[i] == n )
+      return i;
+
   numConsts.push_back(n);
   assert(!numConsts.empty());
   return numConsts.size() - 1;
 }
 
 unsigned consts_newString(char* s) {
-  /*Dont check just insert*/
+  /*Check if we use its already*/
+  for(int i = 0; i < stringConsts.size(); i++)
+    if( !strcmp(stringConsts[i], s) )
+      return i;
+
   char* dup = strdup(s);
   stringConsts.push_back(dup);
   assert(!stringConsts.empty());
@@ -498,23 +506,43 @@ void create_binary() {
   unsigned magic_number = get_magic("NoobMaster69");
   FILE* outfile;
   outfile = fopen("binary.abc", "wb");
+  cout << "magic number: " << magic_number << endl;
   fwrite(&magic_number, sizeof(unsigned), 1, outfile);
   size_t size = stringConsts.size(); 
+  cout << "string size: " << size << endl;
   fwrite(&size, sizeof(size_t), 1, outfile);
-  for(int i=0; i < stringConsts.size();i++) fwrite(stringConsts[i], sizeof(char), strlen(stringConsts[i]), outfile);
+  for(int i=0; i < stringConsts.size();i++) {
+    fwrite(stringConsts[i], sizeof(char), strlen(stringConsts[i]), outfile);
+    cout << stringConsts[i] << endl;
+  }
   size = numConsts.size();
+  cout << "number size: " << size << endl;
   fwrite(&size, sizeof(size_t), 1, outfile);
-  for(int i=0; i < numConsts.size();i++) fwrite(&numConsts[i], sizeof(double), 1, outfile);
+  for(int i=0; i < numConsts.size();i++) {
+    fwrite(&numConsts[i], sizeof(double), 1, outfile);
+    cout << numConsts[i] << endl;
+  }
   size = userFuncz.size();
+  cout << "userFuncz size: " << size << endl;  
   fwrite(&size, sizeof(size_t), 1, outfile);
-  for(int i=0; i < userFuncz.size();i++) fwrite(userFuncz[i]->toString().c_str(), sizeof(char), userFuncz[i]->toString().size(), outfile);
+  for(int i=0; i < userFuncz.size();i++){ 
+    fwrite(userFuncz[i]->toString().c_str(), sizeof(char), userFuncz[i]->toString().size(), outfile);
+    cout << userFuncz[i] << endl;
+  }
   size = namedLibFuncs.size();
+  cout << "namedLibFuncs size: " << size << endl;
   fwrite(&size, sizeof(size_t), 1, outfile);
-  for(int i=0; i < namedLibFuncs.size();i++) fwrite(namedLibFuncs[i], sizeof(char), strlen(namedLibFuncs[i]), outfile);
+  for(int i=0; i < namedLibFuncs.size();i++) {
+    fwrite(namedLibFuncs[i], sizeof(char), strlen(namedLibFuncs[i]), outfile);
+    cout << namedLibFuncs[i] << endl;    
+  }
   size = instructionz.size();
+  cout << "instructionz size: " << size << endl;
   fwrite(&size, sizeof(size_t), 1, outfile);
-
-  for(int i=0; i < instructionz.size();i++) fwrite(instructionz[i]->toBinary().c_str(), sizeof(char), instructionz[i]->toBinary().size(), outfile);
+  for(int i=0; i < instructionz.size();i++){
+    fwrite(instructionz[i]->toBinary().c_str(), sizeof(char), instructionz[i]->toBinary().size(), outfile);
+    cout << instructionz[i]->toBinary()<< endl;    
+  }
   
   fclose(outfile);
 }

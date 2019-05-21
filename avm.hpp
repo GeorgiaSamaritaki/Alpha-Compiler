@@ -6,13 +6,12 @@
 #define AVM_STACKENV_SIZE 4
 #define AVM_MAX_INSTRUCTIONS (unsigned)nop_v
 #define AVM_ENDING_PC codeSize
+#define AVM_NUMACTUALS_OFFSET 4  
+#define AVM_SAVEDPC_OFFSET    3  
+#define AVM_SAVEDTOP_OFFSET   2     
+#define AVM_SAVEDTOPSP_OFFSET 1  
 
 //FIXME: 
-
-#define AVM_SAVEDTOP_OFFSET   0     
-#define AVM_SAVEDTOPSP_OFFSET 0  
-#define AVM_SAVEDPC_OFFSET    0  
-#define AVM_NUMACTUALS_OFFSET    0  
 unsigned N = 0;
 //FIXME: 
 
@@ -74,6 +73,7 @@ unsigned codeSize = 0;
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
 typedef char* (*tostring_func_t)(avm_memcell*);
+typedef void(*library_func_t)();
 typedef double (*arithmetic_func_t)(double x, double y);
 typedef unsigned char(*tobool_func_t)(avm_memcell*);
 typedef bool (*eq_check_t)(avm_memcell* a, avm_memcell* b);
@@ -83,7 +83,7 @@ typedef bool (*eq_check_t)(avm_memcell* a, avm_memcell* b);
 void avm_tableDestroy(avm_table* t);
 void avm_memcellClear(avm_memcell* m);
 void avm_callsaveenvironment();
-void avm_calllibfunc(char* id);
+void avm_callLibFunc(char* id);
 char* avm_toString(avm_memcell* m);
 
 static void avm_initstack(void) {
@@ -258,7 +258,7 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
     avm_tableIncrRC(lv->data.tableVal);
 }
 
-void execute_ASSIGN(instruction* instr) {
+void execute_assign(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, NULL);
   avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
@@ -280,10 +280,10 @@ void execute_call(instruction* instr) {
       break;
     }
     case string_m:
-      avm_calllibfunc(func->data.strVal);
+      avm_callLibFunc(func->data.strVal);
       break;
     case libfunc_m:
-      avm_calllibfunc(func->data.libfuncVal);
+      avm_callLibFunc(func->data.libfuncVal);
       break;
     default: {
       char* s = avm_toString(func);
@@ -313,43 +313,54 @@ void avm_callsaveenvironment(){
     avm_push_envvalue(top+totalActuals+2);
     avm_push_envvalue(topsp);
 }
-userfunc* avm_getfuncinfo(unsigned address){
-  assert(0);
+
+userfunc* avm_getFuncInfo(unsigned address){
+  for(int i=0; i<userFuncz.size(); i++)
+    if( userFuncz[i]->address == address ) return userFuncz[i];
+  return NULL;
 }
 
 void execute_funcenter(instruction* instr){
-    avm_memcell* func = avm_translate_operand(instr->result,&ax);
-    assert(func);
-    assert(pc==func->data.funcVal);
+  avm_memcell* func = avm_translate_operand(instr->result,&ax);
+  assert(func);
+  assert(pc == func->data.funcVal);
 
-    totalActuals = 0;
-    userfunc* funcInfo = avm_getfuncinfo(pc);
-    topsp = top;
-    top = top - funcInfo->localSize;
+  totalActuals = 0;
+  userfunc* funcInfo = avm_getFuncInfo(pc);
+  assert(funcInfo);
+  topsp = top;
+  top = top - funcInfo->localSize;
 }
 unsigned avm_get_envvalue(unsigned i){
-    assert(stack_m[i].type = number_m);
-    unsigned val = (unsigned) stack_m[i].data.numVal;
-    assert(stack_m[i].data.numVal == ((double)val));
-    return val;
+  assert(stack_m[i].type = number_m);
+  unsigned val = (unsigned) stack_m[i].data.numVal;
+  assert(stack_m[i].data.numVal == ((double)val));
+  return val;
 }
 
 void execute_funcexit(instruction* unused){
-    unsigned oldTop = top;
-    top   = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
-    pc    = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
-    topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-    while(++oldTop <= top)
-        avm_memcellClear(&stack_m[oldTop]);
+  unsigned oldTop = top;
+  top = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
+  pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
+  topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
+  while(++oldTop <= top)
+    avm_memcellClear(&stack_m[oldTop]);
 }
 
-typedef void(*library_func_t)();
-library_func_t avm_getlibraryfunc(char* id){
-  assert(0);
+library_func_t libraryFuncz[12];
+
+library_func_t avm_getLibraryFunc(char* id){
+  int lib_index = libfuncs_newUsed(id); // retrieve index from the lib funcs array 
+  return libraryFuncz[lib_index];
 }
 
-void avm_calllibfunc(char* id){
-    library_func_t f = avm_getlibraryfunc(id);
+void avm_registerLibFunc(char* id, library_func_t addr){
+  int lib_index = libfuncs_newUsed(id); // retrieve index from the lib funcs array 
+  libraryFuncz[lib_index] = addr;
+}
+
+void avm_callLibFunc(char* id){
+    library_func_t f = avm_getLibraryFunc(id);
     if(!f){
         avm_error("unsupported lib func '%s' called!",id);
         executionFinished = true;
@@ -362,26 +373,22 @@ void avm_calllibfunc(char* id){
     }
 }
 
-unsigned avm_totalactuals(){
-    return avm_get_envvalue(topsp + AVM_NUMACTUALS_OFFSET);
+unsigned avm_totalActuals(){
+  return avm_get_envvalue(topsp + AVM_NUMACTUALS_OFFSET);
 }
 
-avm_memcell* avm_getactual (unsigned i){
-    assert(i<avm_totalactuals());
-    return &stack_m[topsp + AVM_STACKENV_SIZE+1+i];
+avm_memcell* avm_getActual (unsigned i){
+  assert( i < avm_totalActuals() );
+  return &stack_m[topsp + AVM_STACKENV_SIZE+1+i];
 }
 
 void libfunc_print(){
-    unsigned n = avm_totalactuals();
-    for(unsigned i =0; i<n;++i){
-        char* s = avm_toString(avm_getactual(i));
-        puts(s);
-        free(s);
-    }
-}
-
-void avm_registerlibfunc(char* id, library_func_t addr){
-  assert(0);
+  unsigned n = avm_totalActuals();
+  for(unsigned i =0; i < n; ++i ){
+      char* s = avm_toString(avm_getActual(i));
+      puts(s);
+      free(s);
+  }
 }
 
 void execute_pusharg(instruction* instr){
@@ -582,8 +589,14 @@ void execute_jeq(instruction* instr){
 
 }
 
+void execute_jne(instruction* instr){}
+void execute_jle(instruction* instr){}
+void execute_jge(instruction* instr){}
+void execute_jlt(instruction* instr){}
+void execute_jgt(instruction* instr){}
+
 void libfunc_typeof(void){
-    unsigned n = avm_totalactuals();
+    unsigned n = avm_totalActuals();
 
     if(n!=1)    
         avm_error("one argument (not %d) expected in 'typeof'!",n);
@@ -593,7 +606,7 @@ void libfunc_typeof(void){
         avm_memcell(&retval);
         */
         retval.type = string_m;
-        retval.data.strVal = strdup(typeStrings[avm_getactual(0)->type]);
+        retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
     }
 }
 void avm_tableincrefcounter(avm_table* table){ table->rc++; }
@@ -657,8 +670,8 @@ void execute_tablesetelem(instruction* instr){
 
 void avm_initialize(){
     avm_initstack();
-    avm_registerlibfunc("print", libfunc_print);
-    avm_registerlibfunc("print", libfunc_typeof);
+    avm_registerLibFunc("print", libfunc_print);
+    avm_registerLibFunc("print", libfunc_typeof);
 }
 
 void libfunc_totalarguments(){
@@ -675,43 +688,24 @@ void libfunc_totalarguments(){
 
 }
 
-void execute_ADD(instruction* instr) {}
-void execute_SUB(instruction* instr) {}
-void execute_MUL(instruction* instr) {}
-void execute_DIV(instruction* instr) {}
-void execute_MOD(instruction* instr) {}
-void execute_UMINUS(instruction* instr) {}
-void execute_NEWTABLE(instruction* instr) {}
-void execute_TABLEGETELEM(instruction* instr) {}
-void execute_TABLESETELEM(instruction* instr) {}
-void execute_NOP(instruction* instr = NULL) {}
-void execute_JUMP(instruction* instr) {}
-void execute_IF_EQ(instruction* instr) {}
-void execute_IF_NOTEQ(instruction* instr) {}
-void execute_IF_GREATER(instruction* instr) {}
-void execute_IF_GREATEREQ(instruction* instr) {}
-void execute_IF_LESS(instruction* instr) {}
-void execute_IF_LESSEQ(instruction* instr) {}
-void execute_NOT(instruction* instr){};
-void execute_OR(instruction* instr){};
-void execute_AND(instruction* instr){};
-void execute_PARAM(instruction* instr){};
-void execute_CALL(instruction* instr){};
-void execute_GETRETVAL(instruction* instr){};
-void execute_FUNCSTART(instruction* instr){};
-void execute_RETURN(instruction* instr){};
-void execute_FUNCEND(instruction* instr){};
+void execute_jump(instruction* instr){}
+void execute_uminus(instruction* instr){}
+void execute_and(instruction* instr){}
+void execute_or(instruction* instr){}
+void execute_not(instruction* instr){}
+void execute_nop(instruction* instr){}
 
 execute_func_t executeFuncs[] = {
-    execute_ASSIGN,       execute_ADD,          execute_SUB,
-    execute_MUL,          execute_DIV,          execute_MOD,
-    execute_UMINUS,       execute_AND,          execute_OR,
-    execute_NOT,          execute_IF_EQ,        execute_IF_NOTEQ,
-    execute_IF_LESSEQ,    execute_IF_GREATEREQ, execute_IF_LESS,
-    execute_IF_GREATER,   execute_CALL,         execute_PARAM,
-    execute_RETURN,       execute_GETRETVAL,    execute_FUNCSTART,
-    execute_FUNCEND,      execute_NEWTABLE,     execute_TABLEGETELEM,
-    execute_TABLESETELEM, execute_JUMP,         execute_NOP};
+    execute_assign,       execute_add,          execute_sub,
+    execute_mul,          execute_div,          execute_mod,
+    execute_uminus,       execute_and,          execute_or,
+    execute_not,          execute_jeq,          execute_jne,
+    execute_jle,          execute_jge,          execute_jlt,
+    execute_jgt,          execute_call,         execute_pusharg,
+    execute_funcenter,    execute_funcexit,     execute_newtable,     
+    execute_tablegetelem, execute_tablesetelem, execute_jump,
+    execute_nop
+  };
 
 void execute_cycle(void) {
   if (executionFinished) return;
