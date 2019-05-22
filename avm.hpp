@@ -15,11 +15,17 @@
 unsigned N = 0;
 //FIXME: 
 
+// Arithmetic functions
 #define execute_add execute_arithmetic
 #define execute_sub execute_arithmetic
 #define execute_mul execute_arithmetic
 #define execute_div execute_arithmetic
 #define execute_mod execute_arithmetic
+// Relational functions
+#define execute_jle execute_rel
+#define execute_jge execute_rel
+#define execute_jlt execute_rel
+#define execute_jgt execute_rel
 
 /*Structs*/
 struct avm_table;
@@ -70,14 +76,26 @@ unsigned pc = 0;
 unsigned currLine = 0;
 unsigned codeSize = 0;
 
+char* typeStrings[] = {
+  "number",
+  "string",
+  "bool",
+  "table",
+  "userfunc",
+  "libfunc",
+  "nill",
+  "undef"
+};
+
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
 typedef char* (*tostring_func_t)(avm_memcell*);
 typedef void(*library_func_t)();
-typedef double (*arithmetic_func_t)(double x, double y);
+typedef double (*arithmetic_func_t)(double, double );
 typedef unsigned char(*tobool_func_t)(avm_memcell*);
-typedef bool (*eq_check_t)(avm_memcell* a, avm_memcell* b);
-
+typedef bool (*eq_check_t)(avm_memcell*, avm_memcell* );
+typedef bool (*cmp_func_t)(double, double);
+typedef unsigned (*hash_func_t)(avm_memcell*);
 
 /*Funcs*/
 void avm_tableDestroy(avm_table* t);
@@ -92,6 +110,28 @@ static void avm_initstack(void) {
     stack_m[i].type = undef_m;
   }
 }
+
+unsigned hash_number(avm_memcell* me){
+  //Fatoyritsa-style hash
+  assert(me);
+  assert(me->type == number_m);
+  return (int)me->data.numVal % AVM_TABLE_HASHSIZE;
+}
+
+unsigned hash_string(avm_memcell* me){
+  //Mpilas-style hash
+  assert(me);
+  assert(me->type == string_m);
+  size_t ui;
+  unsigned int uiHash = 0U;
+  for (ui = 0U; me->data.strVal[ui] != '\0'; ui++) uiHash = uiHash * HASH_MUL + me->data.strVal[ui];
+  return uiHash % AVM_TABLE_HASHSIZE;
+}
+
+hash_func_t hashMe[] = {
+  hash_number,
+  hash_string
+};
 
 void avm_tableIncrRC(avm_table* t) { ++(t->rc); }
 
@@ -262,7 +302,7 @@ void execute_assign(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, NULL);
   avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
-  assert(lv && (lv >= &stack_m[top] || lv == &retval)); //FIXME: selida17
+  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] || lv == &retval)); //FIXME: selida17
   assert(rv);
 
   avm_assign(lv, rv);
@@ -382,6 +422,7 @@ avm_memcell* avm_getActual (unsigned i){
   return &stack_m[topsp + AVM_STACKENV_SIZE+1+i];
 }
 
+/*Library Functions - Start*/
 void libfunc_print(){
   unsigned n = avm_totalActuals();
   for(unsigned i =0; i < n; ++i ){
@@ -391,12 +432,32 @@ void libfunc_print(){
   }
 }
 
+void libfunc_typeof(void){
+  unsigned n = avm_totalActuals();
+
+  if(n!=1){
+    executionFinished = true;
+    avm_error("one argument (not %d) expected in 'typeof'!",n);
+  }    
+  else{
+    /*  Thats how a library function returns a result.
+        It has to only set the 'retval' register!
+    */
+    avm_memcellClear(&retval);
+    retval.type = string_m;
+    retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
+  }
+}
+
+//FIXME: The other functions
+/*Library Functions - End*/
+
 void execute_pusharg(instruction* instr){
-    avm_memcell* arg = avm_translate_operand(instr->arg1, &ax);
-    assert(arg);
-    avm_assign(&stack_m[top], arg);
-    ++totalActuals;
-    avm_dec_top();
+  avm_memcell* arg = avm_translate_operand(instr->arg1, &ax);
+  assert(arg);
+  avm_assign(&stack_m[top], arg);
+  ++totalActuals;
+  avm_dec_top();
 }
 
 char* number_toString(avm_memcell* m){
@@ -447,51 +508,51 @@ char* undef_toString(avm_memcell* m){
 }
 
 tostring_func_t tostringFuncs[] = {
-    number_toString,
-    string_toString,
-    bool_toString,
-    table_toString,
-    userfunc_toString,
-    libfunc_toString,
-    nil_toString,
-    undef_toString
+  number_toString,
+  string_toString,
+  bool_toString,
+  table_toString,
+  userfunc_toString,
+  libfunc_toString,
+  nil_toString,
+  undef_toString
 };
 
 char* avm_toString(avm_memcell* m){
-    assert(m->type >= 0 && m->type == undef_m);
-    return (*tostringFuncs[m->type])(m);
+  assert(m->type >= 0 && m->type == undef_m);
+  return (*tostringFuncs[m->type])(m);
 }
 
-double add_impl (double x, double y){ return x+y;}
-double sub_impl (double x, double y){ return x-y;}
-double mul_impl (double x, double y){ return x*y;}
-double div_impl (double x, double y){ return x/y;} //FIXME: error check?
-double mod_impl (double x, double y){ return x+y;}
+double add_impl (double x, double y){ return x+y; }
+double sub_impl (double x, double y){ return x-y; }
+double mul_impl (double x, double y){ return x*y; }
+double div_impl (double x, double y){ return x/y; } //FIXME: error check?
+double mod_impl (double x, double y){ return x+y; }
 
 arithmetic_func_t arithmeticFuncs[] = {
-    add_impl,
-    sub_impl,
-    mul_impl,
-    div_impl,
-    mod_impl
+  add_impl,
+  sub_impl,
+  mul_impl,
+  div_impl,
+  mod_impl
 };
 
 void execute_arithmetic(instruction* instr){
-    avm_memcell* lv  = avm_translate_operand(instr->result, (avm_memcell *) 0);
-    avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
-    avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  avm_memcell* lv  = avm_translate_operand(instr->result, (avm_memcell *) 0);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
 
-    assert(lv && (&stack_m[N-1] >= lv && lv > &stack_m[top] || lv==&retval));
-    assert(rv1 && rv2);
-    if(rv1->type != number_m ||rv2->type!=number_m){
-        avm_error("not a number in arithmetic!");
-        executionFinished = 1;
-    }else{
-        arithmetic_func_t op = arithmeticFuncs[instr->opcode - add_v];
-        avm_memcellClear(lv);
-        lv->type        = number_m;
-        lv->data.numVal = (*op)(rv1->data.numVal, rv2->data.numVal);
-    }
+  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv > &stack_m[top] || lv==&retval));
+  assert(rv1 && rv2);
+  if(rv1->type != number_m ||rv2->type!=number_m){
+      avm_error("not a number in arithmetic!");
+      executionFinished = 1;
+  }else{
+      arithmetic_func_t op = arithmeticFuncs[instr->opcode - add_v];
+      avm_memcellClear(lv);
+      lv->type        = number_m;
+      lv->data.numVal = (*op)(rv1->data.numVal, rv2->data.numVal);
+  }
 }
 /*
 Με τρόπο παρόμοιο των αριθμητικών εκφράσεων
@@ -517,31 +578,20 @@ unsigned char nill_tobool    (avm_memcell* m){ return 0; }
 unsigned char undef_tobool   (avm_memcell* m){ assert(0); return 0;}
 
 tobool_func_t toboolFuncs[] = {
-    number_tobool,
-    string_tobool,
-    bool_tobool,
-    table_tobool,
-    userfunc_tobool,
-    libfunc_tobool,
-    nill_tobool,
-    undef_tobool
+  number_tobool,
+  string_tobool,
+  bool_tobool,
+  table_tobool,
+  userfunc_tobool,
+  libfunc_tobool,
+  nill_tobool,
+  undef_tobool
 };
 
 bool avm_tobool(avm_memcell* m){
-    assert(m->type >= 0 && m->type < undef_m);
-    return (*toboolFuncs[m->type])(m);
+  assert(m->type >= 0 && m->type < undef_m);
+  return (*toboolFuncs[m->type])(m);
 }
-
-char* typeStrings[] = {
-    "number",
-    "string",
-    "bool",
-    "table",
-    "userfunc",
-    "libfunc",
-    "nill",
-    "undef"
-};
 
 bool number_check(avm_memcell* a, avm_memcell* b){
   return numConsts[a->data.numVal] == numConsts[b->data.numVal];
@@ -555,80 +605,201 @@ bool string_check(avm_memcell* a, avm_memcell* b){
 }
 
 bool table_check(avm_memcell* a, avm_memcell* b){
-  return 0;
+  //FIXME: Maybe check every element not the address
+  return a->data.tableVal == b->data.tableVal;
+}
+
+bool userfunc_check(avm_memcell* a, avm_memcell* b){
+  return a->data.funcVal == b->data.funcVal;
+}
+
+bool libfunc_check(avm_memcell* a, avm_memcell* b){
+  if( strcmp(a->data.libfuncVal,b->data.libfuncVal) == 0 )
+    return true;
+  else 
+    return false;
 }
 
 eq_check_t checks[] = {
   number_check,
   string_check,
-  table_check
+  0, //bool
+  table_check,
+  userfunc_check,
+  libfunc_check, 
+  0, //nil
+  0 //undef
 };
 
-
 void execute_jeq(instruction* instr){
-    assert(instr->result->type == label_a);
-    avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
-    avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
-    
-    bool result = 0;
+  assert(instr->result->type == label_a);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  
+  bool result = 0;
 
-    if(rv1->type == undef_m || rv2->type == undef_m)
-        avm_error("'undef' involved in equality!");
-    else if(rv1->type == nil_m || rv2->type == nil_m)
-        result = rv1->type == nil_m && rv2->type == nil_m;
-    else if(rv1->type == bool_m || rv2->type == bool_m)
-        result = (avm_tobool(rv1) == avm_tobool(rv2));
-    else if(rv1->type != rv2->type)
-        avm_error("%s == %s is illegal", typeStrings[rv1->type], typeStrings[rv2->type]);
-    else {
-        /* Equality check with dipatching */
+  if(rv1->type == undef_m || rv2->type == undef_m)
+    avm_error("'undef' involved in equality!");
+  else if(rv1->type == nil_m || rv2->type == nil_m)
+    result = rv1->type == nil_m && rv2->type == nil_m;
+  else if(rv1->type == bool_m || rv2->type == bool_m)
+    result = (avm_tobool(rv1) == avm_tobool(rv2));
+  else if(rv1->type != rv2->type)
+    avm_error("%s == %s is illegal", typeStrings[rv1->type], typeStrings[rv2->type]);
+  else {
+    /* Equality check with dipatching */
+    result =  checks[rv1->type](rv1, rv2);
+  }    
 
-    }    
-    if(!executionFinished && result)
-        pc = instr->result->val;
+  if(!executionFinished && result)
+    pc = instr->result->val;
 
 }
 
-void execute_jne(instruction* instr){}
-void execute_jle(instruction* instr){}
-void execute_jge(instruction* instr){}
-void execute_jlt(instruction* instr){}
-void execute_jgt(instruction* instr){}
+void execute_jne(instruction* instr){
+  assert(instr->result->type == label_a);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  
+  bool result = 0;
 
-void libfunc_typeof(void){
-    unsigned n = avm_totalActuals();
+  if(rv1->type == undef_m || rv2->type == undef_m){
+    executionFinished = true;
+    avm_error("'undef' involved in equality!");
+  }
+  else if(rv1->type == nil_m || rv2->type == nil_m)
+    result = rv1->type == nil_m && rv2->type == nil_m;
+  else if(rv1->type == bool_m || rv2->type == bool_m)
+    result = (avm_tobool(rv1) == avm_tobool(rv2));
+  else if(rv1->type != rv2->type){
+    executionFinished = true;
+    avm_error("%s == %s is illegal", typeStrings[rv1->type], typeStrings[rv2->type]);
+  }
+  else {
+    /* Equality check with dipatching */
+    result =  !(checks[rv1->type](rv1, rv2));
+  }    
 
-    if(n!=1)    
-        avm_error("one argument (not %d) expected in 'typeof'!",n);
-    else{
-        /*  Thats how a library function returns a result.
-            It has to only set the 'retval' register!
-        avm_memcell(&retval);
-        */
-        retval.type = string_m;
-        retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
-    }
+  if(!executionFinished && result)
+    pc = instr->result->val;
 }
-void avm_tableincrefcounter(avm_table* table){ table->rc++; }
+
+bool le_impl(double a, double b){ return a < b;  };
+bool ge_impl(double a, double b){ return a > b;  };
+bool lt_impl(double a, double b){ return a <= b; };
+bool gt_impl(double a, double b){ return a >= b; };
+
+cmp_func_t numberCmpFuncs[] = {
+  le_impl,
+  ge_impl,
+  lt_impl,
+  gt_impl
+};
+
+void execute_rel(instruction* instr){
+  assert(instr->result->type == label_a);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  
+  bool result = 0;
+
+  if( rv1->type != number_m || rv2->type != number_m ) {
+    executionFinished = true;
+    avm_error("Comparing args are not numbers %s %s",  typeStrings[rv1->type], typeStrings[rv2->type]);
+  } else {
+    result = numberCmpFuncs[instr->opcode - jle_v](rv1->data.numVal, rv2->data.numVal);
+  }
+}
 
 void execute_newtable(instruction* instr){
-    avm_memcell* lv = avm_translate_operand(instr->result,(avm_memcell*)0);
-    assert(lv && (&stack_m[N-1] >= lv && lv > &stack_m[top] || lv == &retval));
+  avm_memcell* lv = avm_translate_operand(instr->result,(avm_memcell*)0);
+  assert(lv && (&stack_m[N-1] >= lv && lv > &stack_m[top] || lv == &retval));
 
-    avm_memcellClear(lv);
+  avm_memcellClear(lv);
 
-    lv->type            = table_m;
-    lv->data.tableVal   = avm_tablenew();
-    avm_tableincrefcounter (lv->data.tableVal);
+  lv->type = table_m;
+  lv->data.tableVal = avm_tablenew();
+  avm_tableIncrRC(lv->data.tableVal);
 }
+
 avm_memcell* avm_tablegetelem( avm_table* table, avm_memcell* index){
-  assert(0);
-}
-void avm_tablesetelem( avm_table* table, avm_memcell* index, avm_memcell* content){
-  assert(0);
+  assert(table && index);
+  unsigned array_index = hashMe[index->type](index);
+
+  switch(index->type){
+    case number_m: {
+      avm_table_bucket* tmp = table->numIndexed[array_index];
+      while( tmp ) {
+        if( tmp->key.data.numVal == index->data.numVal){
+          avm_memcell* ret = &tmp->value;
+          return ret;
+        }
+        tmp = tmp->next;
+      }
+      break;
+    }
+    case string_m: {
+      avm_table_bucket* tmp = table->strIndexed[array_index];
+      while( tmp ) {
+        if( strcmp(tmp->key.data.strVal, index->data.strVal) == 0){
+          avm_memcell* ret = &tmp->value;
+          return ret;
+        }
+        tmp = tmp->next;
+      }
+      break;
+    }
+    default: 
+      assert(0);
+  }
+  return NULL;
 }
 
-void execute_tablegetelem(instruction* instr){
+void insert_numIndexed(avm_table* table, avm_memcell* index, avm_memcell* content){
+  unsigned array_index = hashMe[index->type](index);
+  avm_table_bucket* new_bucket = new avm_table_bucket();
+  avm_assign(&new_bucket->key, index);
+  avm_assign(&new_bucket->value, content);
+
+  if(table->numIndexed[array_index] == NULL){
+    new_bucket->next = NULL;
+    table->numIndexed[array_index] = new_bucket;
+  } else{
+    new_bucket->next = table->numIndexed[array_index];
+    table->numIndexed[array_index] = new_bucket;
+  }
+}
+
+void insert_strIndexed(avm_table* table, avm_memcell* index, avm_memcell* content){
+  unsigned array_index = hashMe[index->type](index);
+  avm_table_bucket* new_bucket = new avm_table_bucket();
+  avm_assign(&new_bucket->key, index);
+  avm_assign(&new_bucket->value, content);
+
+  if(table->strIndexed[array_index] == NULL){
+    new_bucket->next = NULL;
+    table->strIndexed[array_index] = new_bucket;
+  } else{
+    new_bucket->next = table->strIndexed[array_index];
+    table->strIndexed[array_index] = new_bucket;
+  }
+}
+
+void avm_tablesetelem( avm_table* table, avm_memcell* index, avm_memcell* content){
+  assert(table && index && content);
+
+  switch(index->type){
+    case number_m: {
+      insert_numIndexed(table, index, content);
+    }
+    case string_m: {
+      insert_strIndexed(table, index, content);
+    }
+    default: 
+      assert(0);
+  }
+}
+void execute_tablegetelem(instruction* instr) {
     avm_memcell* lv = avm_translate_operand(instr-> result,(avm_memcell*) 0);  
     avm_memcell* t  = avm_translate_operand(instr-> arg1  ,(avm_memcell*) 0);
     avm_memcell* i  = avm_translate_operand(instr-> arg2  ,&ax);

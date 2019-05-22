@@ -21,7 +21,6 @@ bool error = 0;
 
 enum scopeSpace_t { program_var, function_local, formal_arg };
 
-
 unsigned int anonymous_count;
 unsigned int programVarOffset = 0;
 unsigned int functionLocalOffset = 0;
@@ -100,8 +99,6 @@ void restoreCurrScopeOffset(unsigned int n){
     assert(0);
   }
 }
-
-
 
 /* συναρτήσεις βιβλιοθήκης LIBFUNC
   συναρτήσεις προγράμματος USERFUNC
