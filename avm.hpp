@@ -12,7 +12,6 @@
 #define AVM_SAVEDTOP_OFFSET   2     
 #define AVM_SAVEDTOPSP_OFFSET 1  
 
-
 // Arithmetic functions
 #define execute_add execute_arithmetic
 #define execute_sub execute_arithmetic
@@ -73,6 +72,13 @@ bool executionFinished = false;
 unsigned pc = 0;
 unsigned currLine = 0;
 unsigned codeSize = 0;
+
+vector<double> numConstsRead;
+vector<char*> stringConstsRead;
+vector<char*> namedLibFuncsRead;
+vector<userfunc*> userFunczRead;
+vector<instruction*> instructionzRead;
+
 
 char* typeStrings[] = {
   "number",
@@ -300,7 +306,7 @@ void execute_assign(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, NULL);
   avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
-  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] || lv == &retval)); //FIXME: selida17
+  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] || lv == &retval));
   assert(rv);
 
   avm_assign(lv, rv);
@@ -443,6 +449,7 @@ void libfunc_typeof(void){
     retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
   }
 }
+/*
 void libfunc_sin(void){
   unsigned n = avm_totalActuals();
 
@@ -536,7 +543,7 @@ void libfunc_objectmemberkeys(void){
 }
 void libfunc_objecttotalmembers(void){
 }
-
+*/
 //FIXME: The other functions
 /*Library Functions - End*/
 
@@ -698,7 +705,7 @@ bool table_check(avm_memcell* a, avm_memcell* b){
 }
 
 bool userfunc_check(avm_memcell* a, avm_memcell* b){
-  return !strcmp(a->data.funcVal,b->data.funcVal);
+  return a->data.funcVal == b->data.funcVal;
 }
 
 bool libfunc_check(avm_memcell* a, avm_memcell* b){
@@ -927,12 +934,6 @@ void execute_tablesetelem(instruction* instr){
         avm_tablesetelem(t->data.tableVal,i,c);
 }
 
-void avm_initialize(){
-    avm_initstack();
-    avm_registerLibFunc("print", libfunc_print);
-    avm_registerLibFunc("print", libfunc_typeof);
-}
-
 void libfunc_totalarguments(){
     unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
     avm_memcellClear(&retval);
@@ -980,4 +981,82 @@ void execute_cycle(void) {
     (*executeFuncs[instr->opcode])(instr);
     if (pc == oldPc) ++pc;
   }
+}
+
+void read_binary(){
+  FILE* infile;
+  unsigned magic_number;
+  size_t size;
+
+  infile = fopen("binary.abc", "rb");
+  if(!infile)
+    cerr << " Error while opening the file" << endl;
+  
+  if( fread(&magic_number, sizeof(unsigned), 1, infile) != 1) 
+    cerr << "Error while reading the file" << endl;
+  //Check magic number
+  if( magic_number != get_magic("I love you 3000") )
+    cerr << " Magic number is invalid" << endl;
+  
+  //String consts
+  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
+    cerr << " Error while reading the file" << endl;
+  stringConstsRead = *new vector<char*>(size);
+  for(int i = 0; i < size; i++){
+    if( fread(stringConstsRead[i], sizeof(char*), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+  }
+
+  //Num consts
+  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
+    cerr << " Error while reading the file" << endl;
+  numConstsRead = *new vector<double>(size);
+  for(int i = 0; i < size; i++){
+    if( fread(&numConstsRead[i], sizeof(double), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+  }
+  
+  //User funcs
+  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
+    cerr << " Error while reading the file" << endl;
+  userFunczRead = *new vector<userfunc*>(size);
+  for(int i = 0; i < size; i++){
+    if( fread(userFunczRead[i]->id, sizeof(char*), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+    if( fread(&userFunczRead[i]->address, sizeof(unsigned), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+    if( fread(&userFunczRead[i]->localSize, sizeof(unsigned), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+  }
+  
+  //Lib funcs
+  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
+    cerr << " Error while reading the file" << endl;
+  namedLibFuncsRead = *new vector<char*>(size);
+  for(int i = 0; i < size; i++){
+    if( fread(namedLibFuncsRead[i], sizeof(char*), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+  }
+  
+  //instuctions
+  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
+    cerr << " Error while reading the file" << endl;
+  instructionzRead = *new vector<instruction*>(size);
+  for(int i = 0; i < size; i++){
+    //opcode
+    if( fread(&instructionzRead[i]->opcode, sizeof(vmopcode), 1, infile) != 1)
+      cerr << "Error while reading the file" << endl;
+
+    //We need cases for those but i am literally dead
+    //result
+    //arg1
+    //arg2
+  }
+
+}
+
+void avm_initialize(){
+    avm_initstack();
+    avm_registerLibFunc("print", libfunc_print);
+    avm_registerLibFunc("typeof", libfunc_typeof);
 }

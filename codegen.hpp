@@ -32,7 +32,7 @@ enum vmopcode {
 };
 
 enum vmarg_t {
-  label_a,
+  label_a = 0,
   global_a,
   formal_a,
   local_a,
@@ -56,9 +56,6 @@ typedef struct instruction {
   vmarg* arg1;
   vmarg* arg2;
   unsigned srcLine;
-
-  string toBinary();
-
 } instruction;
 
 typedef struct userfunc {
@@ -500,48 +497,108 @@ void generateAll(void) {
     (*generators[quads[i]->iop])(quads[i]);
   }
 }
+
 unsigned get_magic(string s) { return 69420666; }
 
 void create_binary() {
   unsigned magic_number = get_magic("NoobMaster69");
   FILE* outfile;
   outfile = fopen("binary.abc", "wb");
+  if( !outfile ){
+    cerr << " Error while opening the file" << endl;
+  }
   cout << "magic number: " << magic_number << endl;
-  fwrite(&magic_number, sizeof(unsigned), 1, outfile);
+
+  //Magic number
+  if( fwrite(&magic_number, sizeof(unsigned), 1, outfile) != 1) 
+    cerr << " Error writing binary file" << endl;
+
+  //String consts
   size_t size = stringConsts.size(); 
   cout << "string size: " << size << endl;
-  fwrite(&size, sizeof(size_t), 1, outfile);
+  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1)
+    cerr << " Error writing binary file" << endl;
+    
   for(int i=0; i < stringConsts.size();i++) {
-    fwrite(stringConsts[i], sizeof(char), strlen(stringConsts[i]), outfile);
+    if( fwrite(stringConsts[i], sizeof(char*), 1, outfile) != 1 )
+      cerr << " Error writing binary file" << endl; 
     cout << stringConsts[i] << endl;
   }
+
+  //Num consts
   size = numConsts.size();
   cout << "number size: " << size << endl;
-  fwrite(&size, sizeof(size_t), 1, outfile);
+  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1 )
+    cerr << " Error writing binary file" << endl;
   for(int i=0; i < numConsts.size();i++) {
-    fwrite(&numConsts[i], sizeof(double), 1, outfile);
+    if ( fwrite(&numConsts[i], sizeof(double), 1, outfile) != 1) 
+      cerr << " Error writing binary file" << endl;
     cout << numConsts[i] << endl;
   }
+
+  //user funcs
   size = userFuncz.size();
   cout << "userFuncz size: " << size << endl;  
-  fwrite(&size, sizeof(size_t), 1, outfile);
+  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1 )
+    cerr << " Error writing binary file" << endl;
   for(int i=0; i < userFuncz.size();i++){ 
-    fwrite(userFuncz[i]->toString().c_str(), sizeof(char), userFuncz[i]->toString().size(), outfile);
+    if( fwrite(userFuncz[i]->id, sizeof(char*), 1, outfile) != 1)
+      cerr << " Error writing binary file" << endl;
+
+    if( fwrite(&userFuncz[i]->address, sizeof(unsigned), 1, outfile) != 1)
+      cerr << " Error writing binary file" << endl;
+    
+    if( fwrite(&userFuncz[i]->localSize, sizeof(unsigned), 1, outfile) != 1)
+      cerr << " Error writing binary file" << endl;
+      
     cout << userFuncz[i] << endl;
   }
+
+  //lib funcs
   size = namedLibFuncs.size();
   cout << "namedLibFuncs size: " << size << endl;
-  fwrite(&size, sizeof(size_t), 1, outfile);
+  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1)
+    cerr << " Error writing binary file" << endl;
   for(int i=0; i < namedLibFuncs.size();i++) {
-    fwrite(namedLibFuncs[i], sizeof(char), strlen(namedLibFuncs[i]), outfile);
+    if( fwrite(namedLibFuncs[i], sizeof(char*), 1, outfile) != 1 )
+      cerr << " Error writing binary file" << endl;
     cout << namedLibFuncs[i] << endl;    
   }
+
+  //Instructions
   size = instructionz.size();
   cout << "instructionz size: " << size << endl;
-  fwrite(&size, sizeof(size_t), 1, outfile);
+  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1) 
+    cerr << " Error writing binary file" << endl;
   for(int i=0; i < instructionz.size();i++){
-    fwrite(instructionz[i]->toBinary().c_str(), sizeof(char), instructionz[i]->toBinary().size(), outfile);
-    cout << instructionz[i]->toBinary()<< endl;    
+    if( fwrite(&(instructionz[i]->opcode), sizeof(vmopcode), 1, outfile) != 1)
+      cerr << " Error writing binary file" << endl;
+    cout << instructionz[i]->opcode << " ";
+    if( instructionz[i]->result ){
+      //result
+      if( fwrite(&(instructionz[i]->result->type), sizeof(vmarg_t), 1, outfile) != 1)
+        cerr << " Error writing binary file" << endl; 
+      if( fwrite(&(instructionz[i]->result->val), sizeof(unsigned), 1, outfile) != 1)
+        cerr << " Error writing binary file" << endl;
+      cout << instructionz[i]->result->type << "," << instructionz[i]->result->val << " ";
+    }
+    if(instructionz[i]->arg1 ){
+      //arg1
+      if( fwrite(&(instructionz[i]->arg1->type), sizeof(vmarg_t), 1, outfile) != 1)
+        cerr << " Error writing binary file" << endl;
+      if( fwrite(&(instructionz[i]->arg1->val), sizeof(unsigned), 1, outfile) != 1)
+        cerr << " Error writing binary file" << endl;
+      cout << instructionz[i]->arg1->type << "," << instructionz[i]->arg1->val << " ";
+    }
+    if(instructionz[i]->arg2){
+      //arg2
+      if( fwrite(&(instructionz[i]->arg2->type), sizeof(vmarg_t), 1, outfile) != 1)
+        cerr << " Error writing binary file" << endl;
+      if( fwrite(&(instructionz[i]->arg2->val), sizeof(unsigned), 1, outfile) != 1)
+        cerr << " Error writing binary file" << endl;
+      cout << instructionz[i]->arg2->type << "," << instructionz[i]->arg2->val << " ";
+    }
+    cout << endl;
   }
   
   fclose(outfile);
@@ -633,39 +690,6 @@ string toString(vmarg_t t) {
   }
 }
 
-string vmarg_toBinary(vmarg* arg){
-  if( arg == NULL ){
-    return "";
-  } 
-  switch(arg->type){
-    case label_a: 
-      return "00," + arg->val;
-    case global_a: 
-      return "01," + arg->val;
-    case formal_a:
-      return "02," + arg->val;
-    case local_a: 
-      return "03," + arg->val;
-    case number_a:
-      return "04," + arg->val;
-    case string_a: 
-      return "05," + arg->val;
-    case bool_a: 
-      return "06," + arg->val;
-    case nil_a: 
-      return "07,";
-    case userfunc_a: 
-      return "08," + arg->val;
-    case libfunc_a: 
-      return "09," + arg->val;
-    case retval_a:
-      return "10,";
-    default: 
-      assert(0);
-  }
-  return NULL;
-}
-
 void printInstructions() {
   ofstream myfile;
   string s = "tcode.txt";
@@ -723,11 +747,4 @@ void printInstruction(instruction* i) {
     cout << string(9 + 10, ' ');
 
   cout << setw(12) << i->srcLine << endl;
-}
-
-string instruction::toBinary(){
-  stringstream ss;
- 
-  ss << opcode << " " << vmarg_toBinary(result) << " " << vmarg_toBinary(arg1) << " " << vmarg_toBinary(arg2); 
-  return ss.str();
 }
