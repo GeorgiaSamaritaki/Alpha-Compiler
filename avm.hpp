@@ -1,4 +1,5 @@
 #include "codegen.hpp"
+#include "math.h"
 
 #define AVM_STACKSIZE 4096
 #define AVM_WIPEOUT(m) memset(&(m), 0, sizeof(m))
@@ -11,9 +12,6 @@
 #define AVM_SAVEDTOP_OFFSET   2     
 #define AVM_SAVEDTOPSP_OFFSET 1  
 
-//FIXME: 
-unsigned N = 0;
-//FIXME: 
 
 // Arithmetic functions
 #define execute_add execute_arithmetic
@@ -265,14 +263,14 @@ void avm_memcellClear(avm_memcell* m) {
 }
 
 void avm_warning(char* format, ...) {
-  printf("WARNING: ");
+  printf("Runtime Warning: ");
   va_list args;
   va_start(args, format);
   printf(format, args);
   va_end(args);
 }
 void avm_error(char* format, ...) {
-  printf("WARNING: ");
+  printf("Runtime Error: ");
   va_list args;
   va_start(args, format);
   printf(format, args);
@@ -437,16 +435,106 @@ void libfunc_typeof(void){
 
   if(n!=1){
     executionFinished = true;
-    avm_error("one argument (not %d) expected in 'typeof'!",n);
+    avm_error("one argument expected in 'typeof' (not %d) !",n);
   }    
   else{
-    /*  Thats how a library function returns a result.
-        It has to only set the 'retval' register!
-    */
     avm_memcellClear(&retval);
     retval.type = string_m;
     retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
   }
+}
+void libfunc_sin(void){
+  unsigned n = avm_totalActuals();
+
+  if(n!=1){
+    executionFinished = true;
+    avm_error("one argument expected in 'sin' (not %d) !",n);
+  }    
+  else{
+    if(avm_getActual(0)->type != number_m){
+      executionFinished = true;
+      avm_error("Sin expects number!",n);
+    }else{
+      avm_memcellClear(&retval);
+      retval.type = number_m;
+      retval.data.numVal = sin(avm_getActual(0)->data);
+    }
+  }
+}
+
+void libfunc_cos(void){
+  unsigned n = avm_totalActuals();
+
+  if(n!=1){
+    executionFinished = true;
+    avm_error("one argument expected in 'cos' (not %d) !",n);
+  }    
+  else{
+    if(avm_getActual(0)->type != number_m){
+      executionFinished = true;
+      avm_error("Cos expects number!",n);
+    }else{
+      avm_memcellClear(&retval);
+      retval.type = number_m;
+      retval.data.numVal = cos(avm_getActual(0)->data);
+    }
+  }
+}
+
+void libfunc_sqrt(void){
+  unsigned n = avm_totalActuals();
+
+  if(n!=1){
+    executionFinished = true;
+    avm_error("one argument expected in 'sqrt' (not %d) !",n);
+  }    
+  else{
+    if(avm_getActual(0)->type != number_m){
+      executionFinished = true;
+      avm_error("Sqrt expects number!",n);
+    }else{
+      avm_memcellClear(&retval);
+      retval.type = number_m;
+      double tmp = sqrt(avm_getActual(0)->data);
+      if(tmp == null ) retval.type = nil_m;
+      else retval.data.numVal = tmp;
+    }
+  }
+}
+bool is_number(const string& s){
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+
+void libfunc_input(void){
+  string s;
+  cin >> s;
+
+  if(is_number(s)){
+    avm_memcellClear(&retval);
+    retval.type = number_m;
+    retval.data.numVal = atof(s.c_str())
+  }else if(s.compare("true") || s.compare("TRUE")) {
+    
+  }
+
+}
+
+void libfunc_argument(void){
+}
+
+void libfunc_strtonum(void){
+  
+}
+
+void libfunc_objectcopy(void){
+}
+void libfunc_totalarguments(void){
+}
+void libfunc_objectmemberkeys(void){
+}
+void libfunc_objecttotalmembers(void){
 }
 
 //FIXME: The other functions
@@ -605,12 +693,12 @@ bool string_check(avm_memcell* a, avm_memcell* b){
 }
 
 bool table_check(avm_memcell* a, avm_memcell* b){
-  //FIXME: Maybe check every element not the address
+  //TODO: Maybe check every element not the address
   return a->data.tableVal == b->data.tableVal;
 }
 
 bool userfunc_check(avm_memcell* a, avm_memcell* b){
-  return a->data.funcVal == b->data.funcVal;
+  return !strcmp(a->data.funcVal,b->data.funcVal);
 }
 
 bool libfunc_check(avm_memcell* a, avm_memcell* b){
@@ -670,10 +758,10 @@ void execute_jne(instruction* instr){
   else if(rv1->type == nil_m || rv2->type == nil_m)
     result = rv1->type == nil_m && rv2->type == nil_m;
   else if(rv1->type == bool_m || rv2->type == bool_m)
-    result = (avm_tobool(rv1) == avm_tobool(rv2));
+    result = (avm_tobool(rv1) != avm_tobool(rv2));
   else if(rv1->type != rv2->type){
     executionFinished = true;
-    avm_error("%s == %s is illegal", typeStrings[rv1->type], typeStrings[rv2->type]);
+    avm_error("%s != %s is illegal", typeStrings[rv1->type], typeStrings[rv2->type]);
   }
   else {
     /* Equality check with dipatching */
@@ -713,7 +801,7 @@ void execute_rel(instruction* instr){
 
 void execute_newtable(instruction* instr){
   avm_memcell* lv = avm_translate_operand(instr->result,(avm_memcell*)0);
-  assert(lv && (&stack_m[N-1] >= lv && lv > &stack_m[top] || lv == &retval));
+  assert(lv && (&stack_m[AVM_STACKSIZE-1] >= lv && lv > &stack_m[top] || lv == &retval));
 
   avm_memcellClear(lv);
 
@@ -804,8 +892,8 @@ void execute_tablegetelem(instruction* instr) {
     avm_memcell* t  = avm_translate_operand(instr-> arg1  ,(avm_memcell*) 0);
     avm_memcell* i  = avm_translate_operand(instr-> arg2  ,&ax);
 
-    assert(lv && (&stack_m[N-1] >= lv && lv > &stack_m[top] || lv==&retval) ); 
-    assert(t && (&stack_m[N-1] >= t && t > &stack_m[top] ) );
+    assert(lv && (&stack_m[AVM_STACKSIZE-1] >= lv && lv > &stack_m[top] || lv==&retval) ); 
+    assert(t && (&stack_m[AVM_STACKSIZE-1] >= t && t > &stack_m[top] ) );
     assert(i);
     avm_memcellClear(lv);
     lv->type = nil_m;
@@ -831,7 +919,7 @@ void execute_tablesetelem(instruction* instr){
     avm_memcell* i = avm_translate_operand(instr-> arg1, &ax);
     avm_memcell* c = avm_translate_operand(instr-> arg2, &bx);
 
-    assert(t && &stack_m[N-1] >= t && t > &stack_m[top] );
+    assert(t && &stack_m[AVM_STACKSIZE-1] >= t && t > &stack_m[top] );
     assert(i && c);
     if(t->type != table_m)
         avm_error("illegal use of type %s as table!", typeStrings[t->type]);
