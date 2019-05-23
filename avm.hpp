@@ -1018,12 +1018,6 @@ void execute_tablesetelem(instruction* instr) {
     avm_tablesetelem(t->data.tableVal, i, c);
 }
 
-void avm_initialize() {
-  avm_initstack();
-  avm_registerLibFunc("print", libfunc_print);
-  avm_registerLibFunc("print", libfunc_typeof);
-}
-
 void libfunc_totalarguments() {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
   avm_memcellClear(&retval);
