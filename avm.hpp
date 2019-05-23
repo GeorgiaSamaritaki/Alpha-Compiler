@@ -73,8 +73,23 @@ unsigned pc = 0;
 unsigned currLine = 0;
 unsigned codeSize = 0;
 
-char* typeStrings[] = {"number",   "string",  "bool", "table",
-                       "userfunc", "libfunc", "nill", "undef"};
+//For reading 
+vector<double> numConstsRead;
+vector<char*> stringConstsRead;
+vector<char*> namedLibFuncsRead;
+vector<userfunc*> userFunczRead;
+vector<instruction*> instructionzRead;
+
+char* typeStrings[] = {
+  "number",
+  "string",
+  "bool",
+  "table",
+  "userfunc",
+  "libfunc",
+  "nill",
+  "undef"
+};
 
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
@@ -164,12 +179,12 @@ void avm_tableDestroy(avm_table* t) {
 }
 
 double consts_getNumber(unsigned index) {
-  assert(!numConsts.empty());
-  return numConsts[index];
+  assert(!numConstsRead.empty());
+  return numConstsRead[index];
 }
 char* consts_getString(unsigned index) {
-  assert(!stringConsts.empty());
-  return stringConsts[index];
+  assert(!stringConstsRead.empty());
+  return stringConstsRead[index];
 }
 char* libfuncs_getUsed(unsigned index) {
   assert(!namedLibFuncs.empty());
@@ -288,8 +303,7 @@ void execute_assign(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, NULL);
   avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
-  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] ||
-                lv == &retval));  // FIXME: selida17
+  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] || lv == &retval));
   assert(rv);
 
   avm_assign(lv, rv);
@@ -303,7 +317,7 @@ void execute_call(instruction* instr) {
     case userfunc_m: {
       pc = func->data.funcVal;
       assert(pc < AVM_ENDING_PC);
-      assert(instructionz[pc]->opcode == funcenter_v);
+      assert(instructionzRead[pc]->opcode == funcenter_v);
       break;
     }
     case string_m:
@@ -340,9 +354,9 @@ void avm_callsaveenvironment() {
   avm_push_envvalue(topsp);
 }
 
-userfunc* avm_getFuncInfo(unsigned address) {
-  for (int i = 0; i < userFuncz.size(); i++)
-    if (userFuncz[i]->address == address) return userFuncz[i];
+userfunc* avm_getFuncInfo(unsigned address){
+  for(int i=0; i<userFunczRead.size(); i++)
+    if( userFunczRead[i]->address == address ) return userFunczRead[i];
   return NULL;
 }
 
@@ -793,7 +807,7 @@ bool table_check(avm_memcell* a, avm_memcell* b) {
   return a->data.tableVal == b->data.tableVal;
 }
 
-bool userfunc_check(avm_memcell* a, avm_memcell* b) {
+bool userfunc_check(avm_memcell* a, avm_memcell* b){
   return a->data.funcVal == b->data.funcVal;
 }
 
@@ -1048,11 +1062,17 @@ void execute_cycle(void) {
     return;
   } else {
     assert(pc < AVM_ENDING_PC);
-    instruction* instr = instructionz[pc];
+    instruction* instr = instructionzRead[pc];
     assert(instr->opcode >= 0 && instr->opcode <= AVM_MAX_INSTRUCTIONS);
     if (instr->srcLine) currLine = instr->srcLine;
     unsigned oldPc = pc;
     (*executeFuncs[instr->opcode])(instr);
     if (pc == oldPc) ++pc;
   }
+}
+
+void avm_initialize(){
+    avm_initstack();
+    avm_registerLibFunc("print", libfunc_print);
+    avm_registerLibFunc("typeof", libfunc_typeof);
 }
