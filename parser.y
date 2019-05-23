@@ -213,7 +213,7 @@ stmt:       expr semicolon {
                     yyerror("Use of \"Break\" outside of loop");
                 }else{
                     $stmt->breaklist = newList(nextQuadLabel()); 
-                    emit(jump);
+                    emit(jump, NULL, NULL, NULL);
                 }
                 }
             | CONTINUE semicolon {
@@ -223,7 +223,7 @@ stmt:       expr semicolon {
                     yyerror("Use of \"Continue\" outside of loop");
                 }else{
                     $stmt->contlist = newList(nextQuadLabel()); 
-                    emit(jump);
+                    emit(jump, NULL, NULL, NULL);
                 }
                 }
             | semicolon  {
@@ -365,7 +365,7 @@ relexpr:      expr b_greater expr   {
                         $$->boolConst = compute_rel(if_greater, $1->numConst , $3->numConst);
                     }
                     emit(if_greater, $1 , $3);
-                    emit(jump);
+                    emit(jump, NULL, NULL, NULL);
                 }
         }
         |  expr b_less expr         {
@@ -383,7 +383,7 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = compute_rel(if_less, $1->numConst , $3->numConst);
                 }
                 emit(if_less, $1 , $3);
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             }
         }         
         |  expr b_greater_eq expr   {
@@ -401,7 +401,7 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = compute_rel(if_greater_eq, $1->numConst , $3->numConst);
                 }
                 emit(if_greater_eq, $1 , $3);
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             }
         }
         |  expr b_less_eq expr      {
@@ -419,7 +419,7 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = compute_rel(if_lesseq, $1->numConst , $3->numConst);
                 }
                 emit(if_lesseq, $1 , $3);
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             }
         }       
         |  expr b_equals expr       {
@@ -444,7 +444,7 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = false;
                 }
                 emit(if_eq, $1 , $3);
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             }
         }            
         |  expr b_not_equal expr    {
@@ -469,7 +469,7 @@ relexpr:      expr b_greater expr   {
                     $$->boolConst = true;
                 } 
                 emit(if_noteq, $1 , $3);
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             }};
 
 boolexpr:  expr OR {
@@ -478,7 +478,7 @@ boolexpr:  expr OR {
                     $1->falselist = newList(nextQuadLabel()+1);
                     emit(
                         if_eq, $1 ,newExpr_constBool(1));
-                    emit(jump);
+                    emit(jump, NULL, NULL, NULL);
                 }
 
             } M expr {      
@@ -490,7 +490,7 @@ boolexpr:  expr OR {
                     $5->falselist = newList(nextQuadLabel()+1);
                     emit(
                         if_eq, $5 ,newExpr_constBool(1));
-                    emit(jump);
+                    emit(jump, NULL, NULL, NULL);
                 }
 
                 $$ = newExpr(boolexpr_e);
@@ -515,7 +515,7 @@ boolexpr:  expr OR {
                     $1->truelist = newList(nextQuadLabel());
                     $1->falselist = newList(nextQuadLabel()+1);
                     emit(if_eq, $1 ,newExpr_constBool(1));
-                    emit(jump);
+                    emit(jump, NULL, NULL, NULL);
                 }
                 
                 }M expr {
@@ -527,7 +527,7 @@ boolexpr:  expr OR {
                     $5->falselist = newList(nextQuadLabel()+1);
                     emit(
                         if_eq, $5 ,newExpr_constBool(1));
-                        emit(jump);
+                        emit(jump, NULL, NULL, NULL);
                 }
 
                 $$ = newExpr(boolexpr_e);
@@ -1254,13 +1254,13 @@ ifprefix:   IF left_parenthesis expr right_parenthesis {
                 }
                 emit(if_eq, $expr, newExpr_constBool(true), NULL, nextQuadLabel()+2);
                 $ifprefix = (int)nextQuadLabel();
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
                 //maybe patch expression
             };
 
 elseprefix: ELSE {
                 $elseprefix = (int)nextQuadLabel();
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             };
 
 ifstmt:     ifprefix stmt elseprefix stmt { 
@@ -1283,7 +1283,7 @@ whilecond:  left_parenthesis expr right_parenthesis {
                 }
                 emit(if_eq, $expr, newExpr_constBool(true), NULL, nextQuadLabel()+2);
                 $whilecond = (int)nextQuadLabel();
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             };
 
 whilestmt:  whilestart whilecond loopstmt {
@@ -1297,7 +1297,7 @@ whilestmt:  whilestart whilecond loopstmt {
             };
 N:  {
         $N = (int)nextQuadLabel();
-        emit(jump);
+        emit(jump, NULL, NULL, NULL);
     };
 
 M:  {
@@ -1355,7 +1355,7 @@ returnstmt: RETURN {
                 emit(ret, NULL, NULL, $expr);  
                 $returnstmt = new stmt_l();
                 $returnstmt->breaklist = newList(nextQuadLabel()); 
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             }
             | RETURN { 
                 // //printf("returnstmt->return; \n");
@@ -1364,7 +1364,7 @@ returnstmt: RETURN {
             } semicolon {
                 $returnstmt = new stmt_l();
                 $returnstmt->breaklist = newList(nextQuadLabel()); 
-                emit(jump);
+                emit(jump, NULL, NULL, NULL);
             };
 
 %%

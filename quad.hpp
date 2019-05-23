@@ -489,7 +489,7 @@ bool get_bool(expr* e) {
 }
 
 string get_string(expr* e, int index = 0) {
-  if (e == NULL) return " ";
+  if (e == NULL) return "NULL";
   switch (e->type) {
     case constbool_e:
       return e->boolConst ? "true" : "false";

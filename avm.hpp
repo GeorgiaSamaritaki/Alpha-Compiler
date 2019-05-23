@@ -73,12 +73,12 @@ unsigned pc = 0;
 unsigned currLine = 0;
 unsigned codeSize = 0;
 
+//For reading 
 vector<double> numConstsRead;
 vector<char*> stringConstsRead;
 vector<char*> namedLibFuncsRead;
 vector<userfunc*> userFunczRead;
 vector<instruction*> instructionzRead;
-
 
 char* typeStrings[] = {
   "number",
@@ -183,12 +183,12 @@ void avm_tableDestroy(avm_table* t) {
 }
 
 double consts_getNumber(unsigned index) {
-  assert(!numConsts.empty());
-  return numConsts[index];
+  assert(!numConstsRead.empty());
+  return numConstsRead[index];
 }
 char* consts_getString(unsigned index) {
-  assert(!stringConsts.empty());
-  return stringConsts[index];
+  assert(!stringConstsRead.empty());
+  return stringConstsRead[index];
 }
 char* libfuncs_getUsed(unsigned index) {
   assert(!namedLibFuncs.empty());
@@ -320,7 +320,7 @@ void execute_call(instruction* instr) {
     case userfunc_m: {
       pc = func->data.funcVal;
       assert(pc < AVM_ENDING_PC);
-      assert(instructionz[pc]->opcode == funcenter_v);
+      assert(instructionzRead[pc]->opcode == funcenter_v);
       break;
     }
     case string_m:
@@ -359,8 +359,8 @@ void avm_callsaveenvironment(){
 }
 
 userfunc* avm_getFuncInfo(unsigned address){
-  for(int i=0; i<userFuncz.size(); i++)
-    if( userFuncz[i]->address == address ) return userFuncz[i];
+  for(int i=0; i<userFunczRead.size(); i++)
+    if( userFunczRead[i]->address == address ) return userFunczRead[i];
   return NULL;
 }
 
@@ -974,85 +974,13 @@ void execute_cycle(void) {
     return;
   } else {
     assert(pc < AVM_ENDING_PC);
-    instruction* instr = instructionz[pc];
+    instruction* instr = instructionzRead[pc];
     assert(instr->opcode >= 0 && instr->opcode <= AVM_MAX_INSTRUCTIONS);
     if (instr->srcLine) currLine = instr->srcLine;
     unsigned oldPc = pc;
     (*executeFuncs[instr->opcode])(instr);
     if (pc == oldPc) ++pc;
   }
-}
-
-void read_binary(){
-  FILE* infile;
-  unsigned magic_number;
-  size_t size;
-
-  infile = fopen("binary.abc", "rb");
-  if(!infile)
-    cerr << " Error while opening the file" << endl;
-  
-  if( fread(&magic_number, sizeof(unsigned), 1, infile) != 1) 
-    cerr << "Error while reading the file" << endl;
-  //Check magic number
-  if( magic_number != get_magic("I love you 3000") )
-    cerr << " Magic number is invalid" << endl;
-  
-  //String consts
-  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
-    cerr << " Error while reading the file" << endl;
-  stringConstsRead = *new vector<char*>(size);
-  for(int i = 0; i < size; i++){
-    if( fread(stringConstsRead[i], sizeof(char*), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-  }
-
-  //Num consts
-  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
-    cerr << " Error while reading the file" << endl;
-  numConstsRead = *new vector<double>(size);
-  for(int i = 0; i < size; i++){
-    if( fread(&numConstsRead[i], sizeof(double), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-  }
-  
-  //User funcs
-  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
-    cerr << " Error while reading the file" << endl;
-  userFunczRead = *new vector<userfunc*>(size);
-  for(int i = 0; i < size; i++){
-    if( fread(userFunczRead[i]->id, sizeof(char*), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-    if( fread(&userFunczRead[i]->address, sizeof(unsigned), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-    if( fread(&userFunczRead[i]->localSize, sizeof(unsigned), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-  }
-  
-  //Lib funcs
-  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
-    cerr << " Error while reading the file" << endl;
-  namedLibFuncsRead = *new vector<char*>(size);
-  for(int i = 0; i < size; i++){
-    if( fread(namedLibFuncsRead[i], sizeof(char*), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-  }
-  
-  //instuctions
-  if ( fread(&size, sizeof(size_t), 1, infile) != 1)
-    cerr << " Error while reading the file" << endl;
-  instructionzRead = *new vector<instruction*>(size);
-  for(int i = 0; i < size; i++){
-    //opcode
-    if( fread(&instructionzRead[i]->opcode, sizeof(vmopcode), 1, infile) != 1)
-      cerr << "Error while reading the file" << endl;
-
-    //We need cases for those but i am literally dead
-    //result
-    //arg1
-    //arg2
-  }
-
 }
 
 void avm_initialize(){

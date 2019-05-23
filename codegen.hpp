@@ -205,10 +205,10 @@ void make_operand(expr* e, vmarg* arg) {
       arg->type = number_a;
       break;
     }
-    case nil_e:
+    case nil_e:{
       arg->type = nil_a;
       break;
-
+    }
     /*Functions*/
     case programfunc_e: {
       arg->type = userfunc_a;
@@ -269,17 +269,60 @@ void patch_incomplete_jumps() {
   }
 }
 
+void clear_instruction(instruction* t,quad* quad) {
+  t->arg2 = NULL;
+  t->arg1 = NULL;
+  t->result = NULL;
+  switch (t->opcode) {
+    case add_v:
+    case sub_v:
+    case mul_v:
+    case div_v:
+    case mod_v:
+    case jeq_v:
+    case jne_v:
+    case jle_v:
+    case jge_v:
+    case jlt_v:
+    case jgt_v:
+    case tablesetelem_v:
+    case tablegetelem_v:
+      t->arg2 = new vmarg();
+      make_operand(quad->arg2, t->arg2);
+    case assign_v:
+      t->result = new vmarg();
+      make_operand(quad->result, t->result);
+    case call_v:
+    case pusharg_v:
+      t->arg1 = new vmarg();
+      make_operand(quad->arg1, t->arg1);
+      break;
+    case funcexit_v:
+    case funcenter_v:
+    case newtable_v:
+    case jump_v:
+      t->result = new vmarg();
+      make_operand(quad->result, t->result);
+      break;
+    case uminus_v:
+    case and_v:
+    case or_v:
+    case not_v:
+    case ret_v:
+    case nop_v:
+    case getretval_v:
+      assert(0);
+  }
+}
+
 void generate(vmopcode op, quad* quad) {
   // cout << "generate op: " << toString(op) << " ";
   debug_quad(quad);
   instruction t;
   t.opcode = op;
-  t.arg1 = new vmarg();
-  t.arg2 = new vmarg();
-  t.result = new vmarg();
-  make_operand(quad->arg1, t.arg1);
-  make_operand(quad->arg2, t.arg2);
-  make_operand(quad->result, t.result);
+
+  clear_instruction(&t, quad);
+
   quad->taddress = nextInstructionLabel();
   t.srcLine = symbol_table.get_lineno(quad->result->sym);
   emit_instr(t);
@@ -290,11 +333,17 @@ void generate_relational(vmopcode op, quad* quad) {
   debug_quad(quad);
   instruction t;
   t.opcode = op;
-  t.arg1 = new vmarg();
-  t.arg2 = new vmarg();
+  if( op != jump_v ){
+    t.arg1 = new vmarg();
+    t.arg2 = new vmarg();
+    make_operand(quad->arg1, t.arg1);
+    make_operand(quad->arg2, t.arg2);
+  } else {
+    t.arg1 = NULL;
+    t.arg2 = NULL;
+  }
+  
   t.result = new vmarg();
-  make_operand(quad->arg1, t.arg1);
-  make_operand(quad->arg2, t.arg2);
 
   t.result->type = label_a;
   if (quad->label < currentProcessedQuad()) {
@@ -379,7 +428,7 @@ void generate_GETRETVAL(quad* quad) {
   instruction t;
   t.opcode = assign_v;
   t.arg1 = new vmarg();
-  t.arg2 = new vmarg();
+  t.arg2 = NULL;
   t.result = new vmarg();
   make_operand(quad->result, t.result);
   make_retvaloperand(t.arg1);
@@ -427,7 +476,7 @@ void generate_RETURN(quad* quad) {
   instruction ass;
   ass.opcode = assign_v;
   ass.arg1 = new vmarg();
-  make_operand(quad->arg1, ass.arg1);
+  make_operand(quad->result, ass.arg1);
   ass.arg2 = NULL;
   ass.result = new vmarg();
   make_retvaloperand(ass.result);
@@ -582,7 +631,7 @@ void create_binary() {
         cerr << " Error writing binary file" << endl;
       cout << instructionz[i]->result->type << "," << instructionz[i]->result->val << " ";
     }
-    if(instructionz[i]->arg1 ){
+    if( instructionz[i]->arg1 ){
       //arg1
       if( fwrite(&(instructionz[i]->arg1->type), sizeof(vmarg_t), 1, outfile) != 1)
         cerr << " Error writing binary file" << endl;
