@@ -559,28 +559,32 @@ void create_binary() {
   cout << "magic number: " << magic_number << endl;
 
   //Magic number
-  if( fwrite(&magic_number, sizeof(unsigned), 1, outfile) != 1) 
+  if( fwrite(&magic_number, sizeof(unsigned), 1, outfile) == -1) 
     cerr << " Error writing binary file" << endl;
 
   //String consts
   size_t size = stringConsts.size(); 
   cout << "string size: " << size << endl;
-  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1)
+  if( fwrite(&size, sizeof(size_t), 1, outfile) == -1)
     cerr << " Error writing binary file" << endl;
     
   for(int i=0; i < stringConsts.size();i++) {
-    if( fwrite(stringConsts[i], sizeof(char*), 1, outfile) != 1 )
-      cerr << " Error writing binary file" << endl; 
+    size_t len = strlen(stringConsts[i]);
+    cout << "length: " << len << endl;
+    if( fwrite(&len, sizeof(size_t), 1, outfile) == -1 )
+      cerr << " Error writing binary file len"  << endl; 
+    if( fwrite(stringConsts[i], sizeof(char), len, outfile) == -1 )
+      cerr << " Error writing binary file str" << endl; 
     cout << stringConsts[i] << endl;
   }
 
   //Num consts
   size = numConsts.size();
   cout << "number size: " << size << endl;
-  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1 )
+  if( fwrite(&size, sizeof(size_t), 1, outfile) == -1 )
     cerr << " Error writing binary file" << endl;
   for(int i=0; i < numConsts.size();i++) {
-    if ( fwrite(&numConsts[i], sizeof(double), 1, outfile) != 1) 
+    if ( fwrite(&numConsts[i], sizeof(double), 1, outfile) == -1) 
       cerr << " Error writing binary file" << endl;
     cout << numConsts[i] << endl;
   }
@@ -588,16 +592,19 @@ void create_binary() {
   //user funcs
   size = userFuncz.size();
   cout << "userFuncz size: " << size << endl;  
-  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1 )
+  if( fwrite(&size, sizeof(size_t), 1, outfile) == -1 )
     cerr << " Error writing binary file" << endl;
   for(int i=0; i < userFuncz.size();i++){ 
-    if( fwrite(userFuncz[i]->id, sizeof(char*), 1, outfile) != 1)
+    size_t len = strlen(userFuncz[i]->id);
+    if( fwrite(&len, sizeof(size_t), 1, outfile) == -1)
+      cerr << " Error writing binary file" << endl;
+    if( fwrite(userFuncz[i]->id, sizeof(char), len, outfile) == -1)
       cerr << " Error writing binary file" << endl;
 
-    if( fwrite(&userFuncz[i]->address, sizeof(unsigned), 1, outfile) != 1)
+    if( fwrite(&userFuncz[i]->address, sizeof(unsigned), 1, outfile) == -1)
       cerr << " Error writing binary file" << endl;
     
-    if( fwrite(&userFuncz[i]->localSize, sizeof(unsigned), 1, outfile) != 1)
+    if( fwrite(&userFuncz[i]->localSize, sizeof(unsigned), 1, outfile) == -1)
       cerr << " Error writing binary file" << endl;
       
     cout << userFuncz[i] << endl;
@@ -606,10 +613,13 @@ void create_binary() {
   //lib funcs
   size = namedLibFuncs.size();
   cout << "namedLibFuncs size: " << size << endl;
-  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1)
+  if( fwrite(&size, sizeof(size_t), 1, outfile) == -1)
     cerr << " Error writing binary file" << endl;
   for(int i=0; i < namedLibFuncs.size();i++) {
-    if( fwrite(namedLibFuncs[i], sizeof(char*), 1, outfile) != 1 )
+    size_t len = strlen(namedLibFuncs[i]);    
+    if( fwrite(&len, sizeof(size_t), 1, outfile) == -1 )
+      cerr << " Error writing binary file" << endl;
+    if( fwrite(namedLibFuncs[i], sizeof(char), len, outfile) == -1 )
       cerr << " Error writing binary file" << endl;
     cout << namedLibFuncs[i] << endl;    
   }
@@ -617,33 +627,33 @@ void create_binary() {
   //Instructions
   size = instructionz.size();
   cout << "instructionz size: " << size << endl;
-  if( fwrite(&size, sizeof(size_t), 1, outfile) != 1) 
+  if( fwrite(&size, sizeof(size_t), 1, outfile) == -1) 
     cerr << " Error writing binary file" << endl;
   for(int i=0; i < instructionz.size();i++){
-    if( fwrite(&(instructionz[i]->opcode), sizeof(vmopcode), 1, outfile) != 1)
+    if( fwrite(&(instructionz[i]->opcode), sizeof(vmopcode), 1, outfile) == -1)
       cerr << " Error writing binary file" << endl;
     cout << instructionz[i]->opcode << " ";
     if( instructionz[i]->result ){
       //result
-      if( fwrite(&(instructionz[i]->result->type), sizeof(vmarg_t), 1, outfile) != 1)
+      if( fwrite(&(instructionz[i]->result->type), sizeof(vmarg_t), 1, outfile) == -1)
         cerr << " Error writing binary file" << endl; 
-      if( fwrite(&(instructionz[i]->result->val), sizeof(unsigned), 1, outfile) != 1)
+      if( fwrite(&(instructionz[i]->result->val), sizeof(unsigned), 1, outfile) == -1)
         cerr << " Error writing binary file" << endl;
       cout << instructionz[i]->result->type << "," << instructionz[i]->result->val << " ";
     }
     if( instructionz[i]->arg1 ){
       //arg1
-      if( fwrite(&(instructionz[i]->arg1->type), sizeof(vmarg_t), 1, outfile) != 1)
+      if( fwrite(&(instructionz[i]->arg1->type), sizeof(vmarg_t), 1, outfile) == -1)
         cerr << " Error writing binary file" << endl;
-      if( fwrite(&(instructionz[i]->arg1->val), sizeof(unsigned), 1, outfile) != 1)
+      if( fwrite(&(instructionz[i]->arg1->val), sizeof(unsigned), 1, outfile) == -1)
         cerr << " Error writing binary file" << endl;
       cout << instructionz[i]->arg1->type << "," << instructionz[i]->arg1->val << " ";
     }
     if(instructionz[i]->arg2){
       //arg2
-      if( fwrite(&(instructionz[i]->arg2->type), sizeof(vmarg_t), 1, outfile) != 1)
+      if( fwrite(&(instructionz[i]->arg2->type), sizeof(vmarg_t), 1, outfile) == -1)
         cerr << " Error writing binary file" << endl;
-      if( fwrite(&(instructionz[i]->arg2->val), sizeof(unsigned), 1, outfile) != 1)
+      if( fwrite(&(instructionz[i]->arg2->val), sizeof(unsigned), 1, outfile) == -1)
         cerr << " Error writing binary file" << endl;
       cout << instructionz[i]->arg2->type << "," << instructionz[i]->arg2->val << " ";
     }

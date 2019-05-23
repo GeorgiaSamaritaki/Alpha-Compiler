@@ -1,5 +1,5 @@
 
-all: clean parser.cpp al.cpp al 
+all: clean parser.cpp al.cpp al avm
 
 al.cpp: al.l
 	flex --outfile=al.cpp al.l
@@ -10,6 +10,9 @@ parser.cpp: parser.y
 al:
 	g++ -Wno-write-strings -o al parser.cpp al.cpp 
 	
+avm: main.cpp
+	g++ -Wno-write-strings -o avm main.cpp 
+
 test:
 	al tests/phase2/Working/Anonymous.asc                
 	al tests/phase2/Working/Circle.asc                   
