@@ -1,114 +1,13 @@
 #include "codegen.hpp"
-#include "math.h"
+#include "avm_utility.hpp"
+#include "avm_library_funcs.hpp"
 
-#define AVM_STACKSIZE 4096
-#define AVM_WIPEOUT(m) memset(&(m), 0, sizeof(m))
-#define AVM_TABLE_HASHSIZE 211
-#define AVM_STACKENV_SIZE 4
-#define AVM_MAX_INSTRUCTIONS (unsigned)nop_v
-#define AVM_ENDING_PC codeSize
-#define AVM_NUMACTUALS_OFFSET 4
-#define AVM_SAVEDPC_OFFSET 3
-#define AVM_SAVEDTOP_OFFSET 2
-#define AVM_SAVEDTOPSP_OFFSET 1
+#ifndef avm
+#define avm
 
-// Arithmetic functions
-#define execute_add execute_arithmetic
-#define execute_sub execute_arithmetic
-#define execute_mul execute_arithmetic
-#define execute_div execute_arithmetic
-#define execute_mod execute_arithmetic
-// Relational functions
-#define execute_jle execute_rel
-#define execute_jge execute_rel
-#define execute_jlt execute_rel
-#define execute_jgt execute_rel
 
-/*Structs*/
-struct avm_table;
 
-enum avm_memcell_t {
-  number_m = 0,
-  string_m = 1,
-  bool_m = 2,
-  table_m = 3,
-  userfunc_m = 4,
-  libfunc_m = 5,
-  nil_m = 6,
-  undef_m = 7
-};
-
-typedef struct avm_memcell {
-  avm_memcell_t type;
-  union {
-    double numVal;
-    char* strVal;
-    bool boolVal;
-    avm_table* tableVal;
-    unsigned funcVal;
-    char* libfuncVal;
-  } data;
-} avm_memcell;
-
-typedef struct avm_table_bucket {
-  avm_memcell key;
-  avm_memcell value;
-  avm_table_bucket* next;
-} avm_table_bucket;
-
-typedef struct avm_table {
-  unsigned rc;
-  avm_table_bucket* strIndexed[AVM_TABLE_HASHSIZE];
-  avm_table_bucket* numIndexed[AVM_TABLE_HASHSIZE];
-  unsigned total;
-} avm_table;
-
-/*Var definitions*/
-avm_memcell stack_m[AVM_STACKSIZE];
-avm_memcell ax, bx, cx;
-avm_memcell retval;
-unsigned top, topsp;
-bool executionFinished = false;
-unsigned pc = 0;
-unsigned currLine = 0;
-unsigned codeSize = 0;
-
-//For reading 
-vector<double> numConstsRead;
-vector<char*> stringConstsRead;
-vector<char*> namedLibFuncsRead;
-vector<userfunc*> userFunczRead;
-vector<instruction*> instructionzRead;
-
-char* typeStrings[] = {
-  "number",
-  "string",
-  "bool",
-  "table",
-  "userfunc",
-  "libfunc",
-  "nill",
-  "undef"
-};
-
-typedef void (*execute_func_t)(instruction*);
-typedef void (*memclear_func_t)(avm_memcell*);
-typedef char* (*tostring_func_t)(avm_memcell*);
-typedef void (*library_func_t)();
-typedef double (*arithmetic_func_t)(double, double);
-typedef unsigned char (*tobool_func_t)(avm_memcell*);
-typedef bool (*eq_check_t)(avm_memcell*, avm_memcell*);
-typedef bool (*cmp_func_t)(double, double);
-typedef unsigned (*hash_func_t)(avm_memcell*);
-void avm_tablesetelem(avm_table* table, avm_memcell* index,
-                      avm_memcell* content);
-
-/*Funcs*/
-void avm_tableDestroy(avm_table* t);
-void avm_memcellClear(avm_memcell* m);
-void avm_callsaveenvironment();
-void avm_callLibFunc(char* id);
-char* avm_toString(avm_memcell* m);
+unsigned totalActuals = 0;
 
 static void avm_initstack(void) {
   for (unsigned i = 0; i < AVM_STACKSIZE; ++i) {
@@ -303,7 +202,8 @@ void execute_assign(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, NULL);
   avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
 
-  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] || lv == &retval));
+  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] ||
+                lv == &retval));
   assert(rv);
 
   avm_assign(lv, rv);
@@ -334,14 +234,13 @@ void execute_call(instruction* instr) {
   }
 }
 
-unsigned totalActuals = 0;
-
 void avm_dec_top(void) {
   if (!top) {
     avm_error("stack overflow");
   } else
     --top;
 }
+
 void avm_push_envvalue(unsigned val) {
   stack_m[top].type = number_m;
   stack_m[top].data.numVal = val;
@@ -354,9 +253,9 @@ void avm_callsaveenvironment() {
   avm_push_envvalue(topsp);
 }
 
-userfunc* avm_getFuncInfo(unsigned address){
-  for(int i=0; i<userFunczRead.size(); i++)
-    if( userFunczRead[i]->address == address ) return userFunczRead[i];
+userfunc* avm_getFuncInfo(unsigned address) {
+  for (int i = 0; i < userFunczRead.size(); i++)
+    if (userFunczRead[i]->address == address) return userFunczRead[i];
   return NULL;
 }
 
@@ -419,248 +318,6 @@ unsigned avm_totalActuals() {
 avm_memcell* avm_getActual(unsigned i) {
   assert(i < avm_totalActuals());
   return &stack_m[topsp + AVM_STACKENV_SIZE + 1 + i];
-}
-
-/*Library Functions - Start*/
-void libfunc_print() {
-  unsigned n = avm_totalActuals();
-  for (unsigned i = 0; i < n; ++i) {
-    char* s = avm_toString(avm_getActual(i));
-    puts(s);
-    free(s);
-  }
-}
-
-void libfunc_typeof(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("one argument expected in 'typeof' (not %d) !", n);
-  } else {
-    avm_memcellClear(&retval);
-    retval.type = string_m;
-    retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
-  }
-}
-
-void libfunc_sin(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    executionFinished = true;
-    avm_error("one argument expected in 'sin' (not %d) !", n);
-  } else {
-    if (avm_getActual(0)->type != number_m) {
-      avm_error("Sin expects number!", n);
-    } else {
-      avm_memcellClear(&retval);
-      retval.type = number_m;
-      retval.data.numVal = sin(avm_getActual(0)->data.numVal);
-    }
-  }
-}
-
-void libfunc_cos(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("one argument expected in 'cos' (not %d) !", n);
-  } else {
-    if (avm_getActual(0)->type != number_m) {
-      avm_error("Cos expects number!", n);
-    } else {
-      avm_memcellClear(&retval);
-      retval.type = number_m;
-      retval.data.numVal = cos(avm_getActual(0)->data.numVal);
-    }
-  }
-}
-
-void libfunc_sqrt(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("one argument expected in 'sqrt' (not %d) !", n);
-  } else {
-    if (avm_getActual(0)->type != number_m) {
-      avm_error("Sqrt expects number!", n);
-    } else {
-      avm_memcellClear(&retval);
-      retval.type = number_m;
-      double tmp = sqrt(avm_getActual(0)->data.numVal);
-      if (tmp < 0)
-        retval.type = nil_m;
-      else
-        retval.data.numVal = tmp;
-    }
-  }
-}
-
-bool is_number(const string& s) {
-  std::string::const_iterator it = s.begin();
-  while (it != s.end() && std::isdigit(*it)) ++it;
-  return !s.empty() && it == s.end();
-}
-
-string toLower(string s) {
-  const char* ss = strdup(s.c_str());
-  string news = "";
-  for (int i = 0; i < s.length(); i++) {
-    news += tolower(ss[i]);
-  }
-  return news;
-}
-
-void libfunc_input(void) {
-  string s;
-  cin >> s;
-  string sl = toLower(s);
-  char autakia = '\"';
-
-  avm_memcellClear(&retval);
-  if (is_number(s)) {
-    retval.type = number_m;
-    retval.data.numVal = atof(s.c_str());
-  } else if (sl.compare("true")) {
-    retval.type = bool_m;
-    retval.data.boolVal = true;
-  } else if (sl.compare("false")) {
-    retval.type = bool_m;
-    retval.data.boolVal = false;
-  } else if (sl.compare("nil")) {
-    retval.type = nil_m;
-  } else {
-    retval.type = string_m;
-    if (sl[0] == autakia && sl[s.length() - 1] == autakia) {
-      retval.data.strVal = strdup(s.substr(1, s.length() - 2).c_str());
-    } else {
-      retval.data.strVal = strdup(s.c_str());
-    }
-  }
-}
-
-void libfunc_argument(void) {
-  unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("error in arguement0");
-  } else if (avm_getActual(0)->type != number_m) {
-    avm_error("error in arguement1");
-  } else if (!p_topsp) {
-    avm_memcellClear(&retval);
-    avm_error("error in arguement2");
-    retval.type = nil_m;
-  } else if (avm_getActual(0)->data.numVal >
-                 avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET) ||
-             avm_getActual(0)->data.numVal < 0) {
-    avm_error("error in arguement3");
-  } else {
-    avm_memcellClear(&retval);
-    int offset = (int)avm_getActual(0)->data.numVal;
-    retval = stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset];
-  }
-}
-
-void libfunc_strtonum(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("Strtonum expects one parameter");
-  } else if (avm_getActual(0)->type != string_m) {
-    avm_error("String expected");
-  } else {
-    avm_memcellClear(&retval);
-    retval.type = number_m;
-    retval.data.numVal = atof(avm_getActual(0)->data.strVal);
-  }
-}
-avm_table* copy_table(avm_table* tocopy) {
-  avm_table* new_one = avm_tablenew();
-  avm_table_bucket** p = tocopy->strIndexed;
-  for (unsigned i = 0; i < AVM_TABLE_HASHSIZE; ++i) {
-    for (avm_table_bucket* b = p[i]; b;) {
-      avm_table_bucket* node = b;
-      b = b->next;
-      avm_tablesetelem(new_one,&node->key,&node->value);
-    }
-  }
-  p = tocopy->numIndexed;
-  for (unsigned i = 0; i < AVM_TABLE_HASHSIZE; ++i) {
-    for (avm_table_bucket* b = p[i]; b;) {
-      avm_table_bucket* node = b;
-      b = b->next;
-      avm_tablesetelem(new_one,&node->key,&node->value);
-    }
-  }
-  return new_one;
-}
-
-void libfunc_objectcopy(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("ObjectCopy expects one parameter");
-  } else if (avm_getActual(0)->type != table_m) {
-    avm_error("Table expected");
-  } else {
-    avm_memcellClear(&retval);
-    retval.type = table_m;
-    retval.data.tableVal = copy_table(avm_getActual(0)->data.tableVal);
-  }
-}
-avm_table* getindexes(avm_table* derived) {
-  avm_table* new_one = avm_tablenew();
-  avm_table_bucket** p = derived->strIndexed;
-  avm_memcell new_index; 
-  new_index.type = number_m;
-  new_index.data.numVal = 0;
-
-  for (unsigned i = 0; i < AVM_TABLE_HASHSIZE; ++i) {
-    for (avm_table_bucket* b = p[i]; b;) {
-      avm_table_bucket* node = b;
-      b = b->next;
-      avm_tablesetelem(new_one, &new_index, &node->key);
-      new_index.data.numVal ++;
-    }
-  }
-  p = derived->numIndexed;
-  for (unsigned i = 0; i < AVM_TABLE_HASHSIZE; ++i) {
-    for (avm_table_bucket* b = p[i]; b;) {
-      avm_table_bucket* node = b;
-      b = b->next;
-      avm_tablesetelem(new_one, &new_index, &node->key);
-      new_index.data.numVal ++;
-    }
-  }
-  return new_one;
-}
-
-void libfunc_objectmemberkeys(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("ObjectMemberKeys expects one parameter");
-  } else if (avm_getActual(0)->type != table_m) {
-    avm_error("Table expected");
-  } else {
-    avm_memcellClear(&retval);
-    retval.type = table_m;
-    retval.data.tableVal = getindexes(avm_getActual(0)->data.tableVal);
-  }
-}
-void libfunc_objecttotalmembers(void) {
-  unsigned n = avm_totalActuals();
-
-  if (n != 1) {
-    avm_error("ObjectTotalMembers expects one parameter");
-  } else if (avm_getActual(0)->type != table_m) {
-    avm_error("Table expected");
-  } else {
-    avm_memcellClear(&retval);
-    retval.type = number_m;
-    retval.data.numVal = avm_getActual(0)->data.tableVal->total;
-  }
 }
 
 // FIXME: The other functions
@@ -807,7 +464,7 @@ bool table_check(avm_memcell* a, avm_memcell* b) {
   return a->data.tableVal == b->data.tableVal;
 }
 
-bool userfunc_check(avm_memcell* a, avm_memcell* b){
+bool userfunc_check(avm_memcell* a, avm_memcell* b) {
   return a->data.funcVal == b->data.funcVal;
 }
 
@@ -965,11 +622,13 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
     avm_assign(&new_bucket->key, index);
     avm_assign(&new_bucket->value, content);
     new_bucket->next = NULL;
-    if(prev!=NULL) prev->next = new_bucket;
-    else{
-      if (index->type == string_m) 
+    if (prev != NULL)
+      prev->next = new_bucket;
+    else {
+      if (index->type == string_m)
         table->strIndexed[array_index] = new_bucket;
-      else table->numIndexed[array_index] = new_bucket;
+      else
+        table->numIndexed[array_index] = new_bucket;
     }
     table->total++;
   } else {
@@ -1065,8 +724,9 @@ void execute_cycle(void) {
   }
 }
 
-void avm_initialize(){
-    avm_initstack();
-    avm_registerLibFunc("print", libfunc_print);
-    avm_registerLibFunc("typeof", libfunc_typeof);
+void avm_initialize() {
+  avm_initstack();
+  avm_registerLibFunc("print", libfunc_print);
+  avm_registerLibFunc("typeof", libfunc_typeof);
 }
+#endif
