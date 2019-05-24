@@ -191,8 +191,8 @@ char* consts_getString(unsigned index) {
   return stringConstsRead[index];
 }
 char* libfuncs_getUsed(unsigned index) {
-  assert(!namedLibFuncs.empty());
-  return namedLibFuncs[index];
+  assert(!namedLibFuncsRead.empty());
+  return namedLibFuncsRead[index];
 }
 
 avm_memcell* avm_translate_operand(vmarg* arg, avm_memcell* reg) {
