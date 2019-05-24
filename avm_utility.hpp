@@ -94,8 +94,6 @@ char* typeStrings[] = {
 
 
 typedef void (*library_func_t)();
-library_func_t libraryFuncz[12];
-
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
 typedef char* (*tostring_func_t)(avm_memcell*);
@@ -122,5 +120,71 @@ avm_table* avm_tablenew(void);
 unsigned avm_totalActuals();
 avm_memcell* avm_getActual(unsigned i);
 unsigned avm_get_envvalue(unsigned i);
+void print_cell(avm_memcell*);
 
+void print_numIndexed(avm_table* t){
+  for(int i=0; i<AVM_TABLE_HASHSIZE; i++){
+    cout << i << ": " << endl;
+    avm_table_bucket* tmp = t->numIndexed[i];
+    while(tmp != NULL){
+      cout << "key: ";
+      print_cell(&tmp->key);
+      cout << endl;
+      cout << "value: "; 
+      print_cell(&tmp->value);
+      cout << endl;
+      tmp = tmp->next;
+    }
+  }
+}
+
+void print_strIndexed(avm_table* t){
+  for(int i=0; i<AVM_TABLE_HASHSIZE; i++){
+    cout << i << ": " << endl;
+    avm_table_bucket* tmp = t->strIndexed[i];
+    while(tmp != NULL){
+      cout << "key: "; 
+      print_cell(&tmp->key); 
+      cout << endl;
+      cout << "value: ";  
+      print_cell(&tmp->value); 
+      cout << endl;
+      tmp = tmp->next;
+    }
+  }
+}
+
+void print_cell(avm_memcell* m){
+  switch(m->type){
+    case number_m:
+      cout << "NUmber val: " << m->data.numVal << endl; break;
+    case string_m: 
+      cout << "String val: " << m->data.strVal << endl; break;
+    case bool_m:
+      cout << "Bool val: " << m->data.boolVal << endl; break;
+    case table_m: {
+      cout << "Table val: " << endl 
+           << "NumIndexed: ";
+      print_numIndexed(m->data.tableVal);
+      cout << "strIndexed: " << endl;
+      print_strIndexed(m->data.tableVal);
+      break;
+    }
+    case userfunc_m:
+      cout << "Func val: " << m->data.funcVal << endl; break;
+    case libfunc_m:
+      cout << " Lib func: " << m->data.funcVal << endl; break;
+    case nil_m: 
+      cout << "NIL" << endl;
+  }
+}
+
+void printStack() {
+  for(int i = 0; i < AVM_STACKSIZE; i++){
+    if( stack_m[i].type == undef_m )
+      continue;
+    cout << i << ": ";
+    print_cell(&stack_m[i]);
+  }
+}
 #endif

@@ -231,6 +231,7 @@ void execute_call(instruction* instr) {
     default: {
       char* s = avm_toString(func);
       avm_error("call: cannot bind '%s' to function!", s);
+      printStack();
       free(s);
     }
   }
@@ -239,6 +240,7 @@ void execute_call(instruction* instr) {
 void avm_dec_top(void) {
   if (!top) {
     avm_error("stack overflow");
+    printStack();
   } else
     --top;
 }
@@ -294,12 +296,11 @@ library_func_t avm_getLibraryFunc(char* id) {
   return libraryFuncz[lib_index];
 }
 
-
-
 void avm_callLibFunc(char* id) {
   library_func_t f = avm_getLibraryFunc(id);
   if (!f) {
     avm_error("unsupported lib func '%s' called!", id);
+    printStack();
   } else {
     topsp = top;
     totalActuals = 0;
@@ -401,6 +402,7 @@ void execute_arithmetic(instruction* instr) {
   assert(rv1 && rv2);
   if (rv1->type != number_m || rv2->type != number_m) {
     avm_error("not a number in arithmetic!");
+    printStack();
   } else {
     arithmetic_func_t op = arithmeticFuncs[instr->opcode - add_v];
     avm_memcellClear(lv);
@@ -494,9 +496,11 @@ void execute_jeq(instruction* instr) {
     result = rv1->type == nil_m && rv2->type == nil_m;
   else if (rv1->type == bool_m || rv2->type == bool_m)
     result = (avm_tobool(rv1) == avm_tobool(rv2));
-  else if (rv1->type != rv2->type)
+  else if (rv1->type != rv2->type){
     avm_error("%s == %s is illegal", typeStrings[rv1->type],
               typeStrings[rv2->type]);
+    printStack();
+  }
   else {
     /* Equality check with dipatching */
     result = checks[rv1->type](rv1, rv2);
@@ -514,6 +518,7 @@ void execute_jne(instruction* instr) {
 
   if (rv1->type == undef_m || rv2->type == undef_m) {
     avm_error("'undef' involved in equality!");
+    printStack();
   } else if (rv1->type == nil_m || rv2->type == nil_m)
     result = rv1->type == nil_m && rv2->type == nil_m;
   else if (rv1->type == bool_m || rv2->type == bool_m)
@@ -521,6 +526,7 @@ void execute_jne(instruction* instr) {
   else if (rv1->type != rv2->type) {
     avm_error("%s != %s is illegal", typeStrings[rv1->type],
               typeStrings[rv2->type]);
+    printStack();
   } else {
     /* Equality check with dipatching */
     result = !(checks[rv1->type](rv1, rv2));
@@ -546,6 +552,7 @@ void execute_rel(instruction* instr) {
   if (rv1->type != number_m || rv2->type != number_m) {
     avm_error("Comparing args are not numbers %s %s", typeStrings[rv1->type],
               typeStrings[rv2->type]);
+    printStack();
   } else {
     result = numberCmpFuncs[instr->opcode - jle_v](rv1->data.numVal,
                                                    rv2->data.numVal);
@@ -602,6 +609,7 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
   assert(table && index && content);
   if (index->type != number_m || index->type != string_m) {
     avm_error("Table key can only be string or integer");
+    printStack();
     return;
   }
 
@@ -648,6 +656,7 @@ void execute_tablegetelem(instruction* instr) {
 
   if (t->type != table_m) {
     avm_error("illegal use of type %s as table!", typeStrings[t->type]);
+    printStack();
   } else {
     avm_memcell* content = avm_tablegetelem(t->data.tableVal, i);
     if (content)
@@ -669,23 +678,12 @@ void execute_tablesetelem(instruction* instr) {
 
   assert(t && &stack_m[AVM_STACKSIZE - 1] >= t && t > &stack_m[top]);
   assert(i && c);
-  if (t->type != table_m)
+  if (t->type != table_m){
     avm_error("illegal use of type %s as table!", typeStrings[t->type]);
+    printStack();
+  }
   else
     avm_tablesetelem(t->data.tableVal, i, c);
-}
-
-void libfunc_totalarguments() {
-  unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-  avm_memcellClear(&retval);
-
-  if (!p_topsp) {
-    avm_error("'totalargument' called outside a function!");
-    retval.type = nil_m;
-  } else {
-    retval.type = number_m;
-    retval.data.numVal = avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET);
-  }
 }
 
 void execute_jump(instruction* instr) {}

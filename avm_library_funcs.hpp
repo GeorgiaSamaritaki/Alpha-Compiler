@@ -4,6 +4,7 @@
 #ifndef avm_library_funcs
 #define avm_library_funcs
 
+library_func_t libraryFuncz[12];
 
 /*Library Functions - Start*/
 void libfunc_print() {
@@ -247,6 +248,19 @@ void libfunc_objecttotalmembers(void) {
   }
 }
 
+void libfunc_totalarguments() {
+  unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
+  avm_memcellClear(&retval);
+
+  if (!p_topsp) {
+    avm_error("'totalargument' called outside a function!");
+    retval.type = nil_m;
+  } else {
+    retval.type = number_m;
+    retval.data.numVal = avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET);
+  }
+}
+
 void registerLibFunc(char* id, library_func_t addr) {
   int lib_index =
       libfuncs_newUsed(id);  // retrieve index from the lib funcs array
@@ -254,17 +268,17 @@ void registerLibFunc(char* id, library_func_t addr) {
 }
 
 void init_libfuncs(){
-  registerLibFunc("print",  libfunc_print);
+  registerLibFunc("objecttotalmembers", libfunc_objecttotalmembers);
+  registerLibFunc("objectmemberkeys", libfunc_objectmemberkeys);
+  registerLibFunc("objectcopy", libfunc_objectcopy);
+  registerLibFunc("strtonum", libfunc_strtonum);
+  registerLibFunc("argument", libfunc_argument);
   registerLibFunc("typeof", libfunc_typeof);
-  registerLibFunc("typeof", libfunc_objecttotalmembers);
-  registerLibFunc("typeof", libfunc_objectmemberkeys);
-  registerLibFunc("typeof", libfunc_objectcopy);
-  registerLibFunc("typeof", libfunc_strtonum);
-  registerLibFunc("typeof", libfunc_argument);
-  registerLibFunc("typeof", libfunc_input);
-  registerLibFunc("typeof", libfunc_sqrt);
-  registerLibFunc("typeof", libfunc_cos);
-  registerLibFunc("typeof", libfunc_sin);
+  registerLibFunc("input", libfunc_input);
+  registerLibFunc("print",  libfunc_print);
+  registerLibFunc("sqrt", libfunc_sqrt);
+  registerLibFunc("cos", libfunc_cos);
+  registerLibFunc("sin", libfunc_sin);
 }
 
 #endif
