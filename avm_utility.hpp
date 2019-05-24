@@ -92,10 +92,13 @@ char* typeStrings[] = {
   "undef"
 };
 
+
+typedef void (*library_func_t)();
+library_func_t libraryFuncz[12];
+
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
 typedef char* (*tostring_func_t)(avm_memcell*);
-typedef void (*library_func_t)();
 typedef double (*arithmetic_func_t)(double, double);
 typedef unsigned char (*tobool_func_t)(avm_memcell*);
 typedef bool (*eq_check_t)(avm_memcell*, avm_memcell*);

@@ -1,9 +1,12 @@
+
 #include "codegen.hpp"
 #include "avm_utility.hpp"
 #include "avm_library_funcs.hpp"
 
 #ifndef avm
 #define avm
+
+
 
 unsigned totalActuals = 0;
 
@@ -84,8 +87,8 @@ char* consts_getString(unsigned index) {
   return stringConstsRead[index];
 }
 char* libfuncs_getUsed(unsigned index) {
-  assert(!namedLibFuncsRead.empty());
-  return namedLibFuncsRead[index];
+  assert(!namedLibFuncs.empty());
+  return namedLibFuncs[index];
 }
 
 avm_memcell* avm_translate_operand(vmarg* arg, avm_memcell* reg) {
@@ -168,6 +171,7 @@ void avm_warning(char* format, ...) {
   printf(format, args);
   va_end(args);
 }
+
 void avm_error(char* format, ...) {
   executionFinished = true;
   printf("Runtime Error: ");
@@ -283,7 +287,6 @@ void execute_funcexit(instruction* unused) {
   while (++oldTop <= top) avm_memcellClear(&stack_m[oldTop]);
 }
 
-library_func_t libraryFuncz[12];
 
 library_func_t avm_getLibraryFunc(char* id) {
   int lib_index =
@@ -291,11 +294,7 @@ library_func_t avm_getLibraryFunc(char* id) {
   return libraryFuncz[lib_index];
 }
 
-void avm_registerLibFunc(char* id, library_func_t addr) {
-  int lib_index =
-      libfuncs_newUsed(id);  // retrieve index from the lib funcs array
-  libraryFuncz[lib_index] = addr;
-}
+
 
 void avm_callLibFunc(char* id) {
   library_func_t f = avm_getLibraryFunc(id);
@@ -318,8 +317,6 @@ avm_memcell* avm_getActual(unsigned i) {
   return &stack_m[topsp + AVM_STACKENV_SIZE + 1 + i];
 }
 
-// FIXME: The other functions
-/*Library Functions - End*/
 
 void execute_pusharg(instruction* instr) {
   avm_memcell* arg = avm_translate_operand(instr->arg1, &ax);
@@ -603,7 +600,10 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
 void avm_tablesetelem(avm_table* table, avm_memcell* index,
                       avm_memcell* content) {
   assert(table && index && content);
-  if (index->type != number_m || index->type != string_m) assert(0);
+  if (index->type != number_m || index->type != string_m) {
+    avm_error("Table key can only be string or integer");
+    return;
+  }
 
   unsigned array_index = hashMe[index->type](index);
   avm_table_bucket* tmp = table->numIndexed[array_index];
@@ -724,7 +724,6 @@ void execute_cycle(void) {
 
 void avm_initialize() {
   avm_initstack();
-  avm_registerLibFunc("print", libfunc_print);
-  avm_registerLibFunc("typeof", libfunc_typeof);
+  init_libfuncs();
 }
 #endif

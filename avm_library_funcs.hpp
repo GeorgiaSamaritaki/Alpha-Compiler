@@ -1,6 +1,5 @@
-
-#include <math.h>
 #include "avm_utility.hpp"
+#include <math.h>
 
 #ifndef avm_library_funcs
 #define avm_library_funcs
@@ -246,6 +245,26 @@ void libfunc_objecttotalmembers(void) {
     retval.type = number_m;
     retval.data.numVal = avm_getActual(0)->data.tableVal->total;
   }
+}
+
+void registerLibFunc(char* id, library_func_t addr) {
+  int lib_index =
+      libfuncs_newUsed(id);  // retrieve index from the lib funcs array
+  libraryFuncz[lib_index] = addr;
+}
+
+void init_libfuncs(){
+  registerLibFunc("print",  libfunc_print);
+  registerLibFunc("typeof", libfunc_typeof);
+  registerLibFunc("typeof", libfunc_objecttotalmembers);
+  registerLibFunc("typeof", libfunc_objectmemberkeys);
+  registerLibFunc("typeof", libfunc_objectcopy);
+  registerLibFunc("typeof", libfunc_strtonum);
+  registerLibFunc("typeof", libfunc_argument);
+  registerLibFunc("typeof", libfunc_input);
+  registerLibFunc("typeof", libfunc_sqrt);
+  registerLibFunc("typeof", libfunc_cos);
+  registerLibFunc("typeof", libfunc_sin);
 }
 
 #endif
