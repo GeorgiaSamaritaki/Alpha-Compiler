@@ -189,6 +189,6 @@ int main(int argc, char* argv[]) {
   
   codeSize = instructionzRead.size();
   //initialize top, topsp as well
-  //and then execute
+  //and
   return 0;
 }
