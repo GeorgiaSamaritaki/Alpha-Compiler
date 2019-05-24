@@ -2,8 +2,7 @@
     #include <stdio.h>
     #include <stdlib.h>
     // #include "quad.hpp"
-    // #include "codegen.hpp"
-    #include "avm.hpp"
+    #include "codegen.hpp"
 
     int yyerror(char* yaccProvidedMessage);
     int yylex(void);
@@ -1394,6 +1393,8 @@ int main(int argc, char* argv[]){
     //symbol_table.print();
     printQuads();
     if(!error){
+        cout << programVarOffset << endl;
+        globals = (vmarg**) malloc(programVarOffset*sizeof(vmarg*));
         generateAll();
         printInstructions();  
         printf("\nWe fucking did it\nYAAAAAAAAAAAAAAAAAS\n");

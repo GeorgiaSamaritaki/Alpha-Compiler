@@ -1,5 +1,7 @@
 #include "quad.hpp"
 
+#ifndef codegen
+#define codegen
 /*Structs*/
 enum vmopcode {
   assign_v,
@@ -89,6 +91,8 @@ vector<char*> namedLibFuncs;
 vector<userfunc*> userFuncz;
 // unsigned totalUserFuncz;
 
+vmarg** globals;
+
 stack<stackNode*> funcStack;
 
 unsigned currentProcessedQuad() {
@@ -129,7 +133,6 @@ unsigned libfuncs_newUsed(char* s) {
       return i;
     }
   }
-
   /*New lib func is used*/
   char* dup = strdup(s);
   namedLibFuncs.push_back(dup);
@@ -624,6 +627,12 @@ void create_binary() {
     cout << namedLibFuncs[i] << endl;    
   }
 
+  //Globals size 
+  size = programVarOffset;
+  cout << "Globals size: " << size << endl; 
+  if( fwrite(&size, sizeof(size_t), 1, outfile) == -1) 
+    cerr << " Error writing binary file" << endl;
+
   //Instructions
   size = instructionz.size();
   cout << "instructionz size: " << size << endl;
@@ -807,3 +816,4 @@ void printInstruction(instruction* i) {
 
   cout << setw(12) << i->srcLine << endl;
 }
+#endif

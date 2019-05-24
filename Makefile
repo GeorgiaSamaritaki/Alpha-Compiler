@@ -68,4 +68,5 @@ clean:
 	-rm parser.output
 	-rm quads.txt
 	-rm tcode.txt
+	-rm *.abc
 	clear

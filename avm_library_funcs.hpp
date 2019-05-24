@@ -10,7 +10,7 @@ library_func_t libraryFuncz[12];
 void libfunc_print() {
   unsigned n = avm_totalActuals();
   for (unsigned i = 0; i < n; ++i) {
-    char* s = avm_toString(avm_getActual(i));
+    char* s = strdup(avm_toString(avm_getActual(i)));
     puts(s);
     free(s);
   }
@@ -261,11 +261,83 @@ void libfunc_totalarguments() {
   }
 }
 
+unsigned libfuncs_newUsed(char* s) {
+  /*Check if we use its already*/
+  for (int i = 0; i < namedLibFuncsRead.size(); i++) {
+    if (!strcmp(namedLibFuncsRead[i], s)) {
+      /*Found it -> return the index*/
+      return i;
+    }
+  }
+  /*New lib func is used*/
+  char* dup = strdup(s);
+  namedLibFuncsRead.push_back(dup);
+  return namedLibFuncsRead.size() - 1;
+}
+
 void registerLibFunc(char* id, library_func_t addr) {
   int lib_index =
       libfuncs_newUsed(id);  // retrieve index from the lib funcs array
   libraryFuncz[lib_index] = addr;
 }
+
+string toString(vmopcode op) {
+  switch (op) {
+    case assign_v:
+      return "assign";
+    case add_v:
+      return "add";
+    case sub_v:
+      return "sub";
+    case mul_v:
+      return "mul";
+    case div_v:
+      return "div";
+    case mod_v:
+      return "mod";
+    case uminus_v:
+      return "uminus";
+    case and_v:
+      return "and";
+    case or_v:
+      return "or";
+    case not_v:
+      return "not";
+    case jeq_v:
+      return "jeq";
+    case jne_v:
+      return "jne";
+    case jle_v:
+      return "jle";
+    case jge_v:
+      return "jge";
+    case jlt_v:
+      return "jlt";
+    case jgt_v:
+      return "jgt";
+    case call_v:
+      return "call";
+    case pusharg_v:
+      return "pusharg";
+    case funcenter_v:
+      return "funcenter";
+    case funcexit_v:
+      return "funcexit";
+    case newtable_v:
+      return "newtable";
+    case tablegetelem_v:
+      return "tablegetelem";
+    case tablesetelem_v:
+      return "tablesetelem";
+    case jump_v:
+      return "jump";
+    case nop_v:
+      return "nop";
+    default:
+      assert(false);
+  }
+}
+
 
 void init_libfuncs(){
   registerLibFunc("objecttotalmembers", libfunc_objecttotalmembers);

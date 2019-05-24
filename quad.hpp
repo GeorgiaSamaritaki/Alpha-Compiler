@@ -267,7 +267,11 @@ SymbolTableEntry* new_tmp(unsigned int lineno) {
   char* name = new_tmpname();
   SymbolTableEntry* sym = symbol_table.lookUp_curscope(name);
   if (NULL == sym) {
-    return symbol_table.insert(name, lineno, LOCAL);
+    sym = symbol_table.insert(name, lineno, LOCAL);
+    sym->space = currScopeSpace();
+    sym->offset = currScopeOffset();
+    inCurrScopeOffset();
+    return sym;
   } else
     return sym;
 }
