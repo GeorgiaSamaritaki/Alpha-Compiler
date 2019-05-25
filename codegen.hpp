@@ -400,10 +400,10 @@ void generate_NOT(quad* quad){
 
 };
 void generate_OR(quad* quad){
-
+  assert(0);
 };
 void generate_AND(quad* quad){
-
+  assert(0);
 };
 
 void generate_PARAM(quad* quad) {

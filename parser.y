@@ -1193,6 +1193,9 @@ idlist_l:   id {
                 if(tmp ==  NULL) {//undefined
                     tmp = symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
                     assert(tmp);
+                    tmp->space = currScopeSpace();
+                    tmp->offset = currScopeOffset();
+                    inCurrScopeOffset();
                     // $idlist_l = newExpr(var_e);
                     // $idlist_l->sym = tmp;
                 }else{
@@ -1220,6 +1223,9 @@ idlist_l:   id {
                 if(tmp ==  NULL) {//undefined
                     tmp = symbol_table.insert(yylval.stringValue, yylineno, FORMAL);
                     assert(tmp);
+                    tmp->space = currScopeSpace();
+                    tmp->offset = currScopeOffset();
+                    inCurrScopeOffset();
                     // expr* e = newExpr(var_e);
                     // e->sym = tmp;
                     // e->next = $idlist_l;

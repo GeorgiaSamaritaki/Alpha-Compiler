@@ -69,4 +69,5 @@ clean:
 	-rm quads.txt
 	-rm tcode.txt
 	-rm *.abc
+	-rm avm
 	clear

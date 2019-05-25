@@ -243,7 +243,7 @@ string userfunc_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == userfunc_m);
   stringstream ss;
-  ss << (m->data.funcVal);
+  ss << avm_getFuncInfo(m->data.funcVal);
   return ss.str();
 }
 string libfunc_toString(avm_memcell* m) {

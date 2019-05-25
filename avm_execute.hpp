@@ -7,7 +7,7 @@ void avm_dec_top(void) {
   else
     --top;
 }
-void avm_tableIncrRC(avm_table* t) { assert(t); ++(t->rc); }
+void avm_tableIncrRC(avm_table* t) { ++(t->rc); }
 
 void avm_tableDecRC(avm_table* t) {
   assert(t->rc > 0);
@@ -50,8 +50,9 @@ void execute_call(instruction* instr) {
   avm_callsaveenvironment();
   switch (func->type) {
     case userfunc_m: {
-      pc = func->data.funcVal;
+      pc = userFunczRead[func->data.funcVal]->address;//auto den einai opvw tiw dialekseis
       assert(pc < AVM_ENDING_PC);
+      // cout<< " here pc : "<<pc<<endl;
       assert(instructionzRead[pc]->opcode == funcenter_v);
       break;
     }
@@ -71,11 +72,10 @@ void execute_call(instruction* instr) {
 void execute_funcenter(instruction* instr) {
   avm_memcell* func = avm_translate_operand(instr->result, ax);
   assert(func);
-  // assert(pc == func->data.funcVal);
+  assert(pc == userFunczRead[func->data.funcVal]->address); //auto den einai opvw tiw dialekseis
 
   totalActuals = 0;
   userfunc* funcInfo = avm_getFuncInfo(pc);
-  cout<<"pc "<<pc<<" funcname: "<<funcInfo->id<<endl;
   assert(funcInfo);
   topsp = top;
   top = top - funcInfo->localSize;
@@ -84,19 +84,15 @@ void execute_funcenter(instruction* instr) {
 
 void execute_funcexit(instruction* unused) {
   unsigned oldTop = top;
-  cout<<"1"<<endl;
   top = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
-  cout<<"2"<<endl;
   pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
-  cout<<"3"<<endl;
   topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-  cout<<"4"<<endl;
   while (++oldTop <= top) avm_memcellClear(&stack_m[oldTop]);
 }
 
 void execute_pusharg(instruction* instr) {
   avm_memcell* arg = avm_translate_operand(instr->arg1, ax);
-  cout << avm_toString(arg) << endl;
+  // cout << avm_toString(arg) << endl;
   // printStack();
   assert(arg);
   avm_assign(&stack_m[top], arg);
@@ -143,16 +139,15 @@ void execute_tablegetelem(instruction* instr) {
                 lv == retval));
   assert(t && (&stack_m[AVM_STACKSIZE - 1] >= t && t > &stack_m[top]));
   assert(i);
-
   avm_memcellClear(lv);
   lv->type = nil_m;
 
   if (t->type != table_m) avm_error("illegal use of type %s as table!", typeStrings[t->type]);
+
   else {
     avm_memcell* content = avm_tablegetelem(t->data.tableVal, i);
-    if (content){
+    if (content)
       avm_assign(lv, content);
-    }
     else {
       char* ts = (char*)avm_toString(t).c_str();
       char* is = (char*)avm_toString(i).c_str();
@@ -162,6 +157,7 @@ void execute_tablegetelem(instruction* instr) {
 }
 
 void execute_tablesetelem(instruction* instr) {
+  cout << instr->opcode << endl;
   avm_memcell* t = avm_translate_operand(instr->result, (avm_memcell*)0);
   avm_memcell* i = avm_translate_operand(instr->arg1, ax);
   avm_memcell* c = avm_translate_operand(instr->arg2, bx);
@@ -170,18 +166,24 @@ void execute_tablesetelem(instruction* instr) {
   assert(i && c);
   if (t->type != table_m) {
     avm_error("illegal use of type %s as table!", typeStrings[t->type]);
+
   } else
     avm_tablesetelem(t->data.tableVal, i, c);
 }
 
-void execute_jump(instruction* instr) {}
-void execute_uminus(instruction* instr) {}
-void execute_and(instruction* instr) {}
-void execute_or(instruction* instr) {}
-void execute_not(instruction* instr) {}
-void execute_nop(instruction* instr) {}
-void execute_getretval(instruction* instr) {}
-void execute_ret(instruction* instr) {}
+void execute_jump(instruction* instr) { 
+  assert(instr->result);
+  assert(instr->result->type == label_a);
+  if (!executionFinished && instr->result->val>0) pc = instr->result->val;
+}
+
+void execute_uminus(instruction* instr) {assert(0);}
+void execute_and(instruction* instr) {assert(0);}
+void execute_or(instruction* instr) {assert(0);}
+void execute_not(instruction* instr) {assert(0);}
+void execute_nop(instruction* instr) {assert(0);}
+void execute_getretval(instruction* instr) {assert(0);}
+void execute_ret(instruction* instr) {assert(0);}
 
 
 void execute_jeq(instruction* instr) {
