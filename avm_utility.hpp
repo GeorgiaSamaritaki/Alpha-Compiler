@@ -217,8 +217,6 @@ void printStack();
 
 unsigned get_magic(string s) { return 69420666; }
 
-
-
 string number_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == number_m);
