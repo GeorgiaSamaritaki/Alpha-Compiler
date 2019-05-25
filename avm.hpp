@@ -120,6 +120,7 @@ avm_memcell* avm_translate_operand(vmarg* arg, avm_memcell* reg) {
       return reg;
     }
     case userfunc_a: {
+      cout<<"here is the problem!"<<arg->val<<endl;
       reg->type = userfunc_m;
       reg->data.funcVal = arg->val;
       return reg;
@@ -219,9 +220,11 @@ userfunc* avm_getFuncInfo(unsigned address) {
     if (userFunczRead[i]->address == address) return userFunczRead[i];
   return NULL;
 }
+
 unsigned avm_get_envvalue(unsigned i) {
   assert(stack_m[i].type == number_m);
   unsigned val = (unsigned)stack_m[i].data.numVal;
+  // cout<< "Val "<<val <<" numval "<< stack_m[i].data.numVal<<endl;
   assert(stack_m[i].data.numVal == ((double)val));
   return val;
 }
@@ -353,7 +356,7 @@ void execute_cycle(void) {
     if (instr->srcLine) currLine = instr->srcLine;
     unsigned oldPc = pc;
 
-    cout << "pc is " << toString(instr->opcode) << endl;
+    cout << "pc is " << toString(instr->opcode)<<" "<<instr->opcode << endl;
     (*executeFuncs[instr->opcode])(instr);
     if (pc == oldPc) ++pc;
   }

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <stdlib.h>
 
 #ifndef avm_utility
 #define avm_utility
@@ -97,10 +98,10 @@ typedef struct userfunc {
   unsigned address;
   unsigned localSize;
   char* id;
-  string toString(){
-    stringstream ss; 
+  string toString() {
+    stringstream ss;
     string s = id;
-    ss << s << " " << address << " " << localSize <<" ";
+    ss << s << " " << address << " " << localSize << " ";
     return ss.str();
   }
 
@@ -130,7 +131,7 @@ typedef struct avm_memcell {
     unsigned funcVal;
     char* libfuncVal;
   } data;
-  
+
 } avm_memcell;
 
 typedef struct avm_table_bucket {
@@ -160,24 +161,15 @@ unsigned codeSize = 0;
 
 unsigned totalActuals = 0;
 
-//For reading 
+// For reading
 vector<double> numConstsRead;
 vector<char*> stringConstsRead;
 vector<char*> namedLibFuncsRead;
 vector<userfunc*> userFunczRead;
 vector<instruction*> instructionzRead;
 
-char* typeStrings[] = {
-  "number",
-  "string",
-  "bool",
-  "table",
-  "userfunc",
-  "libfunc",
-  "nill",
-  "undef"
-};
-
+char* typeStrings[] = {"number",   "string",  "bool", "table",
+                       "userfunc", "libfunc", "nill", "undef"};
 
 typedef void (*library_func_t)();
 typedef void (*execute_func_t)(instruction*);
@@ -217,13 +209,14 @@ void printStack();
 
 unsigned get_magic(string s) { return 69420666; }
 
-
-
 string number_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == number_m);
+  stringstream tmp;
   stringstream ss;
-  ss << (m->data.numVal);
+  tmp << fixed;tmp.precision(3); tmp << m->data.numVal;
+  float new_val = atof(tmp.str().c_str());  // new_val = 3.143
+  ss << new_val;
   return ss.str();
 }
 string string_toString(avm_memcell* m) {
@@ -284,22 +277,22 @@ string table_tostring(avm_table* t) {
   for (int i = 0; i < AVM_TABLE_HASHSIZE; i++) {
     avm_table_bucket* tmp = t->numIndexed[i];
     while (tmp != NULL) {
-      s+="{"; 
-      s+=avm_toString(&tmp->key);
-      s+= ":";
-      s+=avm_toString(&tmp->value);
-      s+="}";
+      s += "{";
+      s += avm_toString(&tmp->key);
+      s += ":";
+      s += avm_toString(&tmp->value);
+      s += "}";
       tmp = tmp->next;
     }
   }
   for (int i = 0; i < AVM_TABLE_HASHSIZE; i++) {
     avm_table_bucket* tmp = t->strIndexed[i];
     while (tmp != NULL) {
-      s+="{";
-      s+=avm_toString(&tmp->key);
-      s+= ":";
-      s+=avm_toString(&tmp->value);
-      s+="}";
+      s += "{";
+      s += avm_toString(&tmp->key);
+      s += ":";
+      s += avm_toString(&tmp->value);
+      s += "}";
       tmp = tmp->next;
     }
   }
@@ -310,7 +303,9 @@ string table_tostring(avm_table* t) {
 double add_impl(double x, double y) { return x + y; }
 double sub_impl(double x, double y) { return x - y; }
 double mul_impl(double x, double y) { return x * y; }
-double div_impl(double x, double y) { return y==0? -1 : x / y; }  // FIXME: error check?
+double div_impl(double x, double y) {
+  return y == 0 ? -1 : x / y;
+}  // FIXME: error check?
 double mod_impl(double x, double y) { return x + y; }
 
 arithmetic_func_t arithmeticFuncs[] = {add_impl, sub_impl, mul_impl, div_impl,
@@ -375,14 +370,11 @@ eq_check_t checks[] = {
     0   // undef
 };
 
-
 bool le_impl(double a, double b) { return a < b; };
 bool ge_impl(double a, double b) { return a > b; };
 bool lt_impl(double a, double b) { return a <= b; };
 bool gt_impl(double a, double b) { return a >= b; };
 
 cmp_func_t numberCmpFuncs[] = {le_impl, ge_impl, lt_impl, gt_impl};
-
-
 
 #endif

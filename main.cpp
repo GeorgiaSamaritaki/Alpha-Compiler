@@ -74,6 +74,7 @@ void read_binary() {
     if (fread(&f->localSize, sizeof(unsigned), 1, infile) == -1)
       cerr << "Error while reading the file - localsize" << endl;
     // cout << "locals: " << f->localSize<< endl;
+    userFunczRead.push_back(f);
   }
 
   // Lib funcs
@@ -206,6 +207,6 @@ int main(int argc, char* argv[]) {
     execute_cycle(); 
   }
 
-  
+
   return 0;
 }

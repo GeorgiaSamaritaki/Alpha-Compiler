@@ -142,24 +142,26 @@ unsigned libfuncs_newUsed(char* s) {
 unsigned userfuncs_newFunc(SymbolTableEntry* s) {
   for (int i = 0; i < userFuncz.size(); i++) {
     /*Check if we already use this function*/
-    if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name)) {
-      /*Found it -> return the index*/
+    if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name)){
+      cout<<"1 "<<userFuncz[i]->id<<" index: "<< i<<endl;
       return i;
-    }
+    } 
+  
   }
-
   /*New user func*/
   userfunc* f = new userfunc();
   f->id = strdup((char*)s->value.funcVal->name);
   f->localSize = s->value.funcVal->totalLocals;
   f->address = s->taddress;
-
-  return userFuncz.size();
+  userFuncz.push_back(f); 
+  cout<<"2 "<<f->id<<" index: "<< userFuncz.size()-1<<endl;
+  return userFuncz.size()-1;
 }
 
 void emit_instr(instruction t) {
   instruction* new_t = new instruction();
   new_t->opcode = t.opcode;
+  cout<<"emit instr: "<<toString(t.opcode)<<endl;
   new_t->result = t.result;
   new_t->arg1 = t.arg1;
   new_t->arg2 = t.arg2;
@@ -218,6 +220,7 @@ void make_operand(expr* e, vmarg* arg) {
       // arg->val = e->sym->taddress;
       /* or alternatively*/
       arg->val = userfuncs_newFunc(e->sym);
+      cout<< " val is " <<arg->val <<endl; 
       break;
     }
     case libraryfunc_e: {
@@ -252,23 +255,25 @@ unsigned totalInstructions = 0;
 
 unsigned nextInstructionLabel() { return instructionz.size(); }
 
-vector<incomplete_jump> incomplete_jumps;
+vector<incomplete_jump*> incomplete_jumps;
 
 void add_incomplete_jump(unsigned int instrNo, unsigned iaddress) {
-  incomplete_jump tmp;
-  tmp.instrNo = instrNo;
-  tmp.iaddress = iaddress;
+  incomplete_jump* tmp =  new incomplete_jump();
+  cout<<" need to patch instr "<<instrNo <<" to "<<iaddress<<endl;
+  tmp->instrNo = instrNo;
+  tmp->iaddress = iaddress;
   incomplete_jumps.push_back(tmp);
 }
 
 void patch_incomplete_jumps() {
-  for (int i = 0; incomplete_jumps.size(); i++) {
-    if (incomplete_jumps[i].iaddress == quads.size())
-      instructionz[incomplete_jumps[i].instrNo]->result->val =
+  for (int i = 0; i < incomplete_jumps.size(); i++) {
+    if (incomplete_jumps[i]->iaddress == quads.size())
+      instructionz[incomplete_jumps[i]->instrNo]->result->val =
           nextInstructionLabel();
     else
-      instructionz[incomplete_jumps[i].instrNo]->result->val =
-          quads[incomplete_jumps[i].iaddress]->taddress;
+      instructionz[incomplete_jumps[i]->instrNo]->result->val =
+          quads[incomplete_jumps[i]->iaddress]->taddress;
+    delete(incomplete_jumps[i]);
   }
 }
 
@@ -306,6 +311,7 @@ void clear_instruction(instruction* t,quad* quad) {
     case jump_v:
       t->result = new vmarg();
       make_operand(quad->result, t->result);
+      
       break;
     case uminus_v:
     case and_v:
@@ -333,7 +339,6 @@ void generate(vmopcode op, quad* quad) {
 
 void generate_relational(vmopcode op, quad* quad) {
   // cout << "generate_relational op: " << toString(op) << " ";
-  debug_quad(quad);
   instruction t;
   t.opcode = op;
   if( op != jump_v ){
@@ -352,6 +357,7 @@ void generate_relational(vmopcode op, quad* quad) {
   if (quad->label < currentProcessedQuad()) {
     t.result->val = quads[quad->label]->taddress;
   } else {
+    cout<<"~~~~~~~~~~~~~~~~~~here"<<endl;
     add_incomplete_jump(nextInstructionLabel(), quad->label);
   }
   quad->taddress = nextInstructionLabel();
@@ -440,17 +446,17 @@ void generate_GETRETVAL(quad* quad) {
   emit_instr(t);
 };
 void generate_FUNCSTART(quad* quad) {
-  /*We need 2 emits*/
-  /*First emit jump instruction*/
-  instruction jump;
-  jump.opcode = jump_v;
-  jump.arg1 = NULL;
-  jump.arg2 = NULL;
-  jump.result = new vmarg();
-  jump.result->type = label_a;
-  jump.srcLine = symbol_table.get_lineno(quad->result->sym);
+  // /*We need 2 emits*/
+  // /*First emit jump instruction*/
+  // instruction jump;
+  // jump.opcode = jump_v;
+  // jump.arg1 = NULL;
+  // jump.arg2 = NULL;
+  // jump.result = new vmarg();
+  // jump.result->type = label_a;
+  // jump.srcLine = symbol_table.getA_lineno(quad->result->sym);
 
-  emit_instr(jump);
+  // emit_instr(jump);
   quad->taddress = nextInstructionLabel();
   assert(quad->result->sym);
   quad->result->sym->taddress = nextInstructionLabel();
@@ -495,20 +501,20 @@ void generate_RETURN(quad* quad) {
   stackNode* f = funcStack.top();
   f->returnList.push_back(nextInstructionLabel());
 
-  /*Then emit jump*/
-  instruction jump;
-  jump.opcode = jump_v;
-  jump.arg1 = NULL;
-  jump.arg2 = NULL;
-  jump.result = new vmarg();
-  jump.result->type = label_a;
-  if (quad->arg1->sym || quad->arg2->sym || quad->result->sym) {
-    jump.srcLine = symbol_table.get_lineno(quad->result->sym);
-  } else {
-    jump.srcLine = 0;
-  }
+  // /*Then emit jump*/
+  // instruction jump;
+  // jump.opcode = jump_v;
+  // jump.arg1 = NULL;
+  // jump.arg2 = NULL;
+  // jump.result = new vmarg();
+  // jump.result->type = label_a;
+  // if (quad->arg1->sym || quad->arg2->sym || quad->result->sym) {
+  //   jump.srcLine = symbol_table.get_lineno(quad->result->sym);
+  // } else {
+  //   jump.srcLine = 0;
+  // }
 
-  emit_instr(jump);
+  // emit_instr(jump);
 };
 
 void generate_FUNCEND(quad* quad) {
@@ -548,6 +554,7 @@ void generateAll(void) {
     debug_quad(quads[i], i);
     (*generators[quads[i]->iop])(quads[i]);
   }
+  patch_incomplete_jumps();
 }
 
 unsigned get_magic(string s) { return 69420666; }

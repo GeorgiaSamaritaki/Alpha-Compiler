@@ -11,6 +11,8 @@ void libfunc_print() {
   cout<<endl<<"Output:"<<endl;
   unsigned n = avm_totalActuals();
   for (unsigned i = 0; i < n; ++i) {
+    if(avm_getActual(i)->type == userfunc_m) cout<<"user function: ";
+    if(avm_getActual(i)->type == libfunc_m) cout<<"library function: ";
     cout << avm_toString(avm_getActual(i));
   }
   cout<<endl<<"output_end"<<endl;
@@ -98,21 +100,21 @@ string toLower(string s) {
 
 void libfunc_input(void) {
   string s;
-  cin >> s;
+  getline(cin,s);
   string sl = toLower(s);
   char autakia = '\"';
-
+  
   avm_memcellClear(retval);
   if (is_number(s)) {
     retval->type = number_m;
     retval->data.numVal = atof(s.c_str());
-  } else if (sl.compare("true")) {
+  } else if (sl.compare("true") == 0) {
     retval->type = bool_m;
     retval->data.boolVal = true;
-  } else if (sl.compare("false")) {
+  } else if (sl.compare("false") == 0) {
     retval->type = bool_m;
     retval->data.boolVal = false;
-  } else if (sl.compare("nil")) {
+  } else if (sl.compare("nil") == 0) {
     retval->type = nil_m;
   } else {
     retval->type = string_m;
@@ -160,6 +162,7 @@ void libfunc_strtonum(void) {
     retval->data.numVal = atof(avm_getActual(0)->data.strVal);
   }
 }
+
 avm_table* copy_table(avm_table* tocopy) {
   avm_table* new_one = avm_tablenew();
   avm_table_bucket** p = tocopy->strIndexed;

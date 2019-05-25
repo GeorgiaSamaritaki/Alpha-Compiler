@@ -71,10 +71,11 @@ void execute_call(instruction* instr) {
 void execute_funcenter(instruction* instr) {
   avm_memcell* func = avm_translate_operand(instr->result, ax);
   assert(func);
-  assert(pc == func->data.funcVal);
+  // assert(pc == func->data.funcVal);
 
   totalActuals = 0;
   userfunc* funcInfo = avm_getFuncInfo(pc);
+  cout<<"pc "<<pc<<" funcname: "<<funcInfo->id<<endl;
   assert(funcInfo);
   topsp = top;
   top = top - funcInfo->localSize;
@@ -83,15 +84,19 @@ void execute_funcenter(instruction* instr) {
 
 void execute_funcexit(instruction* unused) {
   unsigned oldTop = top;
+  cout<<"1"<<endl;
   top = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
+  cout<<"2"<<endl;
   pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
+  cout<<"3"<<endl;
   topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
+  cout<<"4"<<endl;
   while (++oldTop <= top) avm_memcellClear(&stack_m[oldTop]);
 }
 
 void execute_pusharg(instruction* instr) {
   avm_memcell* arg = avm_translate_operand(instr->arg1, ax);
-//   cout << avm_toString(arg) << endl;
+  cout << avm_toString(arg) << endl;
   // printStack();
   assert(arg);
   avm_assign(&stack_m[top], arg);
