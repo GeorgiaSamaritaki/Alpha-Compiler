@@ -16,11 +16,11 @@ void avm_tableDecRC(avm_table* t) {
 
 void execute_arithmetic(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*)0);
-  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
-  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, bx);
 
   assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv > &stack_m[top] ||
-                lv == &retval));
+                lv == retval));
   assert(rv1 && rv2);
   if (rv1->type != number_m || rv2->type != number_m) {
     avm_error("not a number in arithmetic!");
@@ -35,20 +35,19 @@ void execute_arithmetic(instruction* instr) {
 
 void execute_assign(instruction* instr) {
   avm_memcell* lv = avm_translate_operand(instr->result, NULL);
-  avm_memcell* rv = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* rv = avm_translate_operand(instr->arg1, ax);
 
   assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] ||
-                lv == &retval));
+                lv == retval));
   assert(rv);
 
   avm_assign(lv, rv);
 }
 
 void execute_call(instruction* instr) {
-  avm_memcell* func = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* func = avm_translate_operand(instr->arg1, ax);
   assert(func);
   avm_callsaveenvironment();
-      printf("call lib func\n");
   switch (func->type) {
     case userfunc_m: {
       pc = func->data.funcVal;
@@ -60,20 +59,17 @@ void execute_call(instruction* instr) {
       avm_callLibFunc(func->data.strVal);
       break;
     case libfunc_m:
-      printf("call lib func\n");
       avm_callLibFunc(func->data.libfuncVal);
       break;
     default: {
-      char* s = avm_toString(func);
+      char* s = (char*)avm_toString(func).c_str();
       avm_error("call: cannot bind '%s' to function!", s);
-
-      free(s);
     }
   }
 }
 
 void execute_funcenter(instruction* instr) {
-  avm_memcell* func = avm_translate_operand(instr->result, &ax);
+  avm_memcell* func = avm_translate_operand(instr->result, ax);
   assert(func);
   assert(pc == func->data.funcVal);
 
@@ -94,9 +90,9 @@ void execute_funcexit(instruction* unused) {
 }
 
 void execute_pusharg(instruction* instr) {
-  avm_memcell* arg = avm_translate_operand(instr->arg1, &ax);
+  avm_memcell* arg = avm_translate_operand(instr->arg1, ax);
 //   cout << avm_toString(arg) << endl;
-  printStack();
+  // printStack();
   assert(arg);
   avm_assign(&stack_m[top], arg);
   ++totalActuals;
@@ -106,8 +102,8 @@ void execute_pusharg(instruction* instr) {
 
 void execute_rel(instruction* instr) {
   assert(instr->result->type == label_a);
-  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
-  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, bx);
 
   bool result = 0;
 
@@ -122,10 +118,9 @@ void execute_rel(instruction* instr) {
 }
 
 void execute_newtable(instruction* instr) {
-  cout << "i am gonna die here" << endl;
   avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*)0);
   assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv > &stack_m[top] ||
-                lv == &retval));
+                lv == retval));
 
   avm_memcellClear(lv);
 
@@ -135,31 +130,27 @@ void execute_newtable(instruction* instr) {
 }
 
 void execute_tablegetelem(instruction* instr) {
-  cout << "asaa" << endl;
   avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*)0);
   avm_memcell* t = avm_translate_operand(instr->arg1, (avm_memcell*)0);
-  avm_memcell* i = avm_translate_operand(instr->arg2, &ax);
+  avm_memcell* i = avm_translate_operand(instr->arg2, ax);
 
   assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv > &stack_m[top] ||
-                lv == &retval));
+                lv == retval));
   assert(t && (&stack_m[AVM_STACKSIZE - 1] >= t && t > &stack_m[top]));
   assert(i);
   avm_memcellClear(lv);
   lv->type = nil_m;
 
-  if (t->type != table_m) {
-    avm_error("illegal use of type %s as table!", typeStrings[t->type]);
+  if (t->type != table_m) avm_error("illegal use of type %s as table!", typeStrings[t->type]);
 
-  } else {
+  else {
     avm_memcell* content = avm_tablegetelem(t->data.tableVal, i);
     if (content)
       avm_assign(lv, content);
     else {
-      char* ts = avm_toString(t);
-      char* is = avm_toString(i);
+      char* ts = (char*)avm_toString(t).c_str();
+      char* is = (char*)avm_toString(i).c_str();
       avm_warning("%s[%s] not found!", ts, is);
-      free(ts);
-      free(is);
     }
   }
 }
@@ -167,9 +158,9 @@ void execute_tablegetelem(instruction* instr) {
 void execute_tablesetelem(instruction* instr) {
   cout << instr->opcode << endl;
   avm_memcell* t = avm_translate_operand(instr->result, (avm_memcell*)0);
-  avm_memcell* i = avm_translate_operand(instr->arg1, &ax);
-  avm_memcell* c = avm_translate_operand(instr->arg2, &bx);
-cout << "tablesetelem " <<" key " << avm_toString(i)<<" val "<<avm_toString(c)<<endl;
+  avm_memcell* i = avm_translate_operand(instr->arg1, ax);
+  avm_memcell* c = avm_translate_operand(instr->arg2, bx);
+  
   assert(t && &stack_m[AVM_STACKSIZE - 1] >= t && t > &stack_m[top]);
   assert(i && c);
   if (t->type != table_m) {
@@ -177,7 +168,6 @@ cout << "tablesetelem " <<" key " << avm_toString(i)<<" val "<<avm_toString(c)<<
 
   } else
     avm_tablesetelem(t->data.tableVal, i, c);
-    cout << avm_toString(t) << endl;
 }
 
 void execute_jump(instruction* instr) {}
@@ -192,8 +182,8 @@ void execute_ret(instruction* instr) {}
 
 void execute_jeq(instruction* instr) {
   assert(instr->result->type == label_a);
-  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
-  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, bx);
 
   bool result = 0;
 
@@ -217,8 +207,8 @@ void execute_jeq(instruction* instr) {
 
 void execute_jne(instruction* instr) {
   assert(instr->result->type == label_a);
-  avm_memcell* rv1 = avm_translate_operand(instr->arg1, &ax);
-  avm_memcell* rv2 = avm_translate_operand(instr->arg2, &bx);
+  avm_memcell* rv1 = avm_translate_operand(instr->arg1, ax);
+  avm_memcell* rv2 = avm_translate_operand(instr->arg2, bx);
 
   bool result = 0;
 

@@ -8,12 +8,12 @@ library_func_t libraryFuncz[12];
 
 /*Library Functions - Start*/
 void libfunc_print() {
+  cout<<endl<<"Output:"<<endl;
   unsigned n = avm_totalActuals();
   for (unsigned i = 0; i < n; ++i) {
-    char* s = strdup(avm_toString(avm_getActual(i)));
-    puts(s);
-    free(s);
+    cout << avm_toString(avm_getActual(i));
   }
+  cout<<endl<<"output_end"<<endl;
 }
 
 void libfunc_typeof(void) {
@@ -22,9 +22,9 @@ void libfunc_typeof(void) {
   if (n != 1) {
     avm_error("one argument expected in 'typeof' (not %d) !", n);
   } else {
-    avm_memcellClear(&retval);
-    retval.type = string_m;
-    retval.data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
+    avm_memcellClear(retval);
+    retval->type = string_m;
+    retval->data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
   }
 }
 
@@ -38,9 +38,9 @@ void libfunc_sin(void) {
     if (avm_getActual(0)->type != number_m) {
       avm_error("Sin expects number!", n);
     } else {
-      avm_memcellClear(&retval);
-      retval.type = number_m;
-      retval.data.numVal = sin(avm_getActual(0)->data.numVal);
+      avm_memcellClear(retval);
+      retval->type = number_m;
+      retval->data.numVal = sin(avm_getActual(0)->data.numVal);
     }
   }
 }
@@ -54,9 +54,9 @@ void libfunc_cos(void) {
     if (avm_getActual(0)->type != number_m) {
       avm_error("Cos expects number!", n);
     } else {
-      avm_memcellClear(&retval);
-      retval.type = number_m;
-      retval.data.numVal = cos(avm_getActual(0)->data.numVal);
+      avm_memcellClear(retval);
+      retval->type = number_m;
+      retval->data.numVal = cos(avm_getActual(0)->data.numVal);
     }
   }
 }
@@ -70,13 +70,13 @@ void libfunc_sqrt(void) {
     if (avm_getActual(0)->type != number_m) {
       avm_error("Sqrt expects number!", n);
     } else {
-      avm_memcellClear(&retval);
-      retval.type = number_m;
+      avm_memcellClear(retval);
+      retval->type = number_m;
       double tmp = sqrt(avm_getActual(0)->data.numVal);
       if (tmp < 0)
-        retval.type = nil_m;
+        retval->type = nil_m;
       else
-        retval.data.numVal = tmp;
+        retval->data.numVal = tmp;
     }
   }
 }
@@ -102,24 +102,24 @@ void libfunc_input(void) {
   string sl = toLower(s);
   char autakia = '\"';
 
-  avm_memcellClear(&retval);
+  avm_memcellClear(retval);
   if (is_number(s)) {
-    retval.type = number_m;
-    retval.data.numVal = atof(s.c_str());
+    retval->type = number_m;
+    retval->data.numVal = atof(s.c_str());
   } else if (sl.compare("true")) {
-    retval.type = bool_m;
-    retval.data.boolVal = true;
+    retval->type = bool_m;
+    retval->data.boolVal = true;
   } else if (sl.compare("false")) {
-    retval.type = bool_m;
-    retval.data.boolVal = false;
+    retval->type = bool_m;
+    retval->data.boolVal = false;
   } else if (sl.compare("nil")) {
-    retval.type = nil_m;
+    retval->type = nil_m;
   } else {
-    retval.type = string_m;
+    retval->type = string_m;
     if (sl[0] == autakia && sl[s.length() - 1] == autakia) {
-      retval.data.strVal = strdup(s.substr(1, s.length() - 2).c_str());
+      retval->data.strVal = strdup(s.substr(1, s.length() - 2).c_str());
     } else {
-      retval.data.strVal = strdup(s.c_str());
+      retval->data.strVal = strdup(s.c_str());
     }
   }
 }
@@ -133,17 +133,17 @@ void libfunc_argument(void) {
   } else if (avm_getActual(0)->type != number_m) {
     avm_error("error in arguement1");
   } else if (!p_topsp) {
-    avm_memcellClear(&retval);
+    avm_memcellClear(retval);
     avm_error("error in arguement2");
-    retval.type = nil_m;
+    retval->type = nil_m;
   } else if (avm_getActual(0)->data.numVal >
                  avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET) ||
              avm_getActual(0)->data.numVal < 0) {
     avm_error("error in arguement3");
   } else {
-    avm_memcellClear(&retval);
+    avm_memcellClear(retval);
     int offset = (int)avm_getActual(0)->data.numVal;
-    retval = stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset];
+    retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset];
   }
 }
 
@@ -155,9 +155,9 @@ void libfunc_strtonum(void) {
   } else if (avm_getActual(0)->type != string_m) {
     avm_error("String expected");
   } else {
-    avm_memcellClear(&retval);
-    retval.type = number_m;
-    retval.data.numVal = atof(avm_getActual(0)->data.strVal);
+    avm_memcellClear(retval);
+    retval->type = number_m;
+    retval->data.numVal = atof(avm_getActual(0)->data.strVal);
   }
 }
 avm_table* copy_table(avm_table* tocopy) {
@@ -189,9 +189,9 @@ void libfunc_objectcopy(void) {
   } else if (avm_getActual(0)->type != table_m) {
     avm_error("Table expected");
   } else {
-    avm_memcellClear(&retval);
-    retval.type = table_m;
-    retval.data.tableVal = copy_table(avm_getActual(0)->data.tableVal);
+    avm_memcellClear(retval);
+    retval->type = table_m;
+    retval->data.tableVal = copy_table(avm_getActual(0)->data.tableVal);
   }
 }
 avm_table* getindexes(avm_table* derived) {
@@ -229,9 +229,9 @@ void libfunc_objectmemberkeys(void) {
   } else if (avm_getActual(0)->type != table_m) {
     avm_error("Table expected");
   } else {
-    avm_memcellClear(&retval);
-    retval.type = table_m;
-    retval.data.tableVal = getindexes(avm_getActual(0)->data.tableVal);
+    avm_memcellClear(retval);
+    retval->type = table_m;
+    retval->data.tableVal = getindexes(avm_getActual(0)->data.tableVal);
   }
 }
 void libfunc_objecttotalmembers(void) {
@@ -242,22 +242,22 @@ void libfunc_objecttotalmembers(void) {
   } else if (avm_getActual(0)->type != table_m) {
     avm_error("Table expected");
   } else {
-    avm_memcellClear(&retval);
-    retval.type = number_m;
-    retval.data.numVal = avm_getActual(0)->data.tableVal->total;
+    avm_memcellClear(retval);
+    retval->type = number_m;
+    retval->data.numVal = avm_getActual(0)->data.tableVal->total;
   }
 }
 
 void libfunc_totalarguments() {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-  avm_memcellClear(&retval);
+  avm_memcellClear(retval);
 
   if (!p_topsp) {
     avm_error("'totalargument' called outside a function!");
-    retval.type = nil_m;
+    retval->type = nil_m;
   } else {
-    retval.type = number_m;
-    retval.data.numVal = avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET);
+    retval->type = number_m;
+    retval->data.numVal = avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET);
   }
 }
 

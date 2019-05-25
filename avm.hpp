@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "avm_library_funcs.hpp"
-#include "avm_utility.hpp"
+// #include "avm_utility.hpp"
 #include "avm_execute.hpp"
 
 #ifndef avm
@@ -99,11 +99,10 @@ avm_memcell* avm_translate_operand(vmarg* arg, avm_memcell* reg) {
     case formal_a:
       return &stack_m[topsp + AVM_STACKENV_SIZE + 1 + arg->val];
     case retval_a:
-      return &retval;
+      return retval;
     case number_a: {
       reg->type = number_m;
       reg->data.numVal = consts_getNumber(arg->val);
-      cout<<"number retrived "<<reg->data.numVal<<endl<<" memcell "<<avm_toString(reg)<<endl;
       return reg;
     }
     case string_a: {
@@ -179,7 +178,9 @@ void avm_error(char* format, ...) {
   va_start(args, format);
   printf(format, args);
   va_end(args);
+  cout<<"Stack"<<endl;
   printStack();
+  cout<<endl;
 }
 
 void avm_assign(avm_memcell* lv, avm_memcell* rv) {
@@ -189,15 +190,14 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
       lv->data.tableVal == rv->data.tableVal)
     return;
 
-  if (rv->type == undef_m) avm_warning("assigning from 'undef' contnet!");
+  if (rv->type == undef_m) avm_warning("assigning from 'undef' content!");
 
   avm_memcellClear(lv);
-
   memcpy(lv, rv, sizeof(avm_memcell));
 
-  if (lv->type == string_m)
+  if (lv->type == string_m){
     lv->data.strVal = strdup(rv->data.strVal);
-  else if (lv->type == table_m)
+  }else if (lv->type == table_m)
     avm_tableIncrRC(lv->data.tableVal);
 }
 
@@ -237,7 +237,6 @@ void avm_callLibFunc(char* id) {
   library_func_t f = avm_getLibraryFunc(id);
   if (!f) {
     avm_error("unsupported lib func '%s' called!", id);
-
   } else {
     topsp = top;
     totalActuals = 0;
@@ -296,17 +295,18 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
     avm_error("Table key can only be string or integer\n");
     return;
   }
-cout << "avmtablesetelem " <<" key " << avm_toString(index)<<" val "<<avm_toString(content)<<endl;
 
   unsigned array_index = hashMe[index->type](index);
   avm_table_bucket* tmp = table->numIndexed[array_index];
-  if (index->type == string_m) tmp = table->strIndexed[array_index];
+  if (index->type == string_m) 
+    tmp = table->strIndexed[array_index];
   avm_table_bucket* prev = NULL;
   while (tmp != NULL) {
     if (strcmp(tmp->key.data.strVal, index->data.strVal) == 0) break;
     prev = tmp;
     tmp = tmp->next;
   }
+
   if (tmp == NULL) {
     avm_table_bucket* new_bucket = new avm_table_bucket();
     avm_assign(&new_bucket->key, index);
@@ -319,13 +319,12 @@ cout << "avmtablesetelem " <<" key " << avm_toString(index)<<" val "<<avm_toStri
       if (index->type == string_m)
         table->strIndexed[array_index] = new_bucket;
       else {
-        cout << "Key: " << avm_toString(&new_bucket->key) << endl
-             << "Value: " << avm_toString(&new_bucket->value) << endl;
         table->numIndexed[array_index] = new_bucket;
       }
     }
     table->total++;
   } else {
+    printf("found bucket\n");
     avm_assign(&tmp->value, content);
   }
 }
@@ -364,12 +363,24 @@ void printStack() {
   for (int i = 0; i < AVM_STACKSIZE; i++) {
     if (stack_m[i].type == undef_m) continue;
     cout << i << ": ";
-    cout<<avm_toString(&stack_m[i]);
+    cout << avm_toString(&stack_m[i]);
   }
 }
 
 void avm_initialize() {
+  ax = new avm_memcell();
+  cx = new avm_memcell();
+  bx = new avm_memcell();
+  retval = new avm_memcell();
   avm_initstack();
   init_libfuncs();
 }
+
+void avm_close() {
+  delete(ax);
+  delete(bx);
+  delete(cx);
+  delete(retval);
+}
+
 #endif

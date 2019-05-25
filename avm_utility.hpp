@@ -148,10 +148,10 @@ typedef struct avm_table {
 
 /*Var definitions*/
 avm_memcell stack_m[AVM_STACKSIZE];
-avm_memcell ax;
-avm_memcell bx;
-avm_memcell cx;
-avm_memcell retval;
+avm_memcell* ax;
+avm_memcell* bx;
+avm_memcell* cx;
+avm_memcell* retval;
 unsigned top, topsp;
 bool executionFinished = false;
 unsigned pc = 0;
@@ -182,7 +182,7 @@ char* typeStrings[] = {
 typedef void (*library_func_t)();
 typedef void (*execute_func_t)(instruction*);
 typedef void (*memclear_func_t)(avm_memcell*);
-typedef char* (*tostring_func_t)(avm_memcell*);
+typedef string (*tostring_func_t)(avm_memcell*);
 typedef double (*arithmetic_func_t)(double, double);
 typedef unsigned char (*tobool_func_t)(avm_memcell*);
 typedef bool (*eq_check_t)(avm_memcell*, avm_memcell*);
@@ -196,7 +196,7 @@ void avm_tableDestroy(avm_table* t);
 void avm_memcellClear(avm_memcell* m);
 void avm_callsaveenvironment();
 void avm_callLibFunc(char* id);
-char* avm_toString(avm_memcell* m);
+string avm_toString(avm_memcell* m);
 void avm_assign(avm_memcell* lv, avm_memcell* rv);
 userfunc* avm_getFuncInfo(unsigned address);
 
@@ -219,19 +219,20 @@ unsigned get_magic(string s) { return 69420666; }
 
 
 
-char* number_toString(avm_memcell* m) {
+string number_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == number_m);
   stringstream ss;
   ss << (m->data.numVal);
-  return (char*)ss.str().c_str();
+  return ss.str();
 }
-char* string_toString(avm_memcell* m) {
+string string_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == string_m);
-  return strdup(m->data.strVal);
+  string str(m->data.strVal);
+  return str;
 }
-char* bool_toString(avm_memcell* m) {
+string bool_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == bool_m);
   if (m->data.boolVal) {
@@ -240,29 +241,29 @@ char* bool_toString(avm_memcell* m) {
     return "false";
   }
 }
-char* table_toString(avm_memcell* m) {
+string table_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == table_m);
-  return (char*)table_tostring(m->data.tableVal).c_str();
+  return table_tostring(m->data.tableVal);
 }
-char* userfunc_toString(avm_memcell* m) {
+string userfunc_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == userfunc_m);
   stringstream ss;
   ss << (m->data.funcVal);
-  return (char*)ss.str().c_str();
+  return ss.str();
 }
-char* libfunc_toString(avm_memcell* m) {
+string libfunc_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == libfunc_m);
-  return strdup(m->data.libfuncVal);
+  return (m->data.libfuncVal);
 }
-char* nil_toString(avm_memcell* m) {
+string nil_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == nil_m);
   return "nil";
 }
-char* undef_toString(avm_memcell* m) {
+string undef_toString(avm_memcell* m) {
   assert(m);
   assert(m->type == undef_m);
   return "undefined";
@@ -272,7 +273,7 @@ tostring_func_t tostringFuncs[] = {
     number_toString,   string_toString,  bool_toString, table_toString,
     userfunc_toString, libfunc_toString, nil_toString,  undef_toString};
 
-char* avm_toString(avm_memcell* m) {
+string avm_toString(avm_memcell* m) {
   assert(m->type >= 0);
   assert(m->type != undef_m);
   return (*tostringFuncs[m->type])(m);
