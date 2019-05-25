@@ -73,7 +73,7 @@ void avm_tableBucketsDestroy(avm_table_bucket** p) {
 void avm_tableDestroy(avm_table* t) {
   avm_tableBucketsDestroy(t->strIndexed);
   avm_tableBucketsDestroy(t->numIndexed);
-  delete (t);
+  delete(t);
 }
 
 double consts_getNumber(unsigned index) {
@@ -198,8 +198,10 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
 
   if (lv->type == string_m){
     lv->data.strVal = strdup(rv->data.strVal);
-  }else if (lv->type == table_m)
+  }else if (lv->type == table_m){
     avm_tableIncrRC(lv->data.tableVal);
+
+  }
 }
 
 
@@ -272,6 +274,11 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
         }
         tmp = tmp->next;
       }
+      if( tmp == NULL) {
+        avm_memcell* ret = new avm_memcell();
+        ret->type = nil_m;
+        return ret;
+      }        
       break;
     }
     case string_m: {
@@ -282,6 +289,11 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
           return ret;
         }
         tmp = tmp->next;
+      }
+      if( tmp == NULL) {
+        avm_memcell* ret = new avm_memcell();
+        ret->type = nil_m;
+        return ret;
       }
       break;
     }
@@ -294,6 +306,7 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
 void avm_tablesetelem(avm_table* table, avm_memcell* index,
                       avm_memcell* content) {
   assert(table && index && content);
+
   if (index->type != number_m && index->type != string_m) {
     avm_error("Table key can only be string or integer\n");
     return;
@@ -304,8 +317,16 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
   if (index->type == string_m) 
     tmp = table->strIndexed[array_index];
   avm_table_bucket* prev = NULL;
+
   while (tmp != NULL) {
-    if (strcmp(tmp->key.data.strVal, index->data.strVal) == 0) break;
+    if( tmp->key.data.strVal  ){
+      if (strcmp(tmp->key.data.strVal, index->data.strVal) == 0) break;
+    }
+    else  
+      if( tmp->key.data.numVal == index->data.numVal) {
+        break;
+      }
+
     prev = tmp;
     tmp = tmp->next;
   }
@@ -327,11 +348,20 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
     }
     table->total++;
   } else {
-    printf("found bucket\n");
-    avm_assign(&tmp->value, content);
+    if( content->type == nil_m ){
+      if( prev != NULL) {
+        prev->next = tmp->next;
+      } else {
+        if (index->type == string_m)
+          table->strIndexed[array_index] = tmp->next;
+        else {
+          table->numIndexed[array_index] = tmp->next;
+        }
+      }   
+    } else
+      avm_assign(&tmp->value, content);
   }
 }
-
 
 execute_func_t executeFuncs[] = {
     execute_assign,       execute_add,       execute_sub,

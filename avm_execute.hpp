@@ -7,7 +7,7 @@ void avm_dec_top(void) {
   else
     --top;
 }
-void avm_tableIncrRC(avm_table* t) { ++(t->rc); }
+void avm_tableIncrRC(avm_table* t) { assert(t); ++(t->rc); }
 
 void avm_tableDecRC(avm_table* t) {
   assert(t->rc > 0);
@@ -143,15 +143,16 @@ void execute_tablegetelem(instruction* instr) {
                 lv == retval));
   assert(t && (&stack_m[AVM_STACKSIZE - 1] >= t && t > &stack_m[top]));
   assert(i);
+
   avm_memcellClear(lv);
   lv->type = nil_m;
 
   if (t->type != table_m) avm_error("illegal use of type %s as table!", typeStrings[t->type]);
-
   else {
     avm_memcell* content = avm_tablegetelem(t->data.tableVal, i);
-    if (content)
+    if (content){
       avm_assign(lv, content);
+    }
     else {
       char* ts = (char*)avm_toString(t).c_str();
       char* is = (char*)avm_toString(i).c_str();
@@ -161,7 +162,6 @@ void execute_tablegetelem(instruction* instr) {
 }
 
 void execute_tablesetelem(instruction* instr) {
-  cout << instr->opcode << endl;
   avm_memcell* t = avm_translate_operand(instr->result, (avm_memcell*)0);
   avm_memcell* i = avm_translate_operand(instr->arg1, ax);
   avm_memcell* c = avm_translate_operand(instr->arg2, bx);
@@ -170,7 +170,6 @@ void execute_tablesetelem(instruction* instr) {
   assert(i && c);
   if (t->type != table_m) {
     avm_error("illegal use of type %s as table!", typeStrings[t->type]);
-
   } else
     avm_tablesetelem(t->data.tableVal, i, c);
 }
