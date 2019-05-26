@@ -645,7 +645,7 @@ void create_binary() {
     if( fwrite(&userFuncz[i]->localSize, sizeof(unsigned), 1, outfile) == -1)
       cerr << " Error writing binary file" << endl;
       
-    cout << userFuncz[i] << endl;
+    cout << userFuncz[i]->id << endl;
   }
 
   //lib funcs

@@ -42,7 +42,7 @@ void libfunc_sin(void) {
     } else {
       avm_memcellClear(retval);
       retval->type = number_m;
-      retval->data.numVal = sin(avm_getActual(0)->data.numVal);
+      retval->data.numVal = sin(avm_getActual(0)->data.numVal * 3.14159265 / 180);
     }
   }
 }
@@ -58,7 +58,7 @@ void libfunc_cos(void) {
     } else {
       avm_memcellClear(retval);
       retval->type = number_m;
-      retval->data.numVal = cos(avm_getActual(0)->data.numVal);
+      retval->data.numVal = cos(avm_getActual(0)->data.numVal * 3.14159265 / 180);
     }
   }
 }
@@ -75,7 +75,7 @@ void libfunc_sqrt(void) {
       avm_memcellClear(retval);
       retval->type = number_m;
       double tmp = sqrt(avm_getActual(0)->data.numVal);
-      if (tmp < 0)
+      if (tmp != tmp)
         retval->type = nil_m;
       else
         retval->data.numVal = tmp;
@@ -145,8 +145,15 @@ void libfunc_argument(void) {
   } else {
     avm_memcellClear(retval);
     int offset = (int)avm_getActual(0)->data.numVal;
-    retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset];
+    retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1];
   }
+}
+
+bool has_digit(char* str ){
+  for(int i=0; i<strlen(str); i++ ){
+      if( isdigit(str[i]) )return true;
+  }
+  return false;
 }
 
 void libfunc_strtonum(void) {
@@ -158,8 +165,11 @@ void libfunc_strtonum(void) {
     avm_error("String expected");
   } else {
     avm_memcellClear(retval);
-    retval->type = number_m;
-    retval->data.numVal = atof(avm_getActual(0)->data.strVal);
+    if( !has_digit(avm_getActual(0)->data.strVal) ) retval->type = nil_m;
+    else {
+      retval->type = number_m;
+      retval->data.numVal = atof(avm_getActual(0)->data.strVal);
+    } 
   }
 }
 
@@ -253,14 +263,18 @@ void libfunc_objecttotalmembers(void) {
 
 void libfunc_totalarguments() {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
+  
   avm_memcellClear(retval);
-
-  if (!p_topsp) {
+  
+  if ( p_topsp == 0) {
     avm_error("'totalargument' called outside a function!");
     retval->type = nil_m;
   } else {
     retval->type = number_m;
     retval->data.numVal = avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET);
+    if( retval->data.numVal == (unsigned)-1) {
+      retval->type = nil_m;
+    }
   }
 }
 
@@ -345,6 +359,7 @@ string toString(vmopcode op) {
 void init_libfuncs(){
   registerLibFunc("objecttotalmembers", libfunc_objecttotalmembers);
   registerLibFunc("objectmemberkeys", libfunc_objectmemberkeys);
+  registerLibFunc("totalarguments", libfunc_totalarguments);
   registerLibFunc("objectcopy", libfunc_objectcopy);
   registerLibFunc("strtonum", libfunc_strtonum);
   registerLibFunc("argument", libfunc_argument);

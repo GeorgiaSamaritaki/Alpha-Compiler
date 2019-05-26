@@ -14,7 +14,6 @@ void read_binary() {
   FILE* infile;
   unsigned magic_number;
   size_t size;
-
   infile = fopen("binary.abc", "rb");
   if (!infile) cerr << " Error while opening the file" << endl;
 
@@ -111,6 +110,7 @@ void read_binary() {
       case add_v:
       case sub_v:
       case mul_v:
+      case mod_v:
       case div_v:
       case jeq_v:
       case jne_v:
@@ -187,7 +187,11 @@ void read_binary() {
         // cout << instr->arg1->type << "," << instr->arg1->val << " ";
         break;
       }
-      default: { assert(0); }
+      default: { 
+        cout << instr->opcode << " ";
+        cout << "GIATI GAMIESAI" << endl;
+        assert(0); 
+      }
     }
     // cout << endl;
     instructionzRead.push_back(instr);

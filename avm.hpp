@@ -221,6 +221,7 @@ userfunc* avm_getFuncInfo(unsigned address) {
 }
 
 unsigned avm_get_envvalue(unsigned i) {
+  if(stack_m[i].type != number_m) return -1;
   assert(stack_m[i].type == number_m);
   unsigned val = (unsigned)stack_m[i].data.numVal;
   // cout<< "Val "<<val <<" numval "<< stack_m[i].data.numVal<<endl;
@@ -365,7 +366,7 @@ void printStack() {
   for (int i = 0; i < AVM_STACKSIZE; i++) {
     if (stack_m[i].type == undef_m) continue;
     cout << i << ": ";
-    cout << avm_toString(&stack_m[i]);
+    cout << avm_toString(&stack_m[i]) << endl;
   }
 }
 
