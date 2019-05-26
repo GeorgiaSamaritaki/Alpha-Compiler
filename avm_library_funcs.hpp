@@ -129,7 +129,6 @@ void libfunc_input(void) {
 void libfunc_argument(void) {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
   unsigned n = avm_totalActuals();
-
   if (n != 1) {
     avm_error("error in arguement0");
   } else if (avm_getActual(0)->type != number_m) {
@@ -145,15 +144,19 @@ void libfunc_argument(void) {
   } else {
     avm_memcellClear(retval);
     int offset = (int)avm_getActual(0)->data.numVal;
-    retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1];
+    if( !offset ) {
+      retval->type = nil_m;
+    }else{
+      retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1];
+    }
   }
 }
 
-bool has_digit(char* str ){
+bool digitsOnly(char* str ){
   for(int i=0; i<strlen(str); i++ ){
-      if( isdigit(str[i]) )return true;
+    if( !isdigit(str[i]) && str[i] != '.' ) return false;
   }
-  return false;
+  return true;
 }
 
 void libfunc_strtonum(void) {
@@ -165,7 +168,7 @@ void libfunc_strtonum(void) {
     avm_error("String expected");
   } else {
     avm_memcellClear(retval);
-    if( !has_digit(avm_getActual(0)->data.strVal) ) retval->type = nil_m;
+    if( !digitsOnly(avm_getActual(0)->data.strVal) ) retval->type = nil_m;
     else {
       retval->type = number_m;
       retval->data.numVal = atof(avm_getActual(0)->data.strVal);

@@ -164,11 +164,12 @@ void avm_memcellClear(avm_memcell* m) {
 }
 
 void avm_warning(char* format, ...) {
-  printf("\nRuntime Warning: ");
+  printf("Runtime Warning: ");
   va_list args;
   va_start(args, format);
   printf(format, args);
   va_end(args);
+  cout << endl;
 }
 
 void avm_error(char* format, ...) {

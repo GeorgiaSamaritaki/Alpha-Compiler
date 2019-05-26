@@ -169,7 +169,7 @@ vector<userfunc*> userFunczRead;
 vector<instruction*> instructionzRead;
 
 char* typeStrings[] = {"number",   "string",  "bool", "table",
-                       "userfunc", "libfunc", "nill", "undef"};
+                       "userfunc", "libfunc", "nil", "undef"};
 
 typedef void (*library_func_t)();
 typedef void (*execute_func_t)(instruction*);
