@@ -201,7 +201,7 @@ struct for_prefix {
 
 expr* newExpr(expr_t t);
 vector<quad*> quads;
-expr* nil_expr = newExpr(nil_e);
+
 int tmpcounter = 0;
 int loopcnt = 0;
 stack<int> loopcntStack;
@@ -227,7 +227,7 @@ void emit(iopcode iop, expr* arg1 = NULL, expr* arg2 = NULL,
   // }
   // currQuad++;
   p = new quad();
-
+  expr* nil_expr = newExpr(nil_e);
   p->iop = iop;
   p->arg1 = arg1 == NULL ? nil_expr : arg1;
   p->arg2 = arg2 == NULL ? nil_expr : arg2;
@@ -312,6 +312,7 @@ expr* lvalue_expr(SymbolTableEntry* entry) {
 expr* newExpr(expr_t t) {
   expr* new_expr = new expr();
   new_expr->type = t;
+  new_expr->next = NULL;
   return new_expr;
 }
 
@@ -356,7 +357,7 @@ expr* make_call(expr* lvalue, expr* elist) {
   assert(func);
   // assert(!symbol_table.is_var(func->sym->type));
   expr* curr = elist;
-  while (curr != NULL && curr != nil_expr) {
+  while (curr != NULL ) {
     emit(param, curr, NULL, NULL);
     curr = curr->next;
   }

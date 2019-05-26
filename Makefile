@@ -56,8 +56,33 @@ test:
 	al tests/phase3/t.asc
 	al tests/phase3/vavouris1.asc
 	al tests/phase3/vavouris.asc
-	
-tests:al tests/phase2/Working/Tree.asc
+
+tests:	al tests/phase4-5/basic_complex.asc
+		al tests/phase4-5/basic_simple.asc       
+		al tests/phase4-5/queens.asc            
+		al tests/phase4-5/tables3.asc
+		al tests/phase4-5/funcs.asc              
+		al tests/phase4-5/Random.asc             
+		al tests/phase4-5/tables_bonus.asc
+		al tests/phase4-5/calc.asc               
+		al tests/phase4-5/hercules.asc           
+		al tests/phase4-5/ShadowedFunctions.asc  
+		al tests/phase4-5/Tree1.asc
+		al tests/phase4-5/Circle.asc             
+		al tests/phase4-5/libfuncs.asc           
+		al tests/phase4-5/tables1.asc            
+		al tests/phase4-5/Tree2.asc
+		al tests/phase4-5/delegation.asc         
+		al tests/phase4-5/line_point.asc         
+		al tests/phase4-5/tables2.asc            
+		al tests/phase4-5/visitor.asc
+		al tests/phase4-5/err1.asc               
+		al tests/phase4-5/err2.asc              
+		al tests/phase4-5/err3.asc               
+		al tests/phase4-5/err4.asc               
+		al tests/phase4-5/err5.asc               
+		al tests/phase4-5/err6.asc              
+		al tests/phase2/Working/Tree.asc
 
 clean: 	
 	touch *
