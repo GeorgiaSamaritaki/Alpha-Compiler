@@ -370,10 +370,10 @@ eq_check_t checks[] = {
     0   // undef
 };
 
-bool le_impl(double a, double b) { return a < b; };
-bool ge_impl(double a, double b) { return a > b; };
-bool lt_impl(double a, double b) { return a <= b; };
-bool gt_impl(double a, double b) { return a >= b; };
+bool le_impl(double a, double b) { return a <= b; };
+bool ge_impl(double a, double b) { return a >= b; };
+bool lt_impl(double a, double b) { return a < b; };
+bool gt_impl(double a, double b) { return a > b; };
 
 cmp_func_t numberCmpFuncs[] = {le_impl, ge_impl, lt_impl, gt_impl};
 

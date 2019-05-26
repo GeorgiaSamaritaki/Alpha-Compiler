@@ -164,7 +164,7 @@ void avm_memcellClear(avm_memcell* m) {
 }
 
 void avm_warning(char* format, ...) {
-  printf("Runtime Warning: ");
+  printf("\nRuntime Warning: ");
   va_list args;
   va_start(args, format);
   printf(format, args);
@@ -173,12 +173,12 @@ void avm_warning(char* format, ...) {
 
 void avm_error(char* format, ...) {
   executionFinished = true;
-  printf("Runtime Error: ");
+  printf("\nRuntime Error: ");
   va_list args;
   va_start(args, format);
   printf(format, args);
   va_end(args);
-  cout<<"Stack"<<endl;
+  cout<<"\nStack"<<endl;
   printStack();
   cout<<endl;
 }

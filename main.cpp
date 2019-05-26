@@ -189,7 +189,6 @@ void read_binary() {
       }
       default: { 
         cout << instr->opcode << " ";
-        cout << "GIATI GAMIESAI" << endl;
         assert(0); 
       }
     }
@@ -204,7 +203,6 @@ int main(int argc, char* argv[]) {
   avm_initialize();
   codeSize = instructionzRead.size();
   cout << "Avm initialized with codeSize: " << codeSize <<endl;
-  // initialize top, topsp as well FIXME:
   top = AVM_STACKSIZE - 1 - globals - 1;
   topsp = top;
   while (executionFinished == false) {

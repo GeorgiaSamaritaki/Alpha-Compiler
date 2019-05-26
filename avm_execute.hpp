@@ -103,6 +103,7 @@ void execute_pusharg(instruction* instr) {
 
 void execute_rel(instruction* instr) {
   assert(instr->result->type == label_a);
+
   avm_memcell* rv1 = avm_translate_operand(instr->arg1, ax);
   avm_memcell* rv2 = avm_translate_operand(instr->arg2, bx);
 
@@ -115,6 +116,7 @@ void execute_rel(instruction* instr) {
   } else {
     result = numberCmpFuncs[instr->opcode - jle_v](rv1->data.numVal,
                                                    rv2->data.numVal);
+    if (!executionFinished && result) pc = instr->result->val;  
   }
 }
 
