@@ -141,8 +141,20 @@ unsigned libfuncs_newUsed(char* s) {
   return namedLibFuncs.size() - 1;
 }
 
-unsigned userfuncs_newFunc(SymbolTableEntry* s) {
+unsigned userfuncs_lookFunc(SymbolTableEntry* s) {
   unsigned a;
+  for (int i = 0; i < userFuncz.size(); i++) {
+    /*Check if we already use this function*/
+    if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name) ){
+      cout<<"1 "<<userFuncz[i]->id<<" index: "<< i<<endl;
+      return i;
+    } 
+  
+  }
+  assert(0);
+}
+unsigned userfuncs_newFunc(SymbolTableEntry* s) {
+  // unsigned a;
   // for (int i = 0; i < userFuncz.size(); i++) {
   //   /*Check if we already use this function*/
   //   if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name) ){
@@ -222,7 +234,7 @@ void make_operand(expr* e, vmarg* arg) {
       arg->type = userfunc_a;
       // arg->val = e->sym->taddress;
       /* or alternatively*/
-      arg->val = userfuncs_newFunc(e->sym);
+      arg->val = userfuncs_lookFunc(e->sym);
       cout<< " val is " <<arg->val <<endl; 
       break;
     }
@@ -480,8 +492,8 @@ void generate_FUNCSTART(quad* quad) {
   f_enter->arg1 = NULL;
   f_enter->arg2 = NULL;
   f_enter->result = new vmarg();
-  make_operand(quad->result, f_enter->result);
   f_enter->result->val = userfuncs_newFunc(quad->result->sym);
+  make_operand(quad->result, f_enter->result);
   f_enter->srcLine = symbol_table.get_lineno(quad->result->sym);
   emit_instr(f_enter);
 
