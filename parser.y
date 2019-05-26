@@ -65,6 +65,7 @@
 %type <intValue> whilecond
 
 %type <stmt_l> stmt;
+%type <stmt_l> ifstmt;
 %type <stmt_l> loopstmt;
 %type <stmt_l> statements;
 %type <stmt_l> BREAK;
@@ -179,10 +180,12 @@ program:    statements {//printf("Finished\n");
 
 stmt:       expr semicolon {
                 $stmt = new stmt_l();
+                // $stmt->breaklist = $expr->falselist;
                 //printf("stmt->expr';' \n");
                 }
             | ifstmt     {
-                $stmt = new stmt_l();  
+                // $stmt = new stmt_l();  
+                $stmt = $ifstmt;
                 //printf("stmt->ifstmt \n\n");
                 }
             | whilestmt  {
@@ -526,7 +529,7 @@ boolexpr:  expr OR {
                     $5->falselist = newList(nextQuadLabel()+1);
                     emit(
                         if_eq, $5 ,newExpr_constBool(1));
-                        emit(jump, NULL, NULL, NULL);
+                    emit(jump, NULL, NULL, NULL);
                 }
 
                 $$ = newExpr(boolexpr_e);
@@ -1270,10 +1273,17 @@ elseprefix: ELSE {
 
 ifstmt:     ifprefix stmt elseprefix stmt { 
                 // //printf("ifstmt->\"if(expr) stmt else stmt\" \n"); 
+                $ifstmt = new stmt_l();
                 patchLabel($ifprefix, $elseprefix + 1);
                 patchLabel((unsigned int)$elseprefix, nextQuadLabel());
+                // assert($4);
+                $ifstmt->breaklist = merge($2->breaklist,$4->breaklist);
+                $ifstmt->contlist = merge($2->contlist,$4->contlist);
             } 
             | ifprefix stmt { 
+                $ifstmt = new stmt_l();
+                $ifstmt->breaklist = $2->breaklist;
+                $ifstmt->contlist = $2->contlist;
                 // //printf("ifstmt->\"if(expr) stmt\" \n");
                 patchLabel((unsigned int)$ifprefix, nextQuadLabel());
             };

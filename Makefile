@@ -16,9 +16,8 @@ avm: main.cpp
 test:
 	al tests/phase2/Working/Anonymous.asc                
 	al tests/phase2/Working/Circle.asc                   
-	al tests/phase2/Working/Grammar.asc                  
+	al tests/phase2/Working/Grammar.asc        	          
 	al tests/phase2/Working/ShadowedNameOffunctions.asc  
-	al tests/phase2/Working/Tree.asc
 	al tests/phase2/Working/Block.asc                    
 	al tests/phase2/Working/GlobalAndLocal.asc           
 	al tests/phase2/Working/Random.asc                   
@@ -57,7 +56,7 @@ test:
 	al tests/phase3/t.asc
 	al tests/phase3/vavouris1.asc
 	al tests/phase3/vavouris.asc
-
+tests:al tests/phase2/Working/Tree.asc
 
 clean: 	
 	touch *
