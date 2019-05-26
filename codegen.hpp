@@ -145,24 +145,16 @@ unsigned userfuncs_lookFunc(SymbolTableEntry* s) {
   unsigned a;
   for (int i = 0; i < userFuncz.size(); i++) {
     /*Check if we already use this function*/
-    if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name) ){
+    if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name) &&
+         userFuncz[i]->address == s->taddress){
       cout<<"1 "<<userFuncz[i]->id<<" index: "<< i<<endl;
       return i;
     } 
-  
   }
-  assert(0);
+  return 0;
 }
 unsigned userfuncs_newFunc(SymbolTableEntry* s) {
-  // unsigned a;
-  // for (int i = 0; i < userFuncz.size(); i++) {
-  //   /*Check if we already use this function*/
-  //   if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name) ){
-  //     cout<<"1 "<<userFuncz[i]->id<<" index: "<< i<<endl;
-  //     return i;
-  //   } 
-  
-  // }
+  unsigned a;
   /*New user func*/
   userfunc* f = new userfunc();
   f->id = strdup((char*)s->value.funcVal->name);
@@ -645,7 +637,7 @@ void create_binary() {
     if( fwrite(&userFuncz[i]->localSize, sizeof(unsigned), 1, outfile) == -1)
       cerr << " Error writing binary file" << endl;
       
-    cout << userFuncz[i]->id << endl;
+    cout << userFuncz[i] << endl;
   }
 
   //lib funcs
