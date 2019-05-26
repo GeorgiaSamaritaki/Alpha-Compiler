@@ -247,10 +247,10 @@ void patchLabel(unsigned int quadNo, int label) {
 
 void patchLabel(vector<unsigned int> quads_c, int label) {
   for (int i = 0; i < quads_c.size(); i++) {
-    printf(" %d", quads_c[i]);
+    // printf(" %d", quads_c[i]);
     patchLabel(quads_c[i], label);
   }
-  printf(" \n");
+  // printf(" \n");
 }
 
 char* new_tmpname() {
@@ -450,8 +450,8 @@ bool is_same(expr_t a, expr_t b) {
 }
 
 bool isvalid_arithmeticCheck(expr_t a, expr_t b) {
-  printf("isvalid_arithmeticCheck: %s : %s\n", expr_t_tostr(a).c_str(),
-         expr_t_tostr(b).c_str());
+  // printf("isvalid_arithmeticCheck: %s : %s\n", expr_t_tostr(a).c_str(),
+  //        expr_t_tostr(b).c_str());
   if (a == programfunc_e || a == libraryfunc_e || b == programfunc_e ||
       b == libraryfunc_e) {
     return false;
@@ -656,10 +656,10 @@ vector<unsigned int> merge(vector<unsigned int> a, vector<unsigned int> b) {
   c.reserve(a.size() + b.size());  // preallocate memory
   c.insert(c.end(), a.begin(), a.end());
   c.insert(c.end(), b.begin(), b.end());
-  for (int i = 0; i < c.size(); i++) {
-    printf("%d ", c[i]);
-  }
-  printf("\n");
+  // for (int i = 0; i < c.size(); i++) {
+  //   printf("%d ", c[i]);
+  // }
+  // printf("\n");
   return c;
 }
 

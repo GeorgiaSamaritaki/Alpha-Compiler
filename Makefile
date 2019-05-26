@@ -56,6 +56,7 @@ test:
 	al tests/phase3/t.asc
 	al tests/phase3/vavouris1.asc
 	al tests/phase3/vavouris.asc
+	
 tests:al tests/phase2/Working/Tree.asc
 
 clean: 	

@@ -142,14 +142,15 @@ unsigned libfuncs_newUsed(char* s) {
 }
 
 unsigned userfuncs_newFunc(SymbolTableEntry* s) {
-  for (int i = 0; i < userFuncz.size(); i++) {
-    /*Check if we already use this function*/
-    if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name)){
-      cout<<"1 "<<userFuncz[i]->id<<" index: "<< i<<endl;
-      return i;
-    } 
+  unsigned a;
+  // for (int i = 0; i < userFuncz.size(); i++) {
+  //   /*Check if we already use this function*/
+  //   if (!strcmp(userFuncz[i]->id, (char*)s->value.funcVal->name) ){
+  //     cout<<"1 "<<userFuncz[i]->id<<" index: "<< i<<endl;
+  //     return i;
+  //   } 
   
-  }
+  // }
   /*New user func*/
   userfunc* f = new userfunc();
   f->id = strdup((char*)s->value.funcVal->name);
@@ -245,7 +246,7 @@ void make_booloperand(vmarg* arg, unsigned val) {
   arg->type = bool_a;
 }
 
-void make_retvaloperand(vmarg* arg) { arg->type = retval_a; }
+void make_retvaloperand(vmarg* arg) { arg->type = retval_a;}
 
 typedef struct incomplete_jump {
   unsigned instrNo;
