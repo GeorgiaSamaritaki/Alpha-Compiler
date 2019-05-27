@@ -129,24 +129,31 @@ void libfunc_input(void) {
 void libfunc_argument(void) {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
   unsigned n = avm_totalActuals();
+  avm_memcell* actual = avm_getActual(0); 
   if (n != 1) {
-    avm_error("error in arguement0");
-  } else if (avm_getActual(0)->type != number_m) {
-    avm_error("error in arguement1");
-  } else if (!p_topsp) {
-    avm_memcellClear(retval);
-    avm_error("error in arguement2");
+    executionFinished = true;
+    avm_error("Invalid argument");
+
+  } else if (actual->type != number_m) {
+    executionFinished = true;
+    avm_error("Argument is not number_m");
+
+  } else if (actual->data.numVal > avm_get_envvalue(p_topsp + 2*AVM_NUMACTUALS_OFFSET) ||
+              actual->data.numVal < 0) {
     retval->type = nil_m;
-  } else if (avm_getActual(0)->data.numVal >
-                 avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET) ||
-             avm_getActual(0)->data.numVal < 0) {
     avm_error("error in arguement3");
+
+  } else if (!p_topsp) {
+    retval->type = nil_m;
+    // avm_memcellClear(retval);
+    avm_error("error in arguement2");
+
   } else {
-    avm_memcellClear(retval);
+    // avm_memcellClear(retval);
     int offset = (int)avm_getActual(0)->data.numVal;
-    if( !offset ) {
+    if( (&stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1])->type > undef_m) {
       retval->type = nil_m;
-    }else{
+    }else {
       retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1];
     }
   }
