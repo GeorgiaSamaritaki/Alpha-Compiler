@@ -34,10 +34,9 @@ void execute_arithmetic(instruction* instr) {
 }
 
 void execute_assign(instruction* instr) {
-  avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*)0);
+  avm_memcell* lv = avm_translate_operand(instr->result, NULL);
   avm_memcell* rv = avm_translate_operand(instr->arg1, ax);
-  
-  // cout<<"in assign with rv "<<avm_toString(rv)<<endl;
+
   assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] ||
                 lv == retval));
   assert(rv);

@@ -8,13 +8,14 @@ library_func_t libraryFuncz[12];
 
 /*Library Functions - Start*/
 void libfunc_print() {
+  cout<<endl<<"Output:"<<endl;
   unsigned n = avm_totalActuals();
   for (unsigned i = 0; i < n; ++i) {
     if(avm_getActual(i)->type == userfunc_m) cout<<"user function: ";
     if(avm_getActual(i)->type == libfunc_m) cout<<"library function: ";
     cout << avm_toString(avm_getActual(i));
   }
-  // cout<<endl<<"output_end"<<endl;
+  cout<<endl<<"output_end"<<endl;
   retval->type = nil_m;
 }
 
@@ -103,6 +104,7 @@ void libfunc_input(void) {
   getline(cin,s);
   string sl = toLower(s);
   char autakia = '\"';
+  
   avm_memcellClear(retval);
   if (is_number(s)) {
     retval->type = number_m;
@@ -136,13 +138,19 @@ void libfunc_argument(void) {
   } else if (actual->type != number_m) {
     executionFinished = true;
     avm_error("Argument is not number_m");
+
   } else if (actual->data.numVal > avm_get_envvalue(p_topsp + 2*AVM_NUMACTUALS_OFFSET) ||
               actual->data.numVal < 0) {
+    retval->type = nil_m;
     avm_error("error in arguement3");
+
   } else if (!p_topsp) {
+    retval->type = nil_m;
+    // avm_memcellClear(retval);
     avm_error("error in arguement2");
+
   } else {
-    avm_memcellClear(retval);
+    // avm_memcellClear(retval);
     int offset = (int)avm_getActual(0)->data.numVal;
     if( (&stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1])->type > undef_m) {
       retval->type = nil_m;
@@ -168,7 +176,10 @@ void libfunc_strtonum(void) {
     avm_error("String expected");
   } else {
     avm_memcellClear(retval);
-    if( !digitsOnly(avm_getActual(0)->data.strVal) ) retval->type = nil_m;
+    if( !digitsOnly(avm_getActual(0)->data.strVal) ){
+
+      retval->type = nil_m;
+    }
     else {
       retval->type = number_m;
       retval->data.numVal = atof(avm_getActual(0)->data.strVal);
@@ -267,11 +278,12 @@ void libfunc_objecttotalmembers(void) {
 void libfunc_totalarguments() {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
   
+  avm_memcellClear(retval);
   
   if ( p_topsp == 0) {
     avm_error("'totalargument' called outside a function!");
+    retval->type = nil_m;
   } else {
-    avm_memcellClear(retval); 
     retval->type = number_m;
     retval->data.numVal = avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET);
     if( retval->data.numVal == (unsigned)-1) {
@@ -288,7 +300,6 @@ unsigned libfuncs_newUsed(char* s) {
       return i;
     }
   }
-     
   /*New lib func is used*/
   char* dup = strdup(s);
   namedLibFuncsRead.push_back(dup);
@@ -360,18 +371,18 @@ string toString(vmopcode op) {
 
 
 void init_libfuncs(){
-  registerLibFunc("objecttotalmembers",libfunc_objecttotalmembers);
-  registerLibFunc("objectmemberkeys",libfunc_objectmemberkeys);
-  registerLibFunc("totalarguments",libfunc_totalarguments);
-  registerLibFunc("objectcopy",  libfunc_objectcopy);
-  registerLibFunc("argument",   libfunc_argument);
+  registerLibFunc("objecttotalmembers", libfunc_objecttotalmembers);
+  registerLibFunc("objectmemberkeys", libfunc_objectmemberkeys);
+  registerLibFunc("totalarguments", libfunc_totalarguments);
+  registerLibFunc("objectcopy", libfunc_objectcopy);
   registerLibFunc("strtonum", libfunc_strtonum);
-  registerLibFunc("typeof",  libfunc_typeof);
-  registerLibFunc("input",  libfunc_input);
-  registerLibFunc("print", libfunc_print);
+  registerLibFunc("argument", libfunc_argument);
+  registerLibFunc("typeof", libfunc_typeof);
+  registerLibFunc("input", libfunc_input);
+  registerLibFunc("print",  libfunc_print);
   registerLibFunc("sqrt", libfunc_sqrt);
   registerLibFunc("cos", libfunc_cos);
-  registerLibFunc("sin",libfunc_sin);
+  registerLibFunc("sin", libfunc_sin);
 }
 
 #endif

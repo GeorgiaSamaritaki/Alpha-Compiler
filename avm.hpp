@@ -41,6 +41,7 @@ unsigned hash_string(avm_memcell* me) {
 
 hash_func_t hashMe[] = {hash_number, hash_string};
 
+
 void avm_tableBucketsInit(avm_table_bucket** p) {
   for (unsigned i = 0; i < AVM_TABLE_HASHSIZE; ++i) p[i] = NULL;
 }
@@ -155,7 +156,6 @@ memclear_func_t memclearFuncs[] = {
 };
 
 void avm_memcellClear(avm_memcell* m) {
-  // printf("Called memcell clear\n");
   if (m->type != undef_m) {
     memclear_func_t f = memclearFuncs[m->type];
     if (f) (*f)(m);
@@ -164,8 +164,7 @@ void avm_memcellClear(avm_memcell* m) {
 }
 
 void avm_warning(char* format, ...) {
-  printf("Runtime Warning: [isntr:%d,line:%d]: ", pc,
-         instructionzRead[pc]->srcLine);
+  printf("Runtime Warning: [isntr:%d,line:%d]: ",pc,instructionzRead[pc]->srcLine);
   va_list args;
   va_start(args, format);
   printf(format, args);
@@ -175,15 +174,14 @@ void avm_warning(char* format, ...) {
 
 void avm_error(char* format, ...) {
   executionFinished = true;
-  printf("\nRuntime Error[isntr:%d,line:%d]: ", pc,
-         instructionzRead[pc]->srcLine);
+  printf("\nRuntime Error[isntr:%d,line:%d]: ",pc,instructionzRead[pc]->srcLine);
   va_list args;
   va_start(args, format);
   printf(format, args);
   va_end(args);
-  cout << "\nStack" << endl;
+  cout<<"\nStack"<<endl;
   printStack();
-  cout << endl;
+  cout<<endl;
 }
 
 void avm_assign(avm_memcell* lv, avm_memcell* rv) {
@@ -194,35 +192,18 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
     return;
 
   if (rv->type == undef_m) avm_warning("assigning from 'undef' content!");
+
   avm_memcellClear(lv);
-  // memcpy(lv, rv, sizeof(avm_memcell));
-  lv->type = rv->type;
-  switch (rv->type) {
-    case number_m:
-      lv->data.numVal = rv->type;
-      break;
-    case string_m:
-      lv->data.strVal = strdup(rv->data.strVal);
-      break;
-    case bool_m:
-      lv->data.boolVal = rv->data.boolVal;
-      break;
-    case table_m:
-      lv->data.tableVal = rv->data.tableVal;
-      avm_tableIncrRC(lv->data.tableVal);
-      break;
-    case userfunc_m:
-      lv->data.funcVal = rv->data.funcVal;
-      break;
-    case libfunc_m:
-      lv->data.libfuncVal = strdup(rv->data.libfuncVal);
-      break;
-    case nil_m:
-      break;
-    case undef_m:
-      assert(0);
-  }
+  memcpy(lv, rv, sizeof(avm_memcell));
+
+  if (lv->type == libfunc_m){
+    lv->data.libfuncVal = strdup(rv->data.libfuncVal);
+  }else if (lv->type == string_m){
+    lv->data.strVal = strdup(rv->data.strVal);
+  }else if (lv->type == table_m)
+    avm_tableIncrRC(lv->data.tableVal);
 }
+
 
 void avm_push_envvalue(unsigned val) {
   stack_m[top].type = number_m;
@@ -243,13 +224,14 @@ userfunc* avm_getFuncInfo(unsigned address) {
 }
 
 unsigned avm_get_envvalue(unsigned i) {
-  if (stack_m[i].type != number_m) return -1;
+  if(stack_m[i].type != number_m) return -1;
   assert(stack_m[i].type == number_m);
   unsigned val = (unsigned)stack_m[i].data.numVal;
   // cout<< "Val "<<val <<" numval "<< stack_m[i].data.numVal<<endl;
   assert(stack_m[i].data.numVal == ((double)val));
   return val;
 }
+
 
 library_func_t avm_getLibraryFunc(char* id) {
   int lib_index =
@@ -258,7 +240,6 @@ library_func_t avm_getLibraryFunc(char* id) {
 }
 
 void avm_callLibFunc(char* id) {
-  //printf("calling lib func %s\n", id);
   library_func_t f = avm_getLibraryFunc(id);
   if (!f) {
     avm_error("unsupported lib func '%s' called!", id);
@@ -279,6 +260,7 @@ avm_memcell* avm_getActual(unsigned i) {
   return &stack_m[topsp + AVM_STACKENV_SIZE + 1 + i];
 }
 
+
 avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
   assert(table && index);
   unsigned array_index = hashMe[index->type](index);
@@ -293,7 +275,7 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
         }
         tmp = tmp->next;
       }
-      if (tmp == NULL) {
+      if( tmp == NULL) {
         avm_memcell* ret = new avm_memcell();
         ret->type = nil_m;
         return ret;
@@ -309,7 +291,7 @@ avm_memcell* avm_tablegetelem(avm_table* table, avm_memcell* index) {
         }
         tmp = tmp->next;
       }
-      if (tmp == NULL) {
+      if( tmp == NULL) {
         avm_memcell* ret = new avm_memcell();
         ret->type = nil_m;
         return ret;
@@ -332,27 +314,31 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
 
   unsigned array_index = hashMe[index->type](index);
   avm_table_bucket* tmp = table->numIndexed[array_index];
-  if (index->type == string_m) tmp = table->strIndexed[array_index];
+  if (index->type == string_m) 
+    tmp = table->strIndexed[array_index];
   avm_table_bucket* prev = NULL;
   while (tmp != NULL) {
-    if (tmp->key.data.strVal) {
+    if( tmp->key.data.strVal  ){
       if (strcmp(tmp->key.data.strVal, index->data.strVal) == 0) break;
-    } else if (tmp->key.data.numVal == index->data.numVal) {
-      break;
     }
+    else  
+      if( tmp->key.data.numVal == index->data.numVal) {
+        break;
+      }
     prev = tmp;
     tmp = tmp->next;
   }
 
   if (tmp == NULL) {
-    if (content->type == nil_m) return;
+    if(content->type == nil_m ) return;
     avm_table_bucket* new_bucket = new avm_table_bucket();
     avm_assign(&new_bucket->key, index);
     avm_assign(&new_bucket->value, content);
     new_bucket->next = NULL;
-    if (prev != NULL) {
+    if (prev != NULL){
       prev->next = new_bucket;
-    } else {
+    }
+    else {
       if (index->type == string_m)
         table->strIndexed[array_index] = new_bucket;
       else {
@@ -361,8 +347,8 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
     }
     table->total++;
   } else {
-    if (content->type == nil_m) {
-      if (prev != NULL) {
+    if( content->type == nil_m ){
+      if( prev != NULL) {
         prev->next = tmp->next;
       } else {
         if (index->type == string_m)
@@ -372,11 +358,12 @@ void avm_tablesetelem(avm_table* table, avm_memcell* index,
         }
       }
       table->total--;
-    } else {
-      avm_assign(&tmp->value, content);
+    } else{
+        avm_assign(&tmp->value, content);
     }
   }
 }
+
 
 execute_func_t executeFuncs[] = {
     execute_assign,       execute_add,       execute_sub,
@@ -401,8 +388,7 @@ void execute_cycle(void) {
     if (instr->srcLine) currLine = instr->srcLine;
     unsigned oldPc = pc;
 
-    // cout << "~~~~pc is " << toString(instr->opcode) << " " << instr->opcode
-    //      << endl;
+    // cout << "~~~~pc is " << toString(instr->opcode)<<" "<<instr->opcode << endl;
     (*executeFuncs[instr->opcode])(instr);
     if (pc == oldPc) ++pc;
   }
@@ -426,10 +412,10 @@ void avm_initialize() {
 }
 
 void avm_close() {
-  delete (ax);
-  delete (bx);
-  delete (cx);
-  delete (retval);
+  delete(ax);
+  delete(bx);
+  delete(cx);
+  delete(retval);
 }
 
 #endif
