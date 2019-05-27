@@ -50,6 +50,7 @@ void execute_call(instruction* instr) {
   avm_callsaveenvironment();
   switch (func->type) {
     case userfunc_m: {
+      
       pc = userFunczRead[func->data.funcVal]->address;//auto den einai opvw tiw dialekseis
       assert(pc < AVM_ENDING_PC);
       // cout<< " here pc : "<<pc<<endl;
@@ -84,13 +85,17 @@ void execute_funcenter(instruction* instr) {
 
 void execute_funcexit(instruction* unused) {
   unsigned oldTop = top+1;
-  top = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
+  printStack();
+  top = lasttop.top();lasttop.pop();
   pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
-  topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-  while (++oldTop <= top) {
-    if(&stack_m[oldTop] == retval) {cout<<"here"<<endl;continue;}
+  topsp = avm_get_envvalue(topsp + 1);
+  if(top >= AVM_STACKSIZE) {avm_error("exit"); return;}
+  while (++oldTop < top) {
+    if(&stack_m[oldTop] == retval) {//cout<<"here!!!"<<endl;
+    continue;}
     avm_memcellClear(&stack_m[oldTop]);
   }
+
   // if(retval->type == undef_m)retval->type = nil_m; //TODO: added this!!! IDKKK
 }
 
@@ -163,7 +168,7 @@ void execute_tablegetelem(instruction* instr) {
 }
 
 void execute_tablesetelem(instruction* instr) {
-  cout << instr->opcode << endl;
+  
   avm_memcell* t = avm_translate_operand(instr->result, (avm_memcell*)0);
   avm_memcell* i = avm_translate_operand(instr->arg1, ax);
   avm_memcell* c = avm_translate_operand(instr->arg2, bx);

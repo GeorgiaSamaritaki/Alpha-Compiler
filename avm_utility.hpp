@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <stack>
 #include <vector>
 #include <stdlib.h>
 
@@ -158,6 +159,7 @@ bool executionFinished = false;
 unsigned pc = 0;
 unsigned currLine = 0;
 unsigned codeSize = 0;
+stack<unsigned> lasttop;
 
 unsigned totalActuals = 0;
 

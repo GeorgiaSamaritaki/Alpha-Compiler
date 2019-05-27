@@ -207,6 +207,7 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
 
 
 void avm_push_envvalue(unsigned val) {
+  stack_m[top] = *new avm_memcell();
   stack_m[top].type = number_m;
   stack_m[top].data.numVal = val;
   avm_dec_top();
@@ -215,7 +216,13 @@ void avm_callsaveenvironment() {
   avm_push_envvalue(totalActuals);
   avm_push_envvalue(pc + 1);
   avm_push_envvalue(top + totalActuals + 1); //FIXME:
+  lasttop.push(top + totalActuals + 1);
   avm_push_envvalue(topsp);
+  // cout<<"~~~~~~~~~~pushed "<<totalActuals<<" "<<pc + 1<<" "<<top + totalActuals + 1<<" "<<topsp<<endl;
+  // cout<<"sp saved "<<topsp<<endl;
+  // cout<<"top saved "<<top<<endl;
+  // cout<<"totalActuals saved "<<totalActuals<<endl;
+  
 }
 
 userfunc* avm_getFuncInfo(unsigned address) {
@@ -225,7 +232,8 @@ userfunc* avm_getFuncInfo(unsigned address) {
 }
 
 unsigned avm_get_envvalue(unsigned i) {
-  if(stack_m[i].type != number_m) return -1;
+  if(stack_m[i].type != number_m) {//cout<<"--------found nil "<<i<<endl;
+  return -1;}
   assert(stack_m[i].type == number_m);
   unsigned val = (unsigned)stack_m[i].data.numVal;
   // cout<< "Val "<<val <<" numval "<< stack_m[i].data.numVal<<endl;
@@ -383,7 +391,7 @@ void execute_cycle(void) {
     executionFinished = true;
     return;
   } else {
-    assert(pc < AVM_ENDING_PC);
+    assert(pc <= AVM_ENDING_PC);
     instruction* instr = instructionzRead[pc];
     assert(instr->opcode >= 0 && instr->opcode <= AVM_MAX_INSTRUCTIONS);
     if (instr->srcLine) currLine = instr->srcLine;
@@ -396,11 +404,13 @@ void execute_cycle(void) {
 }
 
 void printStack() {
-  for (int i = 0; i < AVM_STACKSIZE; i++) {
-    if (stack_m[i].type == undef_m) continue;
-    cout << i << ": ";
-    cout << avm_toString(&stack_m[i]) << endl;
-  }
+  //   cout "______________ "<<endl;
+  // for (int i = 0; i < 4041; i++) {
+  //   if (stack_m[i].type == undef_m) continue;
+  //   cout << i << ": ";
+  //   cout << avm_toString(&stack_m[i]) << endl;
+  // }
+  //   cout << "--------------- "<<endl;
 }
 
 void avm_initialize() {
@@ -410,6 +420,7 @@ void avm_initialize() {
   retval = new avm_memcell();
   avm_initstack();
   init_libfuncs();
+  lasttop.push(-1);
 }
 
 void avm_close() {

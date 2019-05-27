@@ -21,13 +21,16 @@ void libfunc_print() {
 
 void libfunc_typeof(void) {
   unsigned n = avm_totalActuals();
-
+  // cout<<"this!"<<endl;
+  // printStack();
   if (n != 1) {
     avm_error("one argument expected in 'typeof' (not %d) !", n);
   } else {
     avm_memcellClear(retval);
     retval->type = string_m;
     retval->data.strVal = strdup(typeStrings[avm_getActual(0)->type]);
+  // cout<<"this!"<<endl;
+  // printStack();
   }
 }
 
@@ -282,7 +285,7 @@ void libfunc_totalarguments() {
   avm_memcellClear(retval);
   
   if ( p_topsp == 0) {
-    avm_error("'totalargument' called outside a function!");
+    // avm_error("'totalargument' called outside a function!");
     retval->type = nil_m;
   } else {
     retval->type = number_m;
