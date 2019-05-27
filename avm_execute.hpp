@@ -83,12 +83,12 @@ void execute_funcenter(instruction* instr) {
 
 
 void execute_funcexit(instruction* unused) {
-  unsigned oldTop = top;
+  unsigned oldTop = top+1;
   top = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
   pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
   topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
   while (++oldTop <= top) {
-    if(&stack_m[oldTop] == retval) continue;
+    if(&stack_m[oldTop] == retval) {cout<<"here"<<endl;continue;}
     avm_memcellClear(&stack_m[oldTop]);
   }
   // if(retval->type == undef_m)retval->type = nil_m; //TODO: added this!!! IDKKK
@@ -96,7 +96,7 @@ void execute_funcexit(instruction* unused) {
 
 void execute_pusharg(instruction* instr) {
   avm_memcell* arg = avm_translate_operand(instr->arg1, ax);
-  // cout << avm_toString(arg) << endl;
+  // cout <<endl<<"pusharg "<<top<<" : " << avm_toString(arg) << endl;
   // printStack();
   assert(arg);
   avm_assign(&stack_m[top], arg);

@@ -204,7 +204,8 @@ int main(int argc, char* argv[]) {
   codeSize = instructionzRead.size();
   cout << "Avm initialized with codeSize: " << codeSize <<endl;
   top = AVM_STACKSIZE - 1 - globals - 2;
-  topsp = top;
+  topsp = AVM_STACKSIZE - 1;
+  
   while (executionFinished == false) {
     execute_cycle(); 
   }

@@ -129,6 +129,7 @@ void libfunc_input(void) {
 
 void libfunc_argument(void) {
   unsigned p_topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
+  // cout<<endl<<"getting sum from "<<p_topsp<<endl;
   unsigned n = avm_totalActuals();
   avm_memcell* actual = avm_getActual(0); 
   if (n != 1) {
