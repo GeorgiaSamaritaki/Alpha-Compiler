@@ -282,7 +282,10 @@ string table_tostring(avm_table* t) {
       s += "{";
       s += avm_toString(&tmp->key);
       s += ":";
-      s += avm_toString(&tmp->value);
+      if(tmp->value.data.tableVal == t)
+          s+="<<self>>";
+      else 
+        s += avm_toString(&tmp->value);
       s += "}";
       tmp = tmp->next;
     }
@@ -293,7 +296,10 @@ string table_tostring(avm_table* t) {
       s += "{";
       s += avm_toString(&tmp->key);
       s += ":";
-      s += avm_toString(&tmp->value);
+      if(tmp->value.data.tableVal == t)
+          s+="<<self>>";
+      else 
+        s += avm_toString(&tmp->value);
       s += "}";
       tmp = tmp->next;
     }
