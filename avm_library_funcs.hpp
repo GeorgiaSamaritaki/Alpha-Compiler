@@ -16,6 +16,7 @@ void libfunc_print() {
     cout << avm_toString(avm_getActual(i));
   }
   cout<<endl<<"output_end"<<endl;
+  retval->type = nil_m;
 }
 
 void libfunc_typeof(void) {

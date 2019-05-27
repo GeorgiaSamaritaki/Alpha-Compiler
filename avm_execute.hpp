@@ -10,7 +10,7 @@ void avm_dec_top(void) {
 void avm_tableIncrRC(avm_table* t) { ++(t->rc); }
 
 void avm_tableDecRC(avm_table* t) {
-  assert(t->rc > 0);
+  assert(t->rc >= 0);
   if (--(t->rc) == 0) avm_tableDestroy(t);
 }
 
@@ -88,6 +88,7 @@ void execute_funcexit(instruction* unused) {
   pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
   topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
   while (++oldTop <= top) avm_memcellClear(&stack_m[oldTop]);
+  // if(retval->type == undef_m)retval->type = nil_m; //TODO: added this!!! IDKKK
 }
 
 void execute_pusharg(instruction* instr) {

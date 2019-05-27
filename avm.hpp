@@ -164,7 +164,7 @@ void avm_memcellClear(avm_memcell* m) {
 }
 
 void avm_warning(char* format, ...) {
-  printf("Runtime Warning: ");
+  printf("Runtime Warning: [isntr:%d,line:%d]: ",pc,instructionzRead[pc]->srcLine);
   va_list args;
   va_start(args, format);
   printf(format, args);
@@ -174,7 +174,7 @@ void avm_warning(char* format, ...) {
 
 void avm_error(char* format, ...) {
   executionFinished = true;
-  printf("\nRuntime Error: ");
+  printf("\nRuntime Error[isntr:%d,line:%d]: ",pc,instructionzRead[pc]->srcLine);
   va_list args;
   va_start(args, format);
   printf(format, args);

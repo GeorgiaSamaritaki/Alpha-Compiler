@@ -1023,7 +1023,7 @@ elist:      elist_l {
             }
             |/*empty*/  {
                 printf("elist->empty \n");
-                $$ = newExpr(nil_e);
+                $$ = NULL;
                 };
 
 objectdef:  left_bracket elist right_bracket {
@@ -1034,7 +1034,7 @@ objectdef:  left_bracket elist right_bracket {
                 double i =0;
 
                 expr* x = $elist;
-                reverse_list(&x);
+                if(x!=NULL) reverse_list(&x);
                 while(x!=NULL){
                     emit(tablesetelem, newExpr_constNum(i++), x, t);
                     x = x->next;
