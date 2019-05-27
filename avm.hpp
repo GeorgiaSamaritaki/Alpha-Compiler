@@ -195,6 +195,7 @@ void avm_assign(avm_memcell* lv, avm_memcell* rv) {
 
   avm_memcellClear(lv);
   memcpy(lv, rv, sizeof(avm_memcell));
+  
 
   if (lv->type == libfunc_m){
     lv->data.libfuncVal = strdup(rv->data.libfuncVal);
@@ -213,7 +214,7 @@ void avm_push_envvalue(unsigned val) {
 void avm_callsaveenvironment() {
   avm_push_envvalue(totalActuals);
   avm_push_envvalue(pc + 1);
-  avm_push_envvalue(top + totalActuals + 2);
+  avm_push_envvalue(top + totalActuals + 1); //FIXME:
   avm_push_envvalue(topsp);
 }
 
@@ -388,7 +389,7 @@ void execute_cycle(void) {
     if (instr->srcLine) currLine = instr->srcLine;
     unsigned oldPc = pc;
 
-    // cout << "~~~~pc is " << toString(instr->opcode)<<" "<<instr->opcode << endl;
+    // cout << "~~~~pc is " <<pc <<" "<<toString(instr->opcode)<<" "<<instr->opcode << endl;
     (*executeFuncs[instr->opcode])(instr);
     if (pc == oldPc) ++pc;
   }

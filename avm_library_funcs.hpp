@@ -8,14 +8,14 @@ library_func_t libraryFuncz[12];
 
 /*Library Functions - Start*/
 void libfunc_print() {
-  cout<<endl<<"Output:"<<endl;
+  // cout<<endl<<"Output:"<<endl;
   unsigned n = avm_totalActuals();
   for (unsigned i = 0; i < n; ++i) {
     if(avm_getActual(i)->type == userfunc_m) cout<<"user function: ";
     if(avm_getActual(i)->type == libfunc_m) cout<<"library function: ";
     cout << avm_toString(avm_getActual(i));
   }
-  cout<<endl<<"output_end"<<endl;
+  // cout<<endl<<"output_end"<<endl;
   retval->type = nil_m;
 }
 
@@ -139,7 +139,7 @@ void libfunc_argument(void) {
     executionFinished = true;
     avm_error("Argument is not number_m");
 
-  } else if (actual->data.numVal > avm_get_envvalue(p_topsp + 2*AVM_NUMACTUALS_OFFSET) ||
+  } else if (actual->data.numVal > avm_get_envvalue(p_topsp + AVM_NUMACTUALS_OFFSET) ||
               actual->data.numVal < 0) {
     retval->type = nil_m;
     avm_error("error in arguement3");
@@ -152,7 +152,7 @@ void libfunc_argument(void) {
   } else {
     // avm_memcellClear(retval);
     int offset = (int)avm_getActual(0)->data.numVal;
-    if( (&stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1])->type > undef_m) {
+    if( (&stack_m[p_topsp + 2*AVM_NUMACTUALS_OFFSET + offset + 1])->type > undef_m) {
       retval->type = nil_m;
     }else {
       retval = &stack_m[p_topsp + AVM_NUMACTUALS_OFFSET + offset + 1];
