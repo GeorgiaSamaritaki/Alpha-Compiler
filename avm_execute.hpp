@@ -34,9 +34,10 @@ void execute_arithmetic(instruction* instr) {
 }
 
 void execute_assign(instruction* instr) {
-  avm_memcell* lv = avm_translate_operand(instr->result, NULL);
+  avm_memcell* lv = avm_translate_operand(instr->result, (avm_memcell*)0);
   avm_memcell* rv = avm_translate_operand(instr->arg1, ax);
-
+  
+  // cout<<"in assign with rv "<<avm_toString(rv)<<endl;
   assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] ||
                 lv == retval));
   assert(rv);
@@ -87,7 +88,10 @@ void execute_funcexit(instruction* unused) {
   top = avm_get_envvalue(topsp + AVM_SAVEDTOP_OFFSET);
   pc = avm_get_envvalue(topsp + AVM_SAVEDPC_OFFSET);
   topsp = avm_get_envvalue(topsp + AVM_SAVEDTOPSP_OFFSET);
-  while (++oldTop <= top) avm_memcellClear(&stack_m[oldTop]);
+  while (++oldTop <= top) {
+    if(&stack_m[oldTop] == retval) continue;
+    avm_memcellClear(&stack_m[oldTop]);
+  }
   // if(retval->type == undef_m)retval->type = nil_m; //TODO: added this!!! IDKKK
 }
 
