@@ -142,6 +142,7 @@ void read_binary() {
 
         break;
       }
+      case not_v: {}
       case assign_v: {
         // result and arg1
         instr->result = new vmarg();

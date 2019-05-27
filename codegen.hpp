@@ -312,6 +312,7 @@ void clear_instruction(instruction* t,quad* quad) {
       t->arg2 = new vmarg();
       make_operand(quad->arg2, t->arg2);
     case assign_v:
+    case not_v:
       t->result = new vmarg();
       make_operand(quad->result, t->result);
     case call_v:
@@ -330,9 +331,8 @@ void clear_instruction(instruction* t,quad* quad) {
     case uminus_v:
     case and_v:
     case or_v:
-    case not_v:
-    case ret_v:
     case nop_v:
+    case ret_v:
     case getretval_v:
       assert(0);
   }
@@ -414,7 +414,7 @@ void generate_IF_LESS(quad* quad) { generate_relational(jlt_v, quad); }
 void generate_IF_LESSEQ(quad* quad) { generate_relational(jle_v, quad); }
 
 void generate_NOT(quad* quad){
-  generate(assign_v, quad);
+  generate(not_v, quad);
 };
 void generate_OR(quad* quad){
   assert(0);

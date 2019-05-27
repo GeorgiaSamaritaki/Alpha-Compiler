@@ -191,7 +191,32 @@ void execute_jump(instruction* instr) {
 void execute_uminus(instruction* instr) {assert(0);}
 void execute_and(instruction* instr) {assert(0);}
 void execute_or(instruction* instr) {assert(0);}
-void execute_not(instruction* instr) {assert(0);}
+
+void execute_not(instruction* instr) {
+  avm_memcell* lv = avm_translate_operand(instr->result, NULL);
+  avm_memcell* rv = avm_translate_operand(instr->arg1, ax);
+
+  assert(lv && (&stack_m[AVM_STACKSIZE - 1] >= lv && lv >= &stack_m[top] ||
+                lv == retval));
+  assert(rv);
+
+  if (lv == rv) return;
+
+  if (lv->type == table_m && rv->type == table_m &&
+      lv->data.tableVal == rv->data.tableVal)
+    return;
+
+  if (rv->type == undef_m) avm_warning("assigning from 'undef' content!");
+
+  avm_memcellClear(lv);
+  memcpy(lv, rv, sizeof(avm_memcell));
+  if( rv->type!= bool_m){
+    lv->data.boolVal = false;
+  }else{
+    lv->data.boolVal = !rv->data.boolVal;
+  }
+  lv->type = bool_m;
+}
 void execute_nop(instruction* instr) {assert(0);}
 void execute_getretval(instruction* instr) {assert(0);}
 void execute_ret(instruction* instr) {assert(0);}
@@ -201,7 +226,7 @@ void execute_jeq(instruction* instr) {
   assert(instr->result->type == label_a);
   avm_memcell* rv1 = avm_translate_operand(instr->arg1, ax);
   avm_memcell* rv2 = avm_translate_operand(instr->arg2, bx);
-
+  // cout<<endl<< " 1: "<<avm_toString(rv1) <<" 2: "<< avm_toString(rv2)<<endl;
   bool result = 0;
 
   if (rv1->type == undef_m || rv2->type == undef_m)

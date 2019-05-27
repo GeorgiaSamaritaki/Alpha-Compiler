@@ -308,7 +308,7 @@ double mul_impl(double x, double y) { return x * y; }
 double div_impl(double x, double y) {
   return y == 0 ? -1 : x / y;
 }  // FIXME: error check?
-double mod_impl(double x, double y) { return x + y; }
+double mod_impl(double x, double y) { return (int)x % (int)y; }
 
 arithmetic_func_t arithmeticFuncs[] = {add_impl, sub_impl, mul_impl, div_impl,
                                        mod_impl};
