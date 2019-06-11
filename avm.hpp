@@ -179,7 +179,6 @@ void avm_error(char* format, ...) {
   va_start(args, format);
   printf(format, args);
   va_end(args);
-  cout<<"\nStack"<<endl;
   printStack();
   cout<<endl;
 }

@@ -200,10 +200,10 @@ void read_binary() {
 
 int main(int argc, char* argv[]) {
   read_binary();
-  cout << "Instructions Read"<<endl;
+  // cout << "Instructions Read"<<endl;
   avm_initialize();
   codeSize = instructionzRead.size();
-  cout << "Avm initialized with codeSize: " << codeSize <<endl;
+  // cout << "Avm initialized with codeSize: " << codeSize <<endl;
   top = AVM_STACKSIZE - 1 - globals - 2;
   topsp = AVM_STACKSIZE - 1;
   

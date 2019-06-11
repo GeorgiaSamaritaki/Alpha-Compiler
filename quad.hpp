@@ -345,6 +345,7 @@ expr* emit_ifTableItem(expr* e) {  // FIXME:
 // function to create new expression/quad ??
 
 expr* member_item(expr* lvalue, char* name) {
+
   lvalue = emit_ifTableItem(lvalue);
   expr* item = newExpr(tableitem_e);
   item->sym = lvalue->sym;

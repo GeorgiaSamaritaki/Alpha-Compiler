@@ -149,6 +149,7 @@ class SymTable {
   vector<SymbolTableEntry *> scopes;  // scopes.at(i) push_back(entry)
  public:
   static const char *get_name(SymbolTableEntry *entry) {
+    if(entry == NULL) return " ";
     switch (entry->type) {
       case USERFUNC:
       case LIBFUNC:
